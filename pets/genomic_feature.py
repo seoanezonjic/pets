@@ -3,27 +3,22 @@ from collections import defaultdict
 import copy
 
 class Genomic_feature:
-    ref = None #TODO: check if the class attribute is correctly defined this way (is was match(@@ref) with ruby)
-
-    #TODO: class methods still need to be correctly migrated to python
-
-    """
-    @classmethod
-    def array2genomic_feature(cls, arr):
-        new(arr.map{|r| yield(r)})
+    ref = None
 
     @classmethod
-    def hash2genomic_feature(cls, h):
+    def array2genomic_feature(cls, arr, func, **kwargs):
+        return cls([func(r) for r in arr], **kwargs)
+
+    @classmethod
+    def hash2genomic_feature(cls, h, func, **kwargs):
         vars = []
-        h.each do |h, v|
-            vars << yield(h, v)
-        end
-        new(vars)
+        for k, v in h.items():
+            vars.append(func(k, v))
+        return cls(vars, **kwargs)
 
     @classmethod
     def add_reference(cls, genomic_regions):
         cls.ref = genomic_regions
-    """
 
     #If any method use gen_fet as name is a Genomic_Feature object
     def __init__(self, feat_list, annotations = None): # [[chr1, start1, stop1],[chr1, start1, stop1]]
@@ -81,17 +76,17 @@ class Genomic_feature:
             size = region["stop"] - region["start"] + 1
             sizes.append(size)
         return sizes
-    
-    """
+
+    #TODO: test    
     def get_features(self, attr_type= None):
-        features = self.match(Genomic_feature.ref) #TODO: check if the class attribute is correctly defined this way (is was match(@@ref) with ruby)
+        features = self.match(Genomic_feature.ref)
         if attr_type:
             for reg_id, feat_ids in features.items():
                 new_feat_ids = list(map(lambda fi: Genomic_feature.ref.region_by_to(fi).get("attrs").get(attr_type), feat_ids))
             
                 features[reg_id] =  self.uniq_list(self.flatten(new_feat_ids))             
         return features
-    """
+
 
     def match(self, other_gen_feat):
         all_matches = {}
@@ -107,15 +102,13 @@ class Genomic_feature:
                 if local_matches: all_matches[reg["to"]] = local_matches
         return all_matches # [{reg_id1: [other_id1, other_id5], reg_id2: [other_id8]}]
 
-    #TODO: ask Pedro is the list is sorted from less to more occurrences of the element's length
     def get_summary_sizes(self):
         sizes = defaultdict(lambda: 0)
         for chrm, region in self.each():
             size = region["stop"] - region["start"] + 1
             sizes[size] += 1
-        return sorted(sizes.items(), key=lambda s: s[1]) #TODO: check how to migrate this line
+        return sorted(sizes.items(), key=lambda s: s[1], reverse=True)
  
-
     #TODO: check with Pedro about wether ids should be uniq or not (look at to assignation)
     def merge(self, gen_fet, to = None): # 'to' the regions must be connected "to" given id
         for chrm, region in gen_fet.each():
@@ -136,8 +129,9 @@ class Genomic_feature:
                 if overlap: reg_ids.append(reg["to"])
             overlaps.append(self.uniq_list(reg_ids))
         return overlaps
+    
 
-    """
+    #TODO: test
     def generate_cluster_regions(self, meth, tag, ids_per_reg = 1, obj = False):
         self.compute_windows(meth) # Get putative genome windows
         ids_by_cluster = {}
@@ -156,9 +150,9 @@ class Genomic_feature:
                     ref_copy = copy.deepcopy(ref)
                     ref_copy.extend([chrm, clust_id])
                     annotated_full_ref.append(ref_copy)
-        annotated_full_ref = Genomic_Feature.array2genomic_feature(annotated_full_ref){|r| [r[2], r[0], r[1], r[3]]} if obj #TODO: check how to migrate this line
+        if obj: annotated_full_ref = Genomic_feature.array2genomic_feature(annotated_full_ref, lambda r: [r[2], r[0], r[1], r[3]]) #TODO: check how to migrate this line
         return ids_by_cluster, annotated_full_ref
-    """
+
 
     def compute_windows(self, meth):
         self.windows = {}

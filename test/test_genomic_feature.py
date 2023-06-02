@@ -35,13 +35,19 @@ class BaseNetTestCase(unittest.TestCase):
 		self.repeated_genomic_feature_size = Genomic_feature(self.repeated_features_size)
 
 	def test_array2genomic_feature(self):
-		pass
+		gen_feature_from_array = Genomic_feature.array2genomic_feature(self.features, lambda r: [r[0], r[1], r[2]])
+		named_gen_feature_from_array = Genomic_feature.array2genomic_feature(self.named_features, lambda r: [r[0], r[1], r[2], r[3]], annotations=self.annotations)
+
+		self.assertEqual(gen_feature_from_array.regions, self.genomic_feature.regions)
+		self.assertEqual(named_gen_feature_from_array.regions, self.named_genomic_feature.regions)
 
 	def test_hash2genomic_feature(self):
-		pass
+		gen_feature_from_hash = Genomic_feature.hash2genomic_feature(self.genomic_feature.reg_by_to, lambda k,v: [v["chrm"], v["start"], v["stop"], v["to"]] )
+		self.assertEqual(gen_feature_from_hash.regions, self.genomic_feature.regions)
 
 	def test_add_reference(self):
-		pass
+		Genomic_feature.add_reference(self.genomic_feature)
+		self.assertEqual(Genomic_feature.ref, self.genomic_feature)
 
 	def test_genomic_feature_attr(self):
 		#Checking that length function is corretly working and returning the
@@ -131,7 +137,7 @@ class BaseNetTestCase(unittest.TestCase):
 		#It calculate the sizes of each region and return an ordered list
 		#of list in which the first element is the size and the second the number
 		#of regions with that size
-		expected = [(99001, 1), (6, 2), (1, 3)]
+		expected = [(1, 3), (6, 2), (99001, 1)]
 		returned = self.repeated_genomic_feature_size.get_summary_sizes()
 		self.assertEqual(expected, returned)
 
