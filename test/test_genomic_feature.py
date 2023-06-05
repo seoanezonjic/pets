@@ -1,7 +1,7 @@
 import sys 
 import unittest
 import os
-from pets import Genomic_feature
+from pets import Genomic_Feature
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
 
@@ -13,7 +13,7 @@ class BaseNetTestCase(unittest.TestCase):
 			['chr2', 501000, 600000],
 			['chr3', 2010, 2010],
 		] 
-		self.genomic_feature = Genomic_feature(self.features)
+		self.genomic_feature = Genomic_Feature(self.features)
 
 		self.named_features = [
 			['chr1', 5000, 10000, 'a'],
@@ -22,7 +22,7 @@ class BaseNetTestCase(unittest.TestCase):
 			['chr3', 2010, 2010, 'd'],
 		]
 		self.annotations = {"a": "status:pathogenic;xref:OMIM4345", "c": "status:benign"}
-		self.named_genomic_feature = Genomic_feature(self.named_features, annotations=self.annotations)
+		self.named_genomic_feature = Genomic_Feature(self.named_features, annotations=self.annotations)
 
 		self.repeated_features_size = [
 			['chr1', 5000, 5000, 'a'],
@@ -32,22 +32,22 @@ class BaseNetTestCase(unittest.TestCase):
 			['chr4', 2015, 2020, 'e'],
 			['chr5', 1000, 100000, 'e'],			
 		]
-		self.repeated_genomic_feature_size = Genomic_feature(self.repeated_features_size)
+		self.repeated_genomic_feature_size = Genomic_Feature(self.repeated_features_size)
 
 	def test_array2genomic_feature(self):
-		gen_feature_from_array = Genomic_feature.array2genomic_feature(self.features, lambda r: [r[0], r[1], r[2]])
-		named_gen_feature_from_array = Genomic_feature.array2genomic_feature(self.named_features, lambda r: [r[0], r[1], r[2], r[3]], annotations=self.annotations)
+		gen_feature_from_array = Genomic_Feature.array2genomic_feature(self.features, lambda r: [r[0], r[1], r[2]])
+		named_gen_feature_from_array = Genomic_Feature.array2genomic_feature(self.named_features, lambda r: [r[0], r[1], r[2], r[3]], annotations=self.annotations)
 
 		self.assertEqual(gen_feature_from_array.regions, self.genomic_feature.regions)
 		self.assertEqual(named_gen_feature_from_array.regions, self.named_genomic_feature.regions)
 
 	def test_hash2genomic_feature(self):
-		gen_feature_from_hash = Genomic_feature.hash2genomic_feature(self.genomic_feature.reg_by_to, lambda k,v: [v["chrm"], v["start"], v["stop"], v["to"]] )
+		gen_feature_from_hash = Genomic_Feature.hash2genomic_feature(self.genomic_feature.reg_by_to, lambda k,v: [v["chrm"], v["start"], v["stop"], v["to"]] )
 		self.assertEqual(gen_feature_from_hash.regions, self.genomic_feature.regions)
 
 	def test_add_reference(self):
-		Genomic_feature.add_reference(self.genomic_feature)
-		self.assertEqual(Genomic_feature.ref, self.genomic_feature)
+		Genomic_Feature.add_reference(self.genomic_feature)
+		self.assertEqual(Genomic_Feature.ref, self.genomic_feature)
 
 	def test_genomic_feature_attr(self):
 		#Checking that length function is corretly working and returning the

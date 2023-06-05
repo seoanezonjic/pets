@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 import argparse, os, re, sys
 import pets
-from pets import Genomic_feature
+from pets import Genomic_Feature
+from pets import Reference_parser
 
 ROOT_PATH=os.path.dirname(__file__)
 
@@ -9,7 +10,6 @@ ROOT_PATH=os.path.dirname(__file__)
 ## METHODS
 ##################################
 
-#TODO: Ask Pedro if last line of a function returns the last variable in ruby
 def get_data(options):
 	fields2extract = get_fields2extract(options)
 	field_numbers = fields2extract.values()
@@ -104,8 +104,8 @@ options = vars(opts)
 regions = Genomic_Feature(get_data(options))
 Genomic_Feature.add_reference(
 	Reference_parser.load(
-		options[:reference_file], 
-		feature_type: options[:feature_type]
+		options["reference_file"], 
+		feature_type= options["feature_type"]
 	)
 )
 gene_features = regions.get_features(attr_type= options["feature_name"])

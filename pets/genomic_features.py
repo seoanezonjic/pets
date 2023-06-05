@@ -2,7 +2,7 @@ import sys
 from collections import defaultdict
 import copy
 
-class Genomic_feature:
+class Genomic_Feature:
     ref = None
 
     @classmethod
@@ -79,10 +79,10 @@ class Genomic_feature:
 
     #TODO: test    
     def get_features(self, attr_type= None):
-        features = self.match(Genomic_feature.ref)
+        features = self.match(Genomic_Feature.ref)
         if attr_type:
             for reg_id, feat_ids in features.items():
-                new_feat_ids = list(map(lambda fi: Genomic_feature.ref.region_by_to(fi).get("attrs").get(attr_type), feat_ids))
+                new_feat_ids = list(map(lambda fi: Genomic_Feature.ref.region_by_to(fi).get("attrs").get(attr_type), feat_ids))
             
                 features[reg_id] =  self.uniq_list(self.flatten(new_feat_ids))             
         return features
@@ -109,7 +109,6 @@ class Genomic_feature:
             sizes[size] += 1
         return sorted(sizes.items(), key=lambda s: s[1], reverse=True)
  
-    #TODO: check with Pedro about wether ids should be uniq or not (look at to assignation)
     def merge(self, gen_fet, to = None): # 'to' the regions must be connected "to" given id
         for chrm, region in gen_fet.each():
             if to == None: 
@@ -118,7 +117,6 @@ class Genomic_feature:
             else:
                 region["to"] = to
             self.add_record(self.regions, chrm, region)
-
 
     def get_reference_overlaps(self, genomic_ranges, reference): 
         overlaps = []
@@ -150,7 +148,7 @@ class Genomic_feature:
                     ref_copy = copy.deepcopy(ref)
                     ref_copy.extend([chrm, clust_id])
                     annotated_full_ref.append(ref_copy)
-        if obj: annotated_full_ref = Genomic_feature.array2genomic_feature(annotated_full_ref, lambda r: [r[2], r[0], r[1], r[3]]) #TODO: check how to migrate this line
+        if obj: annotated_full_ref = Genomic_Feature.array2genomic_feature(annotated_full_ref, lambda r: [r[2], r[0], r[1], r[3]]) #TODO: check how to migrate this line
         return ids_by_cluster, annotated_full_ref
 
 
