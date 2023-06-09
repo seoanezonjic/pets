@@ -1,6 +1,5 @@
 import re, sys
-from pets import Cohort
-
+from pets.cohort import Cohort
 class Cohort_Parser():
     
     @classmethod
@@ -8,7 +7,7 @@ class Cohort_Parser():
         fields2extract = Cohort_Parser.get_fields2extract(options)
         field_numbers = fields2extract.values()
         records = Cohort_Parser.read_records(options, fields2extract, field_numbers)
-        options["extracted_fields"] = fields2extract.keys()
+        options["extracted_fields"] = list(fields2extract.keys())
         cohort, rejected_terms, rejected_recs = Cohort_Parser.create_cohort(records, options)
         return cohort, rejected_terms, rejected_recs
 
@@ -32,7 +31,7 @@ class Cohort_Parser():
                     else:
                         id = record.pop(0)
 
-                    if len(record) > 0 and record[0] != None:
+                    if len(record) > 0 and record[0] != None and options.get("ont_col") != None:
                         record[0] = record[0].split(options["separator"])
                     else:
                         record[0] = []
@@ -104,3 +103,5 @@ class Cohort_Parser():
             else:
                 checked_vars.append(var)
         return vars
+    
+    #TODO: ask PSZ if this last method should be returning checked_vars or vars

@@ -1,11 +1,11 @@
 import sys 
 import unittest
 import os
-from pets import Genomic_Feature
+from pets.genomic_features import Genomic_Feature
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
 
-class BaseNetTestCase(unittest.TestCase):
+class GenomicFeatureTestSuite(unittest.TestCase):
 	def setUp(self):
 		self.features = [
 			['chr1', 5000, 10000],

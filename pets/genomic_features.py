@@ -29,18 +29,19 @@ class Genomic_Feature:
         if annotations != None: self.load_annotations(annotations) 
 
     def load_features(self, feat_list):
-        feat_len = len(feat_list[0])
-        for ft_list in feat_list:
-            self.reg_id +=1
-            if feat_len == 4:
-                chrm, start, stop, to = ft_list
-                r_id = to
-            elif feat_len == 3:
-                chrm, start, stop = ft_list
-                r_id = self.reg_id
-            region = {'chrm': chrm, 'start': start, 'stop': stop, 'to': r_id }
-            self.reg_by_to[r_id] = region
-            self.add_record(self.regions, chrm, region)
+        if not feat_list == None and len(feat_list) > 0:            
+            for ft_list in feat_list:
+                feat_len = len(ft_list)
+                self.reg_id +=1
+                if feat_len == 4:
+                    chrm, start, stop, to = ft_list
+                    r_id = to
+                elif feat_len == 3:
+                    chrm, start, stop = ft_list
+                    r_id = self.reg_id
+                region = {'chrm': chrm, 'start': start, 'stop': stop, 'to': r_id }
+                self.reg_by_to[r_id] = region
+                self.add_record(self.regions, chrm, region)
 
     def load_annotations(self, annotations):
         for r in self.each(): 

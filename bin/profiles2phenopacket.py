@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 import argparse
 import pets
-from pets import Cohort_Parser, Cohort
+from pets import Cohort_Parser, Cohort, constants
+from pets.constants import HPO_FILE
 import os, sys
 
 ROOT_PATH=os.path.dirname(__file__)
@@ -26,7 +27,8 @@ def load_index(path_index):
 parser = argparse.ArgumentParser(description=f'Usage: {os.path.basename(__file__)} [options]')
 
 #TODO: check how to add the common options (COMMON_OPTPARSE variable not found anywhere)
-eval(open(COMMON_OPTPARSE).read())
+import pets.commom_optparse
+#eval(open(COMMON_OPTPARSE).read())
 
 parser.add_argument("-i", "--input_file", dest="input_file", default= None,
                     help="Input file with patient data")
@@ -64,7 +66,7 @@ options = vars(opts)
 #############################################################
 
 #TODO: ask Pedro about ENV variable
-hpo_file = ENV['hpo_file'] if !ENV['hpo_file'].nil? else HPO_FILE
+hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
 Cohort.load_ontology("hpo", hpo_file, options["excluded_hpo"])
 Cohort.act_ont = "hpo"
 

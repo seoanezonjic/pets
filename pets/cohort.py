@@ -1,14 +1,15 @@
 import json
-import semtools
+import py_semtools
 import os, sys
 from collections import defaultdict
-from semtools.ontology import Ontology
+from py_semtools.ontology import Ontology
 from pets.genomic_features import Genomic_Feature
 
 class Cohort():
     #TODO: Ask Pedro about these first lines of code
     ont = {}
-    
+    act_ont = "hpo"
+    profiles = {}
     """
     class << self # https://www.ruby-forum.com/t/attr-accessor-for-class-variable/136693
         attr_accessor :act_ont # Which ontology use for ont related operations
@@ -30,8 +31,7 @@ class Cohort():
             else:
                 ont = Ontology(file= ont_file, load_file= True)
         else:
-            ont = Ontology()
-            ont.read(ont_file)
+            ont = Ontology(file= ont_file, load_file= True)
             if excluded_terms_file:
                 ont.add_removable_terms(Cohort.read_excluded_ont_file(excluded_terms_file))
                 ont.remove_removable()
@@ -52,7 +52,7 @@ class Cohort():
         self.extra_attr = {}
         self.var_idx = Genomic_Feature([])
 
-    def add_record(self, rec, extra_attr = None): #[id, [profile], [[chr1, start1, stop1],[chr1, start1, stop1]]]
+    def add_record(self, rec, extra_attr = None): #rec= [id, [profile], [[chr1, start1, stop1],[chr1, start1, stop1]]]
         id, profile, vars = rec
         if profile: self.profiles[id] = profile
         if extra_attr: self.extra_attr[id] = extra_attr 
@@ -63,14 +63,14 @@ class Cohort():
         del(self.vars[id])
 
     def select_by_profile(self, func):
-        self.profiles = dict( filter(lambda id, profile: func(id, profile), self.profiles.items()) )
+        self.profiles = dict( filter(lambda id_profile: func(id_profile[0], id_profile[1]), self.profiles.items()) )
         current_ids = self.profiles.keys()
-        self.vars = dict( filter(lambda id, var: id in current_ids, self.vars.items() ) )
+        self.vars = dict( filter(lambda id_var: id_var[0] in current_ids, self.vars.items() ) )
 
     def select_by_var(self, func):
-        self.vars = dict( filter(lambda id, var: func(id, var), self.vars.items()) )
+        self.vars = dict( filter(lambda id_var: func(id_var[0], id_var[1]), self.vars.items()) )
         current_ids = self.vars.keys()
-        self.profiles = dict( filter(lambda id, profile: id in current_ids, self.profiles.items() ) )
+        self.profiles = dict( filter(lambda id_profile: id_profile[0] in current_ids, self.profiles.items() ) )
 
     def filter_by_term_number(self, n_terms):
         self.select_by_profile(lambda id, profile, n_terms=n_terms: len(profile) >= n_terms)
