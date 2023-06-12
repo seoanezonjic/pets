@@ -63,32 +63,34 @@ class Cohort():
         del(self.vars[id])
 
     def select_by_profile(self, func):
-        self.profiles = dict( filter(lambda id_profile: func(id_profile[0], id_profile[1]), self.profiles.items()) )
+        self.profiles = dict( filter(lambda id_profile_pair: func(id_profile_pair[0], id_profile_pair[1]), self.profiles.items()) )
         current_ids = self.profiles.keys()
-        self.vars = dict( filter(lambda id_var: id_var[0] in current_ids, self.vars.items() ) )
+        self.vars = dict( filter(lambda id_var_pair: id_var_pair[0] in current_ids, self.vars.items() ) )
 
     def select_by_var(self, func):
-        self.vars = dict( filter(lambda id_var: func(id_var[0], id_var[1]), self.vars.items()) )
+        self.vars = dict( filter(lambda id_var_pair: func(id_var_pair[0], id_var_pair[1]), self.vars.items()) )
         current_ids = self.vars.keys()
-        self.profiles = dict( filter(lambda id_profile: id_profile[0] in current_ids, self.profiles.items() ) )
+        self.profiles = dict( filter(lambda id_profile_pair: id_profile_pair[0] in current_ids, self.profiles.items() ) )
 
     def filter_by_term_number(self, n_terms):
         self.select_by_profile(lambda id, profile, n_terms=n_terms: len(profile) >= n_terms)
     
     def remove_incomplete_records(self): # remove resc that lacks of vars or phenotypes
-        ids_with_terms = self.profiles.keys()
+        ids_with_terms = []
+        for id, profile in self.profiles.items():
+            if len(profile) > 0: ids_with_terms.append(id)
         ids_with_vars = []
         for id, regs in self.vars.items():
-            if len(regs) > 0: ids_with_vars.append(id)
+            if regs.len() > 0: ids_with_vars.append(id)
 
         full_ids = self.intersection(ids_with_vars, ids_with_terms)
 
         self.profiles = dict( filter( 
-            lambda id, prof: id in full_ids, 
+            lambda id_prof_pair: id_prof_pair[0] in full_ids, 
             self.profiles.items() ) )
 
         self.vars = dict( filter(
-            lambda id, var: id in full_ids,
+            lambda id_var_pair: id_var_pair[0] in full_ids,
             self.vars.items() ) )
         
 
@@ -139,7 +141,7 @@ class Cohort():
                 terms, rejec_terms = ont.check_ids(terms)
 
             if rejec_terms and len(rejec_terms) > 0:
-                sys.stderr.write(f"WARNING: record {id} has the unknown CODES '{rejec_terms.join(',')}'. Codes removed.")
+                sys.stderr.write(f"WARNING: record {id} has the unknown CODES '{','.join(rejec_terms)}'. Codes removed.")
                 rejected_terms.extend(rejec_terms)
 
             if not terms or len(terms) == 0:
@@ -148,12 +150,12 @@ class Cohort():
                 self.profiles[id] = terms
 
         self.profiles = dict(filter(
-            lambda id, record: id not in rejected_recs, 
-            self.profiles))
+            lambda id_record_pair: id_record_pair[0] not in rejected_recs, 
+            self.profiles.items()))
         
         self.vars = dict(filter(
-            lambda id, record: id not in rejected_recs,
-            self.vars))
+            lambda id_record_pair: id_record_pair[0] not in rejected_recs,
+            self.vars.items()))
 
         return list(set(rejected_terms)), rejected_recs
 
@@ -230,21 +232,22 @@ class Cohort():
                 if translate: terms, rejected = ont.translate_ids(terms)
                 id_variants = self.vars.get(id)
                 variants = []
-                if id_variants == None or len(id_variants) == 0:
+                if id_variants == None or id_variants.len() == 0:
                     variants.append(['-', '-', '-'])
                 else:
                     for chrm, reg in id_variants.each():
                         variants.append([chrm, reg["start"], reg["stop"]])
 
                 for var in variants:
-                    vars_joined = "\t".join(var)
+                    vars_joined = "\t".join([str(item) for item in var])
                     if mode == "default":
-                        f.write(f"{id}\t{terms.join('|')}\t{vars_joined}")
+                        f.write(f"{id}\t{'|'.join(terms)}\t{vars_joined}\n")
                     elif mode == "paco":
-                        f.write(f"{id}\t{vars_joined}\t{terms.join('|')}")
+                        f.write(f"{id}\t{vars_joined}\t{'|'.join(terms)}\n")
                     else:
                         raise Exception('Wrong save mode option, please try default or paco')
-
+    
+    #TODO: test the method
     def export_phenopackets(self, output_folder, genome_assembly, vcf_index: None):
         ont = Cohort.ont[Cohort.act_ont]
         metaData = {
