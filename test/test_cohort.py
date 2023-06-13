@@ -31,6 +31,7 @@ class CohortTestSuite(unittest.TestCase):
 
         self.n_patients = 84
 
+
     def test_load(self):
         chroms = [str(chrm) for chrm in range(1,23)] + ['X', 'Y']
         
@@ -78,6 +79,7 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(self.patient_data.vars.get(2000).regions.get("X"), [{'chrm': 'X', 'start': 1000, 'stop': 2000, 'to': 1}])
         self.assertEqual(self.patient_data.extra_attr.get(2000), {"sex": "M"})
 
+
     def test_delete(self):
         new_record = [2000, ["HP:0025500"], [["21", 20, 25], ["X", 1000, 2000]]]
         extra_attr = {"sex": "M"}
@@ -90,6 +92,7 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(self.patient_data.profiles.get(2000), None)
         self.assertEqual(self.patient_data.vars.get(2000), None)
         #TODO: Ask PSZ wether extra_attr should be removed as well
+
 
     def test_select_by_profile(self):
         #HP:0000486: Strabismus, just 8 patients in the toy dataset
@@ -108,6 +111,7 @@ class CohortTestSuite(unittest.TestCase):
         for pat, hpterms in self.patient_data.profiles.items():
             self.assertIn("HP:0000486", hpterms)
 
+
     def test_select_by_var(self):
         #There are only 5 patients with mutations in the X chromosome in the toy dataset
         def check_var_in_pat(query):
@@ -122,6 +126,7 @@ class CohortTestSuite(unittest.TestCase):
 
         for pat, vars in self.patient_data.vars.items():
             self.assertIn("X", vars.regions.keys())
+
 
     def test_filter_by_term_number(self):
         #We are filtering out patients with less than 4 phenotypes
@@ -148,31 +153,38 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(len(self.patient_data.profiles.keys()), self.n_patients - 2)
         self.assertEqual(len(self.patient_data.vars.keys()), self.n_patients - 2)
 
+
     def test_add_gen_feat(self):
         new_gen_feat = [["21", 20, 25, 0]]
         self.patient_data.add_gen_feat(2000, new_gen_feat)
         self.assertEqual(self.patient_data.vars.get(2000).regions.get("21"), [{'chrm': '21', 'start': 20, 'stop': 25, 'to': 0}])
 
+
     def test_get_profile(self):
         self.assertEqual(self.patient_data.get_profile("130"), self.patient_data.profiles["130"])
 
+
     def test_get_vars(self):
         self.assertEqual(self.patient_data.get_vars("130"), self.patient_data.vars["130"])
+
 
     def test_each_profile(self):
         for pat, hpterms in self.patient_data.each_profile():
             self.assertIn(pat, self.patient_data.profiles.keys())
             self.assertIn(hpterms, self.patient_data.profiles.values())
 
+
     def test_each_var(self):
         for pat, vars in self.patient_data.each_var():
             self.assertIn(pat, self.patient_data.vars.keys())
             self.assertIn(vars, self.patient_data.vars.values())
 
+
     def test_get_general_profile(self):
         #Intellectual disability HP:0001249 is the term with a frequency higher than 0.5 in the toy dataset
         general_profiles = self.patient_data.get_general_profile(thr=0.5)
         self.assertEqual(general_profiles, ["HP:0001249"])
+
 
     def test_check(self):
         #Adding a new record with an incorrect HP term
@@ -203,21 +215,108 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(len(self.patient_data.vars.items()), self.n_patients + 1)
         self.assertEqual(self.patient_data.profiles[2001], ["HP:0000315"])
 
+
     def test_link2ont(self):
         self.patient_data.link2ont(Cohort.act_ont)
+        #We check that the profiles of the patients are correctly saved as profiles in the
+        #ontology object
         self.assertEqual(Cohort.ont[Cohort.act_ont].profiles.items(),
                          self.patient_data.profiles.items())
-        
+
+
     def test_get_profile_redundancy(self):
         pass
 
-    #TODO: explain what the test is doing
+
+    def test_get_profiles_terms_frequency(self):
+        pass
+
+
+    def test_compute_term_list_and_childs(self):
+        pass
+
+
+    def test_get_profile_ontology_distribution_tables(self):
+        pass
+
+
+    def test_get_ic_analysis(self):
+        pass
+
+
+    def test_get_profiles_mean_size(self):
+        pass
+
+
+    def test_get_profile_length_at_percentile(self):
+        pass
+
+
+    def test_get_dataset_specifity_index(self):
+        pass
+
+
+    def test_compare_profiles(self):
+        pass
+
+
     def test_index_vars(self):
-        expected_number_of_vars = sum([len(regions) for pat_gen_feats in self.patient_data.vars.values() 
+        expected_number_of_regions = sum([len(regions) for pat_gen_feats in self.patient_data.vars.values() 
                                         for chrm, regions in pat_gen_feats.regions.items()])
+        
+        #Mixing the genomic regions of the patients in a unique Genomic Feature
         self.patient_data.index_vars()
-        returned_number_of_vars = sum([len(regions) for chrm, regions in self.patient_data.var_idx.regions.items()])
-        self.assertEqual(expected_number_of_vars, returned_number_of_vars)
+        returned_number_of_regions = sum([len(regions) for chrm, regions in self.patient_data.var_idx.regions.items()])
+        #Checking that the number of regions in this mixed genomic feature is the same as the total number of regions of the patients
+        self.assertEqual(expected_number_of_regions, returned_number_of_regions)
+
+
+    def test_get_vars_sizes(self):
+        self.maxDiff = None
+        expected_sizes = []
+        for regions in self.patient_data.vars.values():
+            for chrm, region in regions.each():
+                    expected_sizes.append(region["stop"] - region["start"] + 1)
+        #Mixing the genomic regions of the patients in a unique Genomic Feature (var_idx attribute)
+        self.patient_data.index_vars()
+        #Getting the sizes of each of the genomic regions of the patients
+        returned_sizes = self.patient_data.get_vars_sizes()
+
+        self.assertEqual(sorted(expected_sizes), sorted(returned_sizes))
+
+        #Getting summary sizes, which is a 2D list with the size and number of patients with that size
+        returned_sizes = self.patient_data.get_vars_sizes(summary=True)
+        expected_sizes = sorted([(size, expected_sizes.count(size)) for size in set(expected_sizes)], 
+                                key=lambda x: [x[1],x[0]], reverse=True)
+        self.assertEqual(expected_sizes, returned_sizes)
+
+
+    def test_generate_cluster_regions(self):
+        #Mixing the genomic regions of the patients in a unique Genomic Feature
+        self.patient_data.index_vars()
+
+        returned_ids_by_cluster_0, returned_annotated_full_red_0 = self.patient_data.var_idx.generate_cluster_regions(meth="reg_overlap", tag="coh", ids_per_reg = 0)
+        self.assertEqual(returned_ids_by_cluster_0.keys(), self.patient_data.vars.keys()) #We expect all the patients to be returned when the filtering threshold is 0
+        for regions_id in returned_ids_by_cluster_0.values():
+            self.assertGreaterEqual(len(regions_id), 1) #We expect at least one region per patient
+
+        for reference_region in returned_annotated_full_red_0:
+            self.assertEqual(len(reference_region), 4) #We expect the reference region to have 4 elements: chrm, start, stop and the region_id
+
+        returned_ids_by_cluster_3, returned_annotated_full_red_3 = self.patient_data.var_idx.generate_cluster_regions(meth="reg_overlap", tag="coh", ids_per_reg = 3)
+        self.assertLessEqual(len(returned_annotated_full_red_3), len(returned_annotated_full_red_0)) #We expect fewer overlapping regions with more than 3 patients than with 1 patients
+        self.assertLessEqual(len(returned_ids_by_cluster_3), len(returned_ids_by_cluster_0)) #The same is true for the patients
+        
+        for regions_id in returned_ids_by_cluster_3.values():
+            self.assertGreaterEqual(len(regions_id), 1) #We expect at least one region per patient, so after the thresholding, patients in the dictionary should have at leat 1 region with more than 3 patients
+
+        for reference_region in returned_annotated_full_red_3:
+            self.assertGreaterEqual(int(reference_region[3].split(".")[-1]), 3) #We expect the last number of the region tag (number of patients overlapping the region) to be equal or greater to the threshold we used
+            self.assertEqual(reference_region[3].split(".")[0], reference_region[2]) #And also that the first number in the region tag corresponds to the chromosome 
+
+        returned_ids_by_cluster_1000, returned_annotated_full_red_1000 = self.patient_data.var_idx.generate_cluster_regions(meth="reg_overlap", tag="coh", ids_per_reg = 1000)
+        self.assertEqual(returned_ids_by_cluster_1000, {}) #We expect no patients to be returned when the filtering threshold is 1000 (not that many overlaps in the toy dataset)
+        self.assertEqual(returned_annotated_full_red_1000, []) #Neither we expect any reference regions to be returned
 
 
     def test_save(self):
@@ -268,3 +367,6 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(len(rejected_patients_L), 0)
 
         os.remove(f"{tmp_file}")
+
+    def test_export_phenopackets(self):
+        pass

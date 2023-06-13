@@ -6,7 +6,7 @@ from pets.constants import HPO_FILE
 import os, sys
 
 ROOT_PATH=os.path.dirname(__file__)
-
+COMMOM_OPTPARSE = os.path.join(ROOT_PATH, "..", "pets", 'commom_optparse.py')
 
 #############################
 ## METHODS
@@ -26,8 +26,10 @@ def load_index(path_index):
 ############################################################################################
 parser = argparse.ArgumentParser(description=f'Usage: {os.path.basename(__file__)} [options]')
 
-#TODO: check how to add the common options (COMMON_OPTPARSE variable not found anywhere)
-import pets.commom_optparse
+#TODO: check how to add the common options
+with open(COMMOM_OPTPARSE) as infile:
+    exec(infile.read())
+#import pets.commom_optparse
 #eval(open(COMMON_OPTPARSE).read())
 
 parser.add_argument("-i", "--input_file", dest="input_file", default= None,

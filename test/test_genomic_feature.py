@@ -21,7 +21,7 @@ class GenomicFeatureTestSuite(unittest.TestCase):
 			['chr2', 501000, 600000, 'c'],
 			['chr3', 2010, 2010, 'd'],
 		]
-		self.annotations = {"a": "status:pathogenic;xref:OMIM4345", "c": "status:benign"}
+		self.annotations = {"a": {"status":"pathogenic","xref":"OMIM4345"}, "c": {"status":"benign"}}
 		self.named_genomic_feature = Genomic_Feature(self.named_features, annotations=self.annotations)
 
 		self.repeated_features_size = [
@@ -118,14 +118,28 @@ class GenomicFeatureTestSuite(unittest.TestCase):
 			{"chrm": 'chr2', "start": 501000, "stop": 600000, "to": 2})
 		#Looking for a region using region id (named case) with attrs
 		self.assertEqual(self.named_genomic_feature.region_by_to("c"),
-			{"chrm": 'chr2', "start": 501000, "stop": 600000, "to": "c", 'attrs': 'status:benign'})
+			{"chrm": 'chr2', "start": 501000, "stop": 600000, "to": "c", 'attrs': {'status':'benign'}})
 		
 	def test_get_sizes(self):
 		#Returning the sizes of each of the regions
 		self.assertEqual(self.genomic_feature.get_sizes(), [5001, 1001, 99001, 1])
 
-	def get_features(self):
-		pass
+	def test_get_features(self):
+		#We have to set a reference genomic feature beforehand
+		Genomic_Feature.add_reference(self.named_genomic_feature)
+
+		#withouth specifying the feature we want to get, it behaves just like match method
+		#(regions "to" as keys and matched reference regions "to" as values)
+		returned = self.genomic_feature.get_features()
+		expected = {0: ['a'], 1: ['b'], 2: ['c'], 3: ['d']}
+		self.assertEqual(expected, returned)
+
+		#specifing the attribute we want to get, it returns the regions "to" as keys and
+		#as values the value of the attribute (in the matched regions where the attribute was found) 
+		returned2 = self.genomic_feature.get_features("status")
+		expected2 = {0: ['pathogenic'], 1: [], 2: ['benign'], 3: []}
+		self.assertEqual(expected2, returned2)
+
 
 	def test_match(self):
 		#Checking that match is correctly returning the regions that overlap with other genomic_feature	
@@ -158,8 +172,8 @@ class GenomicFeatureTestSuite(unittest.TestCase):
 			else:
 				self.fail("Unexpected number of keys")
 
-	#TODO: Ask about this method (reference is a list of [start,stop] instead of a genomic_feature?)
-	def test_get_reference_overlaps(self):
+	
+	def test_get_reference_overlaps(self): 
 		reference = [[item[1], item[2]] for item in self.features]
 		genomic_ranges = [item[1] for item in self.named_genomic_feature.each()]
 		self.assertEqual(
@@ -167,7 +181,21 @@ class GenomicFeatureTestSuite(unittest.TestCase):
 		   [["a"], ["b"], ["c"], ["d"]])
 	
 	def test_generate_cluster_regions(self):
-		pass
+		##region tags below follows the pattern: chromosome_number . region_id . custom_tag . number_of_patients_overlapping_the_region
+		expected_ids_by_cluster = {'a': ['chr1.0.cohorte.1'], 'b': ['chr1.1.cohorte.1'], 'c': ['chr2.0.cohorte.1'], 'd': ['chr3.0.cohorte.1']}
+		#the reference regions (that is the list of genomic windows for a given chromosome) now has the chromosome number 
+		# and the tags especified above (we can know number of patients falling in the region with the last number of the tag)
+		expected_annotated_full_red = [[5000, 10000, 'chr1', 'chr1.0.cohorte.1'], [11000, 12000, 'chr1', 'chr1.1.cohorte.1'], [501000, 600000, 'chr2', 'chr2.0.cohorte.1'], [2010, 2010, 'chr3', 'chr3.0.cohorte.1']]
+		
+		returned_ids_by_cluster, returned_annotated_full_red = self.named_genomic_feature.generate_cluster_regions(meth="reg_overlap", tag="cohorte", ids_per_reg = 0)
+		self.assertEqual(expected_ids_by_cluster, returned_ids_by_cluster)
+		self.assertEqual(expected_annotated_full_red, returned_annotated_full_red)
+
+		#Now we try a threshold to filter out regions with less than 2 patients (so we use ids_per_reg = 1 to filter out regions with 1 or less records)
+		#We expect 0 records to be returned in this case (the toy dataset doesnt have any region with more than 1 record overlapping)
+		returned_ids_by_cluster, returned_annotated_full_red = self.named_genomic_feature.generate_cluster_regions(meth="reg_overlap", tag="cohorte", ids_per_reg = 1)
+		self.assertEqual({}, returned_ids_by_cluster)
+		self.assertEqual([], returned_annotated_full_red)
 
 	def test_compute_windows(self):
 		expected = {'chr1': [[5000, 10000], [10000, 11000], [11000, 12000]], 'chr2': [[501000, 600000]], 'chr3': [[2010, 2010]]}

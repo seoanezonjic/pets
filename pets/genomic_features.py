@@ -44,8 +44,7 @@ class Genomic_Feature:
                 self.add_record(self.regions, chrm, region)
 
     def load_annotations(self, annotations):
-        for r in self.each(): 
-            chrm, reg = r
+        for chrm, reg in self.each(): 
             annot = annotations.get(reg['to'])
             if annot != None: reg['attrs'] = annot 
 
@@ -77,15 +76,18 @@ class Genomic_Feature:
             size = region["stop"] - region["start"] + 1
             sizes.append(size)
         return sizes
-
-    #TODO: test    
+  
     def get_features(self, attr_type= None):
-        features = self.match(Genomic_Feature.ref)
+        features = self.match(Genomic_Feature.ref) # [{self_id1: [ref_id1, ref_id5], self_id2: [ref_id8]}]
+        def _get_attr(fi):
+            attrs = Genomic_Feature.ref.region_by_to(fi).get("attrs") #Can be None or value
+            if attrs != None: attrs = attrs.get(attr_type) #Can be None or value
+            return attrs #Can be None or value
+        
         if attr_type:
             for reg_id, feat_ids in features.items():
-                new_feat_ids = list(map(lambda fi: Genomic_Feature.ref.region_by_to(fi).get("attrs").get(attr_type), feat_ids))
-            
-                features[reg_id] =  self.uniq_list(self.flatten(new_feat_ids))             
+                new_feat_ids = list(map(_get_attr, feat_ids))            
+                features[reg_id] = self.uniq_list([item for item in new_feat_ids if item != None])             
         return features
 
 
@@ -108,7 +110,7 @@ class Genomic_Feature:
         for chrm, region in self.each():
             size = region["stop"] - region["start"] + 1
             sizes[size] += 1
-        return sorted(sizes.items(), key=lambda s: s[1], reverse=True)
+        return sorted(sizes.items(), key=lambda s: [s[1],s[0]], reverse=True)
  
     def merge(self, gen_fet, to = None): # 'to' the regions must be connected "to" given id
         for chrm, region in gen_fet.each():
@@ -119,7 +121,10 @@ class Genomic_Feature:
                 region["to"] = to
             self.add_record(self.regions, chrm, region)
 
-    def get_reference_overlaps(self, genomic_ranges, reference): 
+    def get_reference_overlaps(self, genomic_ranges, reference):
+		#Given a reference (that is the list of genomic windows for a given chromosome)
+		#it returns the ids ("to") of the patient regions that fall in each of the windows,
+        #ex: [[id1, id2, id3], [id4, id5, id6], [id7, id8, id9]]
         overlaps = []
         for start, stop in reference: 
             reg_ids = []
@@ -130,26 +135,25 @@ class Genomic_Feature:
         return overlaps
     
 
-    #TODO: test
     def generate_cluster_regions(self, meth, tag, ids_per_reg = 1, obj = False):
         self.compute_windows(meth) # Get putative genome windows
         ids_by_cluster = {}
         annotated_full_ref = [] # All reference windows wit uniq id and chr tagged
         for chrm, regs in self.regions.items():
             reference = self.windows[chrm]
-            overlaps = self.get_reference_overlaps(regs, reference)
+            overlaps = self.get_reference_overlaps(regs, reference) #[[id1, id2], [id4]]
             clust_numb = 0
             for i, ref in enumerate(reference):
-                current_ids = overlaps[i]
+                current_ids = overlaps[i] #[id1, id2]
                 if len(current_ids) > ids_per_reg:
                     clust_id = f"{chrm}.{clust_numb}.{tag}.{len(current_ids)}"
                     clust_numb +=1
-                    for curr_id in current_ids: #TODO: check wether this is a list or a dict
+                    for curr_id in current_ids:
                         self.add_record(ids_by_cluster, curr_id, clust_id, True)
                     ref_copy = copy.deepcopy(ref)
                     ref_copy.extend([chrm, clust_id])
                     annotated_full_ref.append(ref_copy)
-        if obj: annotated_full_ref = Genomic_Feature.array2genomic_feature(annotated_full_ref, lambda r: [r[2], r[0], r[1], r[3]]) #TODO: check how to migrate this line
+        if obj: annotated_full_ref = Genomic_Feature.array2genomic_feature(annotated_full_ref, lambda r: [r[2], r[0], r[1], r[3]]) #TODO: ask PSZ about this
         return ids_by_cluster, annotated_full_ref
 
 
@@ -197,7 +201,7 @@ class Genomic_Feature:
                 next_coord = reference[i + 1]
                 current_len = next_coord - coord
                 if last_len == 0: coord = coord + 1# Separate SNV window from others
-                if current_len == 0 and last_len > 0 and final_reference:
+                if current_len == 0 and last_len > 0 and len(final_reference) > 0:
                     final_reference[-1][1] -= 1 # Separate SNV window from others				
                 final_reference.append([coord, next_coord])
                 last_len = current_len
