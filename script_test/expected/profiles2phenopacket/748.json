@@ -1,0 +1,60 @@
+{
+    "metaData": {
+        "createdBy": "PETS",
+        "resources": [
+            {
+                "id": "hp",
+                "name": "human phenotype ontology",
+                "namespacePrefix": "HP",
+                "url": "http://purl.obolibrary.org/obo/hp.owl",
+                "iriPrefix": "http://purl.obolibrary.org/obo/HP_"
+            }
+        ]
+    },
+    "subject": {
+        "id": "748",
+        "sex": "M"
+    },
+    "phenotypicFeatures": [
+        {
+            "type": {
+                "id": "HP:0000717",
+                "label": "Autism"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0001249",
+                "label": "Intellectual disability"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000276",
+                "label": "Long face"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000189",
+                "label": "Narrow palate"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        }
+    ]
+}

@@ -102,6 +102,6 @@ class Cohort_Parser():
                 sys.stderr.write(f"WARNING: variant {(',').join(var)} has been removed") 
             else:
                 checked_vars.append(var)
-        return vars
+        return checked_vars
     
     #TODO: ask PSZ if this last method should be returning checked_vars or vars

@@ -1,0 +1,110 @@
+{
+    "metaData": {
+        "createdBy": "PETS",
+        "resources": [
+            {
+                "id": "hp",
+                "name": "human phenotype ontology",
+                "namespacePrefix": "HP",
+                "url": "http://purl.obolibrary.org/obo/hp.owl",
+                "iriPrefix": "http://purl.obolibrary.org/obo/HP_"
+            }
+        ]
+    },
+    "subject": {
+        "id": "762",
+        "sex": "M"
+    },
+    "phenotypicFeatures": [
+        {
+            "type": {
+                "id": "HP:0002078",
+                "label": "Truncal ataxia"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000437",
+                "label": "Depressed nasal tip"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0002650",
+                "label": "Scoliosis"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0002553",
+                "label": "Highly arched eyebrow"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0010818",
+                "label": "Generalized tonic seizure"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0010721",
+                "label": "Abnormal hair whorl"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0004691",
+                "label": "2-3 toe syndactyly"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0001249",
+                "label": "Intellectual disability"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0004322",
+                "label": "Short stature"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        }
+    ]
+}

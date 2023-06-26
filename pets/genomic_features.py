@@ -153,7 +153,7 @@ class Genomic_Feature:
                     ref_copy = copy.deepcopy(ref)
                     ref_copy.extend([chrm, clust_id])
                     annotated_full_ref.append(ref_copy)
-        if obj: annotated_full_ref = Genomic_Feature.array2genomic_feature(annotated_full_ref, lambda r: [r[2], r[0], r[1], r[3]]) #TODO: ask PSZ about this
+        if obj: annotated_full_ref = Genomic_Feature.array2genomic_feature(annotated_full_ref, lambda r: [r[2], r[0], r[1], r[3]])
         return ids_by_cluster, annotated_full_ref
 
 

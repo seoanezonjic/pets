@@ -1,0 +1,290 @@
+{
+    "metaData": {
+        "createdBy": "PETS",
+        "resources": [
+            {
+                "id": "hp",
+                "name": "human phenotype ontology",
+                "namespacePrefix": "HP",
+                "url": "http://purl.obolibrary.org/obo/hp.owl",
+                "iriPrefix": "http://purl.obolibrary.org/obo/HP_"
+            }
+        ]
+    },
+    "subject": {
+        "id": "318",
+        "sex": "M"
+    },
+    "phenotypicFeatures": [
+        {
+            "type": {
+                "id": "HP:0002561",
+                "label": "Absent nipple"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0006695",
+                "label": "Atrioventricular canal defect"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000717",
+                "label": "Autism"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000581",
+                "label": "Blepharophimosis"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000518",
+                "label": "Cataract"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0004209",
+                "label": "Clinodactyly of the 5th finger"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000028",
+                "label": "Cryptorchidism"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000490",
+                "label": "Deeply set eye"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000750",
+                "label": "Delayed speech and language development"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000286",
+                "label": "Epicanthus"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000365",
+                "label": "Hearing impairment"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0001249",
+                "label": "Intellectual disability"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000343",
+                "label": "Long philtrum"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000369",
+                "label": "Low-set ears"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0008551",
+                "label": "Microtia"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0001643",
+                "label": "Patent ductus arteriosus"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0001763",
+                "label": "Pes planus"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000089",
+                "label": "Renal hypoplasia"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000960",
+                "label": "Sacral dimple"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000470",
+                "label": "Short neck"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0009803",
+                "label": "Short phalanx of finger"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000954",
+                "label": "Single transverse palmar crease"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0008070",
+                "label": "Sparse hair"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000402",
+                "label": "Stenosis of the external auditory canal"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0009894",
+                "label": "Thickened ears"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000219",
+                "label": "Thin upper lip vermilion"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000431",
+                "label": "Wide nasal bridge"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        }
+    ]
+}

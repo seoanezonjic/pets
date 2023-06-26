@@ -1,0 +1,90 @@
+{
+    "metaData": {
+        "createdBy": "PETS",
+        "resources": [
+            {
+                "id": "hp",
+                "name": "human phenotype ontology",
+                "namespacePrefix": "HP",
+                "url": "http://purl.obolibrary.org/obo/hp.owl",
+                "iriPrefix": "http://purl.obolibrary.org/obo/HP_"
+            }
+        ]
+    },
+    "subject": {
+        "id": "758",
+        "sex": "F"
+    },
+    "phenotypicFeatures": [
+        {
+            "type": {
+                "id": "HP:0000193",
+                "label": "Bifid uvula"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0008872",
+                "label": "Feeding difficulties in infancy"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0001249",
+                "label": "Intellectual disability"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000545",
+                "label": "Myopia"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0001611",
+                "label": "Hypernasal speech"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0001642",
+                "label": "Pulmonic stenosis"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        },
+        {
+            "type": {
+                "id": "HP:0000486",
+                "label": "Strabismus"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        }
+    ]
+}

@@ -1,0 +1,193 @@
+<%
+	def get_hpo_link(hpo_code):
+		# STDERR.puts hpo_code.inspect
+		link = '-'
+		if hpo_code != '-':
+			link = f"<a href=\"https://hpo.jax.org/app/browse/term/{hpo_code}\">{hpo_code}</a>"
+		return link
+
+	def red_text(text):
+		return f"<font color=\"red\">{text}</font>"
+
+	def add_tip(text, help_text):
+		return f"<div class=\"tooltip\">{text}<span class=\"tooltiptext\">{help_text}</span></div>"
+
+	def compact(sublist):
+		return [x for x in sublist if x]
+
+	def characterised_hpos_table_formatter(data):
+		for row in data:
+			for i, cell in enumerate(row):
+				if i == 1:
+					# STDERR.puts cell.inspect
+					row[i] = get_hpo_link(cell)
+				elif i == 4:
+					row[i] = ", ".join([compact([get_hpo_link(h), n]) for h,n in cell])	
+				elif i == 5:
+					row[i] = ", ".join([f"{get_hpo_link(r[0])} ({r[-1]})" for r in cell])
+				elif i == 3:
+					ci = float(cell)
+					if ci <= 1:
+						text = red_text(round(ci, 2))
+					else:
+						text = round(ci, 2)
+					row[i] = text
+				elif i == 2:
+					if cell == 'no':
+						row[i] = red_text(cell)
+		data.insert(0, [add_tip("HPO name", "Name of the HPO"), "HPO code", "Exists in database?", "Information Coefficient (IC)", "Is child of", "Possible child HPO terms"])
+
+	def translate_and_format_hpo_names(h):
+		hpo_names, rejected = hpo.translate_names([h])
+		return f"{get_hpo_link(h)}: {hpo_names[0]}"
+	
+	def round_decimals_or_scientific_notation(a):
+		if abs(a) > 0.01:
+			return round(float(a),2)
+		else:
+			return "{:.3E}".format(a)
+
+	def merged_regions_table_formatter(data, gene_var= None):
+		hpo = plotter.hash_vars["hpo"]
+		for row_number, row in enumerate(data):
+			for i, cell in enumerate(row):
+				if i == 3:
+					row[i] = "\n<br>".join([translate_and_format_hpo_names(h) for h in cell])
+				elif i == 4:
+					row[i] = "\n<br>".join([round_decimals_or_scientific_notation(a) for a in cell]) 
+
+			if gene_var:
+				if row_number < len(gene_var) and gene_var[row_number]:
+					gene_data = gene_var[row_number]
+					table = '<table border= "2">'
+					table.append( f"<tr><th>{ '</th><th>'.join(["GeneID", "Gene Names", "Description", "KEGG pathways"]) }</th></tr>" )
+					geneIDs = [ gd[0] for gd in gene_data ]
+
+					for items in gene_data: #TODO: check wether this is correctly migrated from ruby
+						if len(items) == 1:
+							geneID, attributes = items[0], None
+						if len(items) == 2:
+							geneID, attributes = items 
+						table.append('<tr>')
+						table.append(f"<td><a href=https://www.ncbi.nlm.nih.gov/gene/?term={geneID}>{geneID}</a></td>")
+						if attributes:
+							table.append(f"<td>{ ', '.join( attributes[0][0:2]) }</td>")
+							table.append(f"<td>{attributes[1]}</td>")
+							table.append( f"<td> { '<br>'.join([f"<a href=\"https://www.kegg.jp/pathway/{pws[0]}+{'+'.join(geneIDs)}\">{pws[-1]}</a>" for pws in attributes[2]]) } </td>")
+						else:
+							table.append('<td></td>' * 3)
+						table.append('</tr>')
+					table.append('</table>')
+					row.append( table)
+				else:
+					row.append( ('-'))
+			else
+				row.append( ('-'))
+		data.insert(0, ["Chromosome", "Start", "Stop", "Associated HPOs", "Association values<br>(For each HPO)", "Combined score", "Gene data" ])
+
+
+	def pathway_stats_table_formatter(data):
+		for row in data:
+			for i, field in enumerate(row):
+				new_field = field
+				if i == 0:
+					new_field = f"<a href=\"https://www.kegg.jp/pathway/{field.first}+{'+'.join(row[i+1])}\">{field[-1]}</a>"
+				elif i == 1:
+					new_field = ', '.join( [f"<a href=https://www.ncbi.nlm.nih.gov/gene/?term={geneID}>{geneID}</a>" for geneID in field])
+				elif i == 2:
+					new_field = ", ".join(field)
+				row[i] = new_field
+		data.insert(0, ["KEGG pathway", "Genes in pathway", "Contigency table: PN, NP, PP, NN", "Fisher p-value" ])
+%>
+
+<div class="chunk">
+	<style type="text/css" scoped>	
+	.tooltip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px dotted black;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 1s;
+}
+
+.tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+	</style>
+</div>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+<h1 style="text-align: center; background-color:#d6eaf8">Input HPO quality control</h1>
+<p>HPO terms with IC values less than <b>1</b> are marked in red, and they do not give much information to our system. Please, if possible, select more specific HPO terms suggested in <b>Possible child HPO terms </b>column.</p>
+
+	${ plotter.table(id= "characterised_hpos", header= True, border= 2, 
+		cell_align= "left center center center center left".split(" "),
+		func = characterised_hpos_table_formatter) }
+
+<h1 style="text-align: center; background-color:#d6eaf8">Regions associated to HPO profile</h1>
+<h2 style="text-align: center; background-color:#d6eaf8">General representation</h2>
+<div style="overflow: hidden;">
+	% if plotter.hash_vars.get("merged_regions"):
+		<% 
+		circular_data = []
+		for row in sorted(plotter.hash_vars["merged_regions"] , key= lambda reg: [int(reg[0]), int(reg[1])]):
+			#TODO if chr were x or y, change them to 23 and 24 and, when print, use x and y again
+			circular_data_row = []
+			circular_data_row.append( f"{row[1]}-{row[2]}")
+			circular_data_row.append( row[5])
+			circular_data_row.append( row[0])
+			circular_data.append( circular_data_row)
+		circular_data.insert(0, "Coords CombScore Chr".split(" "))
+		plotter.hash_vars["circular_data"] = circular_data
+		%>
+		${plotter.circular( id= "circular_data", header= True, row_names= True, responsive= False, sample_attributes= {'Chr': 2},
+						config={ 'smpOverlays': ['Chr'], #'segregateSamplesBy' => ['Chr'], #'smpLabelOrientation' => 'circular',
+								'colorSpectrum': ["#d73027", "#fc8d59", "#fee090", "#ffffbf", "#e0f3f8", "#91bfdb", "#4575b4"]},
+						func = lambda data: data.pop() )}
+	% endif
+</div>
+<h2 style="text-align: center; background-color:#d6eaf8">Ranked genomic regions associated to the HPO profile</h2>
+<p>The following table shows all the predicted genomic regions, the HPO terms found for it, their original association values and the calculated combined score. Results are ranked from the highest to the lowest combined score.</p>
+
+	% if plotter.hash_vars.get("merged_regions"):
+		<% gene_var = plotter.hash_vars.get("genes_with_kegg_data") %>
+		${ plotter.table(id= "merged_regions", header= True, border= 2,
+			cell_align= "center center center left center center".split(" ")),
+			func = merged_regions_table_formatter}
+	% endif
+
+	% if plotter.hash_vars.get("pathway_stats"):
+		<h2 style="text-align: center; background-color:#d6eaf8">KEGG pathways significance in the genes located into the predicted regions </h2>
+		<p></p>
+			${ plotter.table(id= "pathway_stats", header= True, border= 2 , 
+			func = pathway_stats_table_formatter)}
+	% endif
+
+</div>

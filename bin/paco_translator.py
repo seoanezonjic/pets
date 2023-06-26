@@ -1,12 +1,16 @@
 #! /usr/bin/env python
 
-import pets
+import os, sys, argparse
+ROOT_PATH=os.path.dirname(__file__)
+CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'pets', 'constants.py'))
+sys.path.insert(0, os.path.join(ROOT_PATH, '..'))
+
 from pets.cohort import Cohort
 from pets.parsers.cohort_parser import Cohort_Parser
-from pets.constants import HPO_FILE
-import os, sys, argparse
 
-ROOT_PATH = os.path.dirname(__file__)
+with open(CONSTANTS_PATH) as infile:
+    exec(infile.read())
+
 
 ############################################################################################
 ## OPTPARSE
@@ -22,7 +26,7 @@ parser.add_argument("-d", "--pat_id_col", dest="id_col", default= None,
 parser.add_argument("-e", "--end_col", dest="end_col", default= None,
                     help="Column name if header is true, otherwise 0-based position of the column with the end mutation coordinate")
 
-parser.add_argument("-H", "--header", dest="header", default= None,
+parser.add_argument("-H", "--header", dest="header", default= True, action="store_false",
                     help="File has a line header. Default true")
 
 parser.add_argument("-o", "--output_file", dest="output_file", default= None,
@@ -52,6 +56,9 @@ parser.add_argument("-n","--hpo_names", dest="names", default= False, action="st
 parser.add_argument("-t","--translate", dest="translate", default= False, action="store_true",
                     help="Set to translate from hpo codes to names. By default, ther is not translation")
 
+parser.add_argument("-X", "--excluded_hpo", dest="excluded_hpo", default= None,
+                    help="File with excluded HPO terms")
+
 opts = parser.parse_args() 
 options = vars(opts)
 
@@ -59,7 +66,7 @@ options = vars(opts)
 #MAIN
 ###############
 hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
-Cohort.load_ontology("hpo", hpo_file)
+Cohort.load_ontology("hpo", hpo_file, options.get("excluded_hpo"))
 Cohort.act_ont = "hpo"
 
 patient_data, rejected_hpos, rejected_patients = Cohort_Parser.load(options)

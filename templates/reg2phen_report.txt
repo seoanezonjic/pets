@@ -1,0 +1,49 @@
+<%
+	hpo = plotter.hash_vars["hpo"]:
+	def get_hpo_link(hpo_code):
+		link = '-'
+		if hpo_code != '-':
+			link = f"<a href=\"https://hpo.jax.org/app/browse/term/{hpo_code}\">{hpo_code}</a>"
+		return link
+
+	def get_gene_link(gene_code)
+		link = '-'
+		if gene_code != '-':
+			link = f"<a href=\"https://www.genenames.org/tools/search/#!/genes?query={gene_code}\">{gene_code}</a>"
+		return link
+
+	def format_table_uniq_hpos(data_array):
+		header = data_array.pop(0)
+		for row in data_array:
+			hpo_name = hpo.translate_id(row[0])
+			row.append(get_hpo_link(row[-1]))
+			row[0] = hpo_name
+		header.insert(0, 'HPO Name')
+		data_array.insert(0, header)
+	
+	def format_table1(data_array):
+		header = data_array.pop(0)
+		for row in data_array:
+			for i, cell in enumerate(row):
+				if i == 5:
+					hpo_name, rejected = hpo.translate_ids([cell])
+					row[i] = f"{hpo_name[0]}, {get_hpo_link(cell)}"
+				elif i == 6:
+					row[i] = round(cell, 6)
+				elif i == 10:
+					genes = cell.split(',')
+					row[i] = ','.join([get_gene_link(gene) for gene in genes])
+		data_array.insert(0, header)
+%>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">List of HPOs found</h1>
+	${ plotter.table(id= "table_uniq_hpos", header= True, styled= 'dt', attrib= {'class': 'table table-striped'},
+				  func= format_table_uniq_hpos) }
+</div>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">Input HPO quality control</h1>
+	${ plotter.table(id= "table1", header= True, styled= 'dt', attrib= {'class': 'table table-striped'},
+				  func= format_table1) }
+</div>

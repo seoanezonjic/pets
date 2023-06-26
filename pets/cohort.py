@@ -1,5 +1,4 @@
 import json
-import py_semtools
 import os, sys
 from collections import defaultdict
 from py_semtools.ontology import Ontology
@@ -24,18 +23,10 @@ class Cohort():
 
     @classmethod
     def load_ontology(cls, ont_name, ont_file, excluded_terms_file = None):
-        ont = None
-        if ".json" not in ont_file:
-            if excluded_terms_file:
-                ont = Ontology(file= ont_file, load_file= True, removable_terms= Cohort.read_excluded_ont_file(excluded_terms_file))
-            else:
-                ont = Ontology(file= ont_file, load_file= True)
+        if excluded_terms_file == None:
+            ont = Ontology(file= ont_file, load_file= True, file_format= ont_file.split(".")[-1], build=True, removable_terms= [])     
         else:
-            ont = Ontology(file= ont_file, load_file= True)
-            if excluded_terms_file:
-                ont.add_removable_terms(Cohort.read_excluded_ont_file(excluded_terms_file))
-                ont.remove_removable()
-                ont.build_index()
+            ont = Ontology(file= ont_file, load_file= True, file_format= ont_file.split(".")[-1], build=True, removable_terms= Cohort.read_excluded_ont_file(excluded_terms_file)) 
         cls.ont[ont_name] = ont
 
     @classmethod
@@ -248,7 +239,7 @@ class Cohort():
                         raise Exception('Wrong save mode option, please try default or paco')
     
     #TODO: test the method
-    def export_phenopackets(self, output_folder, genome_assembly, vcf_index: None):
+    def export_phenopackets(self, output_folder, genome_assembly, vcf_index= None):
         ont = Cohort.ont[Cohort.act_ont]
         metaData = {
             "createdBy": "PETS",
@@ -263,12 +254,13 @@ class Cohort():
         }
 
         for id, terms in self.profiles.items():
-            phenopacket = {metaData: metaData}
-            query_sex = self.extra_attr.get(id).get("sex")
+            phenopacket = {"metaData": metaData}
+            query_sex = self.extra_attr.get(id)
+            query_sex = query_sex.get("sex") if query_sex != None else None
             sex = 'UNKNOWN_SEX' if query_sex == None else query_sex
             phenopacket["subject"] = {
-                id: id,
-                sex: sex
+                "id": id,
+                "sex": sex
             }
             phenotypicFeatures = []
             for term in terms:
@@ -292,13 +284,6 @@ class Cohort():
 
             with open(os.path.join(output_folder, str(id) + ".json"), "w") as f:
                 f.write(json.dumps(phenopacket, indent=4))
-            id_variants = self.vars.get(id)
-            variants = []
-            if id_variants == None or len(id_variants) == 0:
-                variants.append(['-', '-', '-'])
-            else:
-                for chrm, reg in id_variants.each():
-                    variants.append([chrm, reg["start"], reg["stop"]])
 
     #Supplementary functions
     def intersection(self, arr1, arr2):

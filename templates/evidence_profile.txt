@@ -1,0 +1,55 @@
+<% 
+	def format_table(data):
+		for row in data:
+			row[1] = " ".join(row[1])
+			row[2] = ",".join(row[2])
+			row[3] = ",".join(row[3])
+%>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">Profile ${ plotter.hash_vars["profile_id"] }</h1>
+	<h1 style="text-align: center; background-color:#d6eaf8">Evidence similar to profile</h1>
+	% for pair, similarity_matrix in plotter.hash_vars["similarity_matrixs"]:
+		<% 
+			matrix_name = pair + '_sim_matrix'
+			if "gene_HP" in pair:
+				dictt = plotter.hash_vars["evidences"][pair]["id2lab"]
+
+				header = similarity_matrix[0]
+				header = [item if dictt.get(str(item)) == None #label = dictt.get(str(item))
+							else dictt.get(str(item)) 
+							for item in header]
+
+				plotter.hash_vars["candidates"] = [ [idd if dictt.get(idd) == None 	#label = dictt.get(idd)
+														else dictt.get(idd), 
+													score] 
+													for idd, score in plotter.hash_vars["candidates"] ]
+				
+				new_hash = {}
+				for k,v in plotter.hash_vars["genomic_coordinates"].items():
+					label = dictt.get(k)
+					final_key = k if label == None else label
+					new_hash[final_key] = v
+				plotter.hash_vars["genomic_coordinates"] = new_hash					
+
+			plotter.hash_vars[matrix_name] = similarity_matrix
+		%>
+		${plotter.heatmap(id= matrix_name, header= True, row_names= True, title= pair )}
+
+	% endfor
+	${plotter.circular_genome(id= "candidates", header= False, row_names= True, transpose= False, 
+		 genomic_coordinates= plotter.hash_vars["genomic_coordinates"] )}
+	% if plotter.hash_vars.get("var_ids"):
+		% if len(plotter.hash_vars["var_ids"]) > 200:
+			<p> Too much variant records</p>
+		% else:
+			${plotter.circular_genome(id= "var_ids", header= False, 
+				row_names= True, transpose= False, 
+		 		genomic_coordinates= plotter.hash_vars["var_coordinates"] )}
+		% endif
+	% endif
+
+	<h1 style="text-align: center; background-color:#d6eaf8">Candidate regions</h1>
+
+	${  plotter.table(id= "hotspot_table", func = format_table)}
+</div>

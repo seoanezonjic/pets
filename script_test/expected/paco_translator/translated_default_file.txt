@@ -1,0 +1,100 @@
+105	Hallux valgus|Intellectual disability|Macrodontia|Microcephaly|Narrow forehead|Prominent nose|Seizure|Short palm|Short philtrum|Wide mouth	21	39156413	43816220
+106	Abnormal eyebrow morphology|Autism|Bulbous nose|Deeply set eye|Hypotelorism|Intellectual disability|Localized hirsutism|Microcephaly|Microtia|Narrow mouth|Proportionate short stature|Seizure	1	928301	1155984
+126	Autism|Intellectual disability|Joint laxity|Hypotonia|Strabismus	14	20784119	21860987
+127	2-3 toe syndactyly|Aplasia/Hypoplasia of the skin|Bilateral superior vena cava with bridging vein|Cryptorchidism|Feeding difficulties in infancy|Frontal upsweep of hair|Hip dysplasia|Hypospadias|Inguinal hernia|Intellectual disability|Partial anomalous pulmonary venous return|Persistence of primary teeth|Sinus venosus atrial septal defect|Small for gestational age|Thin upper lip vermilion	19	32294016	35456588
+128	Anomalous pulmonary venous return|Atrioventricular canal defect|Hyperactivity|Intellectual disability|Pulmonic stenosis|Short attention span|Vesicoureteral reflux	8	8119295	11892064
+129	Broad forehead|Cryptorchidism|Diastasis recti|Feeding difficulties in infancy|Intellectual disability|Small sella turcica|Uplifted earlobe	1	177045292	189141601
+130	Hypoglycemia|Short stature|Small for gestational age	X	42660069	46378186
+131	Generalized non-motor (absence) seizure|Cafe-au-lait spot|Cryptorchidism|Delayed skeletal maturation|Dysarthria|Feeding difficulties in infancy|Flexion contracture|Intellectual disability|Short stature	17	43739782	44210195
+132	Autism|Intellectual disability|Hypotonia	22	49932021	51187844
+133	Intellectual disability|Non-midline cleft lip|Short stature|Ventricular septal defect	1	209894262	210160851
+135	Absent speech|EEG with spike-wave complexes (<2.5 Hz)|Febrile seizure (within the age range of 3 months to 6 years)|Intellectual disability|Involuntary movements|Low anterior hairline|Hypotonia|Sleep disturbance|Strabismus	5	86170311	90103610
+138	Feeding difficulties in infancy|Intellectual disability|Hypotonia|Seizure|Short stature	2	146354248	149171932
+139	Abnormality of the hypothalamus-pituitary axis|Achalasia|Apraxia|Delayed speech and language development|Intellectual disability|Micropenis|Optic disc hypoplasia|Prominent nasal bridge|Sacral dimple|Thick eyebrow|Upslanted palpebral fissure	12	16851561	22736846
+139	Abnormality of the hypothalamus-pituitary axis|Achalasia|Apraxia|Delayed speech and language development|Intellectual disability|Micropenis|Optic disc hypoplasia|Prominent nasal bridge|Sacral dimple|Thick eyebrow|Upslanted palpebral fissure	12	44866421	45363917
+140	Anteverted nares|Clinodactyly of the 5th finger|Cryptorchidism|Epicanthus|Hypogonadism|Hypoplastic philtrum|Intellectual disability|Joint laxity|Protruding ear|Thin upper lip vermilion	6	72100590	80896703
+141	Blepharophimosis|Intellectual disability|Large hands|Long foot|Obesity|Strabismus|Tall stature|Upslanted palpebral fissure	2	1633880	2411001
+147	Atypical behavior|Bifid uvula|Delayed speech and language development|Intellectual disability|Short stature|Tetralogy of Fallot	5	51048080	55511689
+184	Anterior creases of earlobe|Hypoglycemia|Intellectual disability|Microcephaly	10	89136373	101570391
+221	Anteverted nares|Brachydactyly|Broad thumb|Epicanthus|Hoarse voice|Intellectual disability|Long philtrum|Hypernasal speech|Strabismus|Thin upper lip vermilion|Trigonocephaly|Wide nasal bridge	13	89678237	100197340
+306	Delayed speech and language development|Downslanted palpebral fissures|Feeding difficulties in infancy|Hypertelorism|Intellectual disability|Long eyelashes|Low-set ears|Short stature|Strabismus	17	16527060	20296229
+308	High palate|Hypertelorism|Long face|Low-set ears|Prominent nasal bridge	2	36990321	37984982
+309	2-3 toe syndactyly|Anteverted nares|Clinodactyly of the 5th finger|Delayed speech and language development|Feeding difficulties in infancy|Low-set ears|Microcephaly|Micropenis|Osseous finger syndactyly|Short nose	20	46212807	49519078
+310	Delayed speech and language development|Feeding difficulties in infancy|Hypertelorism|Intellectual disability|Proportionate short stature|Short neck	4	137795004	141554823
+311	Autism|Delayed speech and language development|Intellectual disability	4	188285265	190783221
+311	Autism|Delayed speech and language development|Intellectual disability	18	140336	1744122
+313	Autism|Intellectual disability	22	19771355	19771891
+313	Autism|Intellectual disability	14	30186580	32532022
+314	Abnormal iris pigmentation|Brachycephaly|Broad thumb|Delayed speech and language development|Epicanthus|Feeding difficulties in infancy|High palate|Hypoplastic philtrum|Intellectual disability|Narrow palate	2	1633880	1806213
+318	Absent nipple|Atrioventricular canal defect|Autism|Blepharophimosis|Cataract|Clinodactyly of the 5th finger|Cryptorchidism|Deeply set eye|Delayed speech and language development|Epicanthus|Hearing impairment|Intellectual disability|Long philtrum|Low-set ears|Microtia|Patent ductus arteriosus|Pes planus|Renal hypoplasia|Sacral dimple|Short neck|Short phalanx of finger|Single transverse palmar crease|Sparse hair|Stenosis of the external auditory canal|Thickened ears|Thin upper lip vermilion|Wide nasal bridge	1	228888703	229677483
+318	Absent nipple|Atrioventricular canal defect|Autism|Blepharophimosis|Cataract|Clinodactyly of the 5th finger|Cryptorchidism|Deeply set eye|Delayed speech and language development|Epicanthus|Hearing impairment|Intellectual disability|Long philtrum|Low-set ears|Microtia|Patent ductus arteriosus|Pes planus|Renal hypoplasia|Sacral dimple|Short neck|Short phalanx of finger|Single transverse palmar crease|Sparse hair|Stenosis of the external auditory canal|Thickened ears|Thin upper lip vermilion|Wide nasal bridge	1	232672145	232855415
+320	Craniosynostosis|Intellectual disability	X	103611494	107162978
+321	Hyperactivity|Intellectual disability|Microcephaly|Short stature	7	87068276	97387239
+321	Hyperactivity|Intellectual disability|Microcephaly|Short stature	13	36011940	37185776
+323	Cataract|Intellectual disability|Joint laxity|Pectus excavatum|Submucous cleft hard palate	17	43739782	44210195
+523	Intellectual disability|Long philtrum|Patent ductus arteriosus|Proportionate short stature|Round face	16	71711934	72900379
+578	Broad nasal tip|Coarse facial features|Congenital nystagmus|Depressed nasal bridge|Intellectual disability|Microcephaly|Short stature|Widely spaced teeth	13	57625629	57819406
+589	Atrial septal defect|Congenital diaphragmatic hernia|Cryptorchidism	8	8119295	11765719
+595	Autism|Intellectual disability|Sleep disturbance	X	122390702	123162552
+596	Abnormal retinal morphology|Abnormal skull morphology|Autism|Intellectual disability|Microcephaly	5	77120305	92148751
+597	Atypical behavior|Feeding difficulties in infancy|Intellectual disability|Scoliosis	3	185816939	192541120
+599	Intellectual disability	15	102014001	102204520
+603	Hydrocephalus|Intellectual disability|Short stature	10	25929725	26092525
+605	Cataract|Intellectual disability	16	15504454	16284248
+607	Delayed speech and language development|Downslanted palpebral fissures|Feeding difficulties in infancy|Hypertelorism|Intellectual disability|Posteriorly rotated ears|Short nose	5	175903373	176865737
+608	Abnormality of the male genitalia|Hypertelorism|Short stature	5	131614248	131703405
+610	Intellectual disability|Microcephaly|Pectus excavatum|Seizure|Short stature	8	487653	6697907
+610	Intellectual disability|Microcephaly|Pectus excavatum|Seizure|Short stature	4	65628	8262577
+611	High palate|Intellectual disability|Micropenis|Short stature	1	221721083	223823881
+613	Intellectual disability|Joint laxity	2	49085079	52519708
+614	Intellectual disability|Primary amenorrhea|Short stature	5	12077086	12229083
+614	Intellectual disability|Primary amenorrhea|Short stature	5	70143756	70273582
+614	Intellectual disability|Primary amenorrhea|Short stature	15	22290003	22469097
+614	Intellectual disability|Primary amenorrhea|Short stature	1	104092359	104210985
+615	Absent testis|Intellectual disability|Lissencephaly|Micropenis	3	12615855	12760917
+618	Intellectual disability|Trigonocephaly	2	90134890	90135405
+618	Intellectual disability|Trigonocephaly	6	32478974	32565869
+618	Intellectual disability|Trigonocephaly	1	104092359	104210985
+618	Intellectual disability|Trigonocephaly	Y	25748445	28389040
+622	Abnormality of the kidney|Aplasia of the uterus|Hypothyroidism|Intellectual disability|Scoliosis	22	19771355	21123068
+624	Intellectual disability	5	100963222	101153990
+625	Intellectual disability|Obesity	7	102358320	105487655
+626	Intellectual disability	6	31923988	32092796
+626	Intellectual disability	17	44083882	44210195
+627	Abnormality of the male genitalia|Abnormal skull morphology|Intellectual disability|Obesity	X	154208417	154309447
+630	Intellectual disability|Triphalangeal thumb	3	20661018	30043466
+631	Hearing impairment|Hypoplasia of the corpus callosum|Intellectual disability|Tall stature	13	101515431	102709370
+632	Atypical behavior|Hyperactivity|Impaired pain sensation|Intellectual disability|Sleep disturbance|Upslanted palpebral fissure	17	17397429	20289709
+633	Intellectual disability	17	62293	202888
+634	Intellectual disability|Joint laxity|Hypotonia|Strabismus	6	49578845	49697350
+635	Intellectual disability|Microcephaly|Hypotonia	20	55353031	62814232
+636	Ataxia|Intellectual disability	3	195408544	196190309
+637	Intellectual disability|Short stature	15	22812353	22990924
+638	Intellectual disability|Hypotonia	15	43892914	44064441
+639	Intellectual disability|Precocious puberty in females|Short stature	15	29677287	29826537
+640	Hyperactivity|Intellectual disability|Protruding ear	10	57039828	57212151
+641	Cerebellar vermis hypoplasia|Dandy-Walker malformation|Intellectual disability	X	153751486	153894678
+644	Intellectual disability|Short stature	8	43196654	43319558
+645	Abnormal pupil morphology|Hearing impairment|Intellectual disability|Iris atrophy	6	145997	3526148
+646	Delayed speech and language development|Intellectual disability	16	29643284	29823033
+647	Intellectual disability|Turricephaly	22	19771355	19771891
+648	Hearing impairment|Intellectual disability|Microcephaly	22	19771355	19771891
+648	Hearing impairment|Intellectual disability|Microcephaly	22	17967244	18110323
+649	Atrioventricular canal defect|Feeding difficulties in infancy|Intellectual disability	4	55127376	55301251
+652	Intellectual disability	6	145997	262636
+748	Autism|Intellectual disability|Long face|Narrow palate	15	25184941	28306442
+749	Autism|Cryptorchidism|Hypospadias|Intellectual disability|Scoliosis|Short stature|Strabismus	4	80164859	82113957
+750	Autism|Intellectual disability|Synophrys|Thick eyebrow	1	191875576	192066804
+752	Generalized non-motor (absence) seizure|Autism|Delayed speech and language development|Downslanted palpebral fissures|Everted lower lip vermilion|Intellectual disability	5	13165128	13321982
+753	Abnormal hair whorl|Atrial septal defect|Autism|Cryptorchidism|Decreased testicular size|Flexion contracture|Hypotonia|Ptosis	4	86166299	101453072
+754	Autism|Hypospadias|Intellectual disability|Malar flattening|Open mouth|Scoliosis	7	72332741	75315803
+757	Atypical behavior|Hypospadias|Intellectual disability	19	9827758	10838695
+758	Bifid uvula|Feeding difficulties in infancy|Intellectual disability|Myopia|Hypernasal speech|Pulmonic stenosis|Strabismus	22	29512535	30221049
+759	Autism|Intellectual disability|Macrocephaly|Neoplasm of the skin	2	108977960	109953263
+761	Delayed speech and language development|Intellectual disability|Tall stature	9	97336045	102370397
+762	2-3 toe syndactyly|Abnormal hair whorl|Depressed nasal tip|Generalized tonic seizure|Highly arched eyebrow|Intellectual disability|Scoliosis|Short stature|Truncal ataxia	17	15380603	20289709
+763	Broad nasal tip|Convex nasal ridge|Everted lower lip vermilion|Hyperextensible skin|Hypertelorism|Joint laxity|Large earlobe|Long neck|Mandibular prognathia|Scoliosis|Short philtrum|Thick upper lip vermilion|Upslanted palpebral fissure|Webbed neck|Wide mouth|Widely spaced teeth	20	49413310	50154833
+766	Abnormality of the voice|Absent testis|Autism|Broad hallux|Intellectual disability|Proportionate short stature|Turricephaly	15	25184941	30756112
+767	Abnormal labia morphology|Bifid uvula|Hydrocephalus|Hypoplasia of the corpus callosum|Intellectual disability|Hypotonia|Preauricular pit|Pulmonic stenosis|Seizure|Ventricular septal defect	11	107792125	113258885
+767	Abnormal labia morphology|Bifid uvula|Hydrocephalus|Hypoplasia of the corpus callosum|Intellectual disability|Hypotonia|Preauricular pit|Pulmonic stenosis|Seizure|Ventricular septal defect	11	94103831	105588056
+767	Abnormal labia morphology|Bifid uvula|Hydrocephalus|Hypoplasia of the corpus callosum|Intellectual disability|Hypotonia|Preauricular pit|Pulmonic stenosis|Seizure|Ventricular septal defect	11	114235228	134651277

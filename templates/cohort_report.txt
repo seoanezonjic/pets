@@ -1,0 +1,151 @@
+<%
+	import os
+	def add_tip(text, help_text):
+		return f"<div class=\"tooltip\">{text}<span class=\"tooltiptext\">{help_text}</span></div>"
+%>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">Summary stats</h1>
+	<p> General stats about the patient cohort</p>
+	${ plotter.table(id= "summary_stats", header= True, styled= 'bs', 
+		cell_align= "left center".split(" "), attrib= {'class': 'table table-striped'},
+		func = lambda data: data.insert(0,['Stat', 'Value']))
+	}
+</div>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">HPO stats</h1>
+	<p> HPOs more frequent in the cohort </p>
+	${ plotter.table(id= "hpo_stats", header= True, styled= 'dt', 
+		cell_align= "left center".split(" "), attrib= {'class': 'table table-striped'},
+		func = lambda data: data.insert(0,['HPO', ' Patient percentage']))
+	}
+</div>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">Cohort genome coverage analysis</h1>
+	<p> Distribution of the genome coverage of all mutations characterized in the cohort. Second figure shows the same results for SORs.</p>
+	<% plot = os.path.join(plotter.hash_vars["temp_folder"],'coverage_plot.pdf') %>
+		% if os.path.exists(plot):
+			${plotter.embed_pdf(os.path.join(plotter.hash_vars["temp_folder"],'coverage_plot.pdf'), 'width="800" height="800"')}
+		% else:
+			"<p> No genomic data was specified for this cohort </p>"
+		% endif
+
+	<% plot = os.path.join(plotter.hash_vars["temp_folder"],'sor_coverage_plot.pdf') %>
+		% if os.path.exists(plot):
+			${plotter.embed_pdf(os.path.join(plotter.hash_vars["temp_folder"],'sor_coverage_plot.pdf'), 'width="800" height="800"') }
+		% else:
+			"<p> No genomic data was specified for this cohort </p>"
+		% endif
+
+	<div style="overflow: hidden">
+		<h1 style="text-align: center; background-color:#d6eaf8">Distribution of mutations</h1>
+		<p> Distribution of all mutations along the genome (Length) and the number of patients that have at least one of them (Count). Second figure shows the same for SORs. </p>
+			% if plotter.hash_vars.get("all_cnvs_length"):
+				${plotter.scatter2D(id= "all_cnvs_length", header= False, title= 'CNV', row_names= False, x_label= 'Length', y_label= 'Count', width= "800px", height= "800px", responsive= False)}
+			% else:
+				"<p> No genomic data was specified for this cohort </p>"
+			% endif
+
+			% if plotter.hash_vars.get("all_sor_length"):
+				${plotter.scatter2D(id= "all_sor_length", header= False, title= 'SOR', row_names= False, x_label= 'Length', y_label= 'Count', width= "800px", height= "800px", responsive= False)}
+			% else:
+				"<p> No genomic data was specified for this cohort </p>"
+			% endif
+	</div>
+</div>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">HPO annotations distribution</h1>
+	<p> Analysis of the HPO terms within the HPO ontology and the cohort of patients. Left: distribution of terms within the ontology and the cohort. Right: percentage of terms distribution within the ontology and the cohort.</p>
+	<div style="overflow: hidden">
+		% if plotter.hash_vars("ontology_levels"):
+			${plotter.barplot(id= "ontology_levels", header= True, x_label= 'Number of HPO terms', title= 'HPO annotations distribution', width= "800px", height= "800px", responsive= False, transpose= True, 
+					config: { 'graphOrientation': 'vertical'}) }
+		% endif
+		% if plotter.hash_vars.get("distribution_percentage"):
+			${plotter.line(id= "distribution_percentage", header= True, x_label= 'Percentage of terms', title= 'HPO percentage distribution', width= "800px", height= "800px", responsive= False, transpose= True, 
+					config: { 'graphOrientation' => 'vertical' }) }
+		% endif
+	</div>
+	<p> HPOs frequency distribution. Colour based on the HPO frequency.</p>
+	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;">
+		<% plot = os.path.join(plotter.hash_vars["temp_folder"],'hpo_freq_colour.png') %>
+			% if File.exists(plot):
+				plotter.embed_img(plot, 'width="800" height="800"') 
+			% else:
+				"<p> Invalid file specified. </p>"
+			% endif
+	</div>
+</div>
+
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">Clustering patients by HPO profile</h1>
+	<p> All patients are clustered using their HPO profiles. First figure shows the information coefficient distribution for the top clusters. Second figure shows which chromosomes are affected in the patients for each top cluster. </p>
+	<%  plot = os.path.join(plotter.hash_vars["temp_folder"],'scatterplot.pdf') %>
+		% if os.path.exists(plot):
+			plotter.embed_pdf(plot, 'width="800" height="800"') 
+		% else:
+			"<p> Genomic data was not specified </p>"
+		% endif
+	${ plotter.embed_pdf(os.path.join(plotter.hash_vars["temp_folder"],'boxplot.pdf'), 'width="800" height="800"') }
+</div>
+
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">HPO profile redundancy</h1>
+	<p> For each patient profile size (number of phenotypes, x-axis) it is shown the number of HPO phenotypes that are parent of other terms within the profile (number of parent terms, y-axis). </p>
+	<% plot = os.path.join(plotter.hash_vars["temp_folder"],'parents_per_term.pdf') %>
+		% if os.path.exists(plot):
+			plotter.embed_pdf(plot, 'width="800" height="800"')
+		% else:
+			"<p> Unable to find parents_per_term.pdf file. </p>"
+		% endfor
+</div>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">HPO ICs distribution</h1>
+	<p> First figure shows the ICs distribution in terms of the HP ontology (x-axis) and for each single HPO term, its frequency in the cohort according to the HP ontology structure (y-axis) and the second figure shows the same distributions considering the profiles analyzed. </p>
+	<% plot = os.path.join(plotter.hash_vars["temp_folder"],'hpo_ics.pdf') %>
+		% if os.path.exists(plot):
+			${plotter.embed_pdf(plot, 'width="600" height="600"')} 
+		% else:
+			"<p> Unable to find hpo_ics.pdf file. </p>"
+		% endfor
+	${ plotter.embed_pdf(os.path.join(plotter.hash_vars["temp_folder"],'hpo_profile_ics.pdf'), 'width="600" height="600"') }
+</div>
+
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">HPO frequency by cluster</h1>
+	% for n in range(plotter.hash_vars["new_cluster_phenotypes"]):
+		${ plotter.table(id= f"clust_{n}", header= True, border= 2, row_names= False, text= True, 
+			cell_align= "center" ,
+			func = lambda data: data.insert(0,[f"Patients in Cluster {n}","Phenotypes", "Frequency"]))
+			# data.unshift([add_tip("HPO information in cluster #{n}"), "Patients" "Phenotypes", "Frequency")])
+			# data.unshift(["HPO information in cluster #{n}\tPhenotypes\tFrequency"])
+		}
+	% endfor
+</div>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">Patient profiles heatmaps</h1>
+	<p> For each patient, their HPO profile similarity coefficient is calculated according to the different methods specified in the analysis and represented in these heatmaps. </p>
+
+		% for clust_method in plotter.hash_vars["clustering_methods"]:
+			<% plot = os.path.join(plotter.hash_vars["temp_folder"], f"{clust_method}_heatmap.png") %>
+			% if os.path.exist(plot):
+				${ plotter.embed_img(plot, 'width="800" height="800"') }
+			% else:
+				<% print('File not found or method not specified.') %>
+			% endif
+
+			<% plot = os.path.join(plotter.hash_vars["temp_folder"], clust_method + '_sim_boxplot.png') %>
+			% if os.path.exist(plot):
+				${ plotter.embed_img(plot, 'width="800" height="800"') }
+			% endif
+		% endfor
+
+</div>

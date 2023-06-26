@@ -1,0 +1,54 @@
+<%
+	import os
+	hpo = plotter.hash_vars["hpo"]
+	def get_hpo_link(hpo_code):
+		link = '-'
+		if hpo_code != '-':
+			link = f"<a href=\"https://hpo.jax.org/app/browse/term/{hpo_code}\">{hpo_code}</a>"
+		return link
+	
+	def format_data(data):
+		patient_list = []
+		for element in data: # Cluster
+			clID, patient_number, patient_ids, hpo_codes, hpo_names = element
+			# TODO: mostrar registro por paciente
+			#STDERR.puts element.inspect
+			for i, patID in enumerate(patient_ids):
+				patient_record = [clID, patient_number]
+				patient_record.append( patID )
+				patient_record.append( ", ".join([get_hpo_link(hpo_code) for hpo_code in hpo_codes[i]] ) )
+				patient_record.append( ", ".join(hpo_names[i] ))
+				patient_list.append( patient_record )
+		data.clear()
+		data.extend(patient_list) 
+		data.insert(0, ["Cluster ID","Patients in Cluster","Patient IDs", "HPO codes", "Phenotypes"])	
+%>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">Average of patients by HPO profile average in clusters</h1>
+	<p> Distribution of patients in clusters based on the average of phenotypes by profile. </p>
+
+	<%plot = os.path.join( plotter.hash_vars["temp_folder"], f"clusters_distribution_{plotter.hash_vars['cluster_name']}.pdf") %>
+	% if os.path.exists(plot):
+		${plotter.embed_pdf(plot, 'width="800" height="800"')} 
+	% else:
+		"<p> File not specified. </p>"
+	% endif
+</div>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">Patient HPO profiles by cluster.</h1>
+		${ plotter.table(id="clusters", header= True, border= 2, row_names= False, text= True, 
+			cell_align= ["center"], styled= 'dt', attrib= {'class': 'table'},
+			func = format_data)
+		}
+</div>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8"> Cluster detailed view.</h1>
+	
+		% for clID, sim_matrix in plotter.hash_vars["sim_mat4cluster"]:
+			<% plotter.hash_vars["sim_matrix"] = sim_matrix %>
+			${ plotter.heatmap(id= "sim_matrix", header= True, row_names= True, title= f"Cluster {clID}" ) }
+		% endfor
+</div>

@@ -1,12 +1,16 @@
 #! /usr/bin/env python
-import argparse
-import pets
-from pets import Cohort_Parser, Cohort, constants
-from pets.constants import HPO_FILE
-import os, sys
+import argparse, os, sys
 
 ROOT_PATH=os.path.dirname(__file__)
 COMMOM_OPTPARSE = os.path.join(ROOT_PATH, "..", "pets", 'commom_optparse.py')
+CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'pets', 'constants.py'))
+sys.path.insert(0, os.path.join(ROOT_PATH, '..'))
+
+from pets.cohort import Cohort
+from pets.parsers.cohort_parser import Cohort_Parser
+
+with open(CONSTANTS_PATH) as infile:
+    exec(infile.read())
 
 #############################
 ## METHODS
@@ -53,13 +57,17 @@ parser.add_argument("-S", "--hpo_separator", dest="separator", default= "|",
 parser.add_argument("-s", "--start_col", dest="start_col", default= None,
                     help="Column name if header is true, otherwise 0-based position of the column with the start mutation coordinate")
 
-parser.add_argument("-h", "--help", help="Show this message", action="store_true")
+parser.add_argument("-X", "--excluded_hpo", dest="excluded_hpo", default= None,
+                    help="File with excluded HPO terms")
+
+
+#parser.add_argument("-h", "--help", help="Show this message", action="store_true")
 
 opts = parser.parse_args()
 
-if opts.help:
-    parser.print_help()
-    sys.exit()
+#if opts.help:
+#    parser.print_help()
+#    sys.exit()
     
 options = vars(opts)
 
@@ -69,12 +77,13 @@ options = vars(opts)
 
 #TODO: ask Pedro about ENV variable
 hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
-Cohort.load_ontology("hpo", hpo_file, options["excluded_hpo"])
+Cohort.load_ontology("hpo", hpo_file, options.get("excluded_hpo"))
 Cohort.act_ont = "hpo"
 
 patient_data, rejected_hpos_L, rejected_patients_L = Cohort_Parser.load(options)
 rejected_hpos_C, rejected_patients_C = patient_data.check(hard=True)
 patient_data.link2ont(Cohort.act_ont)
 
+vcf_index = None
 if options.get("vcf_index"): vcf_index = load_index(options["vcf_index"])
 patient_data.export_phenopackets(options["output_folder"], options["genome_assembly"], vcf_index= vcf_index)
