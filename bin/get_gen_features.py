@@ -1,11 +1,12 @@
 #! /usr/bin/env python
 import argparse, os, re, sys
-import pets
-from pets import Genomic_Feature
-from pets import Reference_parser
-from pets.parsers.coord_parser import Coord_Parser
 
 ROOT_PATH=os.path.dirname(__file__)
+sys.path.insert(0, os.path.join(ROOT_PATH, '..'))
+
+from pets.genomic_features import Genomic_Feature
+from pets.parsers.reference_parser import Reference_parser
+from pets.parsers.coord_parser import Coord_Parser
 
 ############################################################################################
 ## OPTPARSE
@@ -43,14 +44,8 @@ parser.add_argument("-t", "--feature_type", dest="feature_type", default= None,
 parser.add_argument("-n", "--feature_name", dest="feature_name", default= None,
                     help="Use this feature id that is present in attributes/annotation field of reference")
 
-parser.add_argument("-h", "--help", help="Show this message", action="store_true")
-
 opts = parser.parse_args()
-
-if opts.help:
-    parser.print_help()
-    sys.exit()
-    
+  
 options = vars(opts)
 regions = Coord_Parser.load(options)
 Genomic_Feature.add_reference(

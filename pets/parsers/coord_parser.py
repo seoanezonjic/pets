@@ -3,15 +3,15 @@ from pets.genomic_features import Genomic_Feature
 
 class Coord_Parser():
 
-    @classmethod
-    def load(cls, options):
+	@classmethod
+	def load(cls, options):
 		fields2extract = cls.get_fields2extract(options)
 		field_numbers = fields2extract.values()
 		records = cls.read_records(options, fields2extract, field_numbers)
 		genomic_features = Genomic_Feature(records)
 		return genomic_features
 
-    @classmethod
+	@classmethod
 	def read_records(cls, options, fields2extract, field_numbers): # Modified from cohort_parset
 		records = []
 		count = 0
@@ -37,7 +37,7 @@ class Coord_Parser():
 				count +=1
 		return records
 
-    @classmethod
+	@classmethod
 	def get_fields2extract(cls, options):
 		fields2extract = {}
 		for field in ["id_col", "chromosome_col", "start_col", "end_col"]:
@@ -47,7 +47,7 @@ class Coord_Parser():
 				fields2extract[field] = col
 		return fields2extract
 
-    @classmethod
+	@classmethod
 	def get_field_numbers2extract(cls, field_names, fields2extract):
 		for field, name in fields2extract.items():
 			fields2extract[field] = field_names.index(name)
