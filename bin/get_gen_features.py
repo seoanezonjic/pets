@@ -3,57 +3,9 @@ import argparse, os, re, sys
 import pets
 from pets import Genomic_Feature
 from pets import Reference_parser
+from pets.parsers.coord_parser import Coord_Parser
 
 ROOT_PATH=os.path.dirname(__file__)
-
-##################################
-## METHODS
-##################################
-
-def get_data(options):
-	fields2extract = get_fields2extract(options)
-	field_numbers = fields2extract.values()
-	records = read_records(options, fields2extract, field_numbers)
-	return records
-
-
-def read_records(options, fields2extract, field_numbers): # Modified from cohort_parset
-	records = []
-	count = 0
-	with open(options["input_file"]) as f:
-		for line in f:
-			line = line.strip()
-			if options["header"] and count == 0:
-				line = re.sub(r"#\s*", "", line) # correct comment like	headers
-				field_names = line.split("\t")
-				get_field_numbers2extract(field_names, fields2extract)
-				field_numbers = fields2extract.values()
-			else:
-				fields = line.split("\t")
-				record = [fields[n] for n in field_numbers]
-				if fields2extract.get("id_col") == None:
-					id = f"rec_{count}" #generate ids
-				else:
-					id = record.pop(0)
-				record[1] = int(record[1]) 
-				record[2] = int(record[2])
-				record.append(id)
-				records.append(record)
-			count +=1
-	return records
-
-def get_fields2extract(options):
-	fields2extract = {}
-	for field in ["id_col", "chromosome_col", "start_col", "end_col"]:
-		col = options.get(field)
-		if col:
-			if not options["header"]: col = int(col) 
-			fields2extract[field] = col
-	return fields2extract
-
-def get_field_numbers2extract(field_names, fields2extract):
-	for field, name in fields2extract.items():
-		fields2extract[field] = field_names.index(name)
 
 ############################################################################################
 ## OPTPARSE
@@ -100,8 +52,7 @@ if opts.help:
     sys.exit()
     
 options = vars(opts)
-
-regions = Genomic_Feature(get_data(options))
+regions = Coord_Parser.load(options)
 Genomic_Feature.add_reference(
 	Reference_parser.load(
 		options["reference_file"], 
