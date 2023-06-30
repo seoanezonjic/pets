@@ -1,4 +1,5 @@
 from pets import Genomic_Feature
+import warnings
 class Reference_parser():
     
     @classmethod
@@ -28,12 +29,13 @@ class Reference_parser():
     #private
     @classmethod
     def process_attrs(cls, attributes, tuple_sep, field_sep):
-        def format_tuple(attr_pair):
+        attrs_dict = {}
+        for attr_pair in attributes.split(tuple_sep):
+            if len(attr_pair) == 0: continue
             tuple = attr_pair.strip().split(field_sep, maxsplit=2)
             tuple[-1] = tuple[-1].replace('"','')
-            return tuple 
-        
-        return dict(list(
-            map(lambda attr_pair: format_tuple(attr_pair), 
-                attributes.split(tuple_sep))
-                ))
+            if len(tuple) == 2:
+                attrs_dict[tuple[0]] = tuple[1]
+            else:
+                warnings.warn(f"Attribute {attr_pair} from {attributes} is not a tuple of length 2.")
+        return attrs_dict
