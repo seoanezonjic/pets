@@ -367,6 +367,7 @@ class CohortTestSuite(unittest.TestCase):
 
     def test_save(self):
         ### Creating the tmp folder and saving the toy dataset in paco format ###
+        os.makedirs(os.path.join(ROOT_PATH, "tmp"), exist_ok=True)
         tmp_file = os.path.join(ROOT_PATH, "tmp", "test_paco_format.txt")
         self.patient_data.save(f"{tmp_file}", mode="paco", translate=True)
 
@@ -415,20 +416,21 @@ class CohortTestSuite(unittest.TestCase):
         os.remove(f"{tmp_file}")
 
     def test_export_phenopackets(self):
-        tmp_file = os.path.join(ROOT_PATH, "tmp", "phenopackets")
-        self.patient_data.export_phenopackets(f"{tmp_file}", "hg38")
+        os.makedirs(os.path.join(ROOT_PATH, "tmp", "phenopackets"), exist_ok=True)
+        tmp_folder = os.path.join(ROOT_PATH, "tmp", "phenopackets")
+        self.patient_data.export_phenopackets(f"{tmp_folder}", "hg38")
 
         ### Checking that the file has been created
         ### and loading the file back and checking that is can be correctly parsed as a json ###
         for id in self.patient_data.profiles.keys():
-            pheno_id_file = os.path.join(tmp_file, id + ".json")
+            pheno_id_file = os.path.join(tmp_folder, id + ".json")
             self.assertTrue(os.path.exists(pheno_id_file))
             with open(pheno_id_file, "r") as f:
                 data = json.load(f)
                 self.assertTrue(isinstance(data, dict))
         
         ###Checking that there are the same number of files as patients in the dataset ###
-        check_n_files = f'ls {tmp_file} | wc -l'
+        check_n_files = f'ls {tmp_folder} | wc -l'
         ps2 = subprocess.Popen(check_n_files,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         output2 = ps2.communicate()[0]
         total_files = int(str(output2).replace("b'","").replace("\\n'", "").strip())
