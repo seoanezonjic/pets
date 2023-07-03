@@ -1,14 +1,15 @@
 import re, sys
+from pets.parsers.file_parser import File_Parser
 from pets.cohort import Cohort
-class Cohort_Parser():
+
+class Cohort_Parser(File_Parser):
     
     @classmethod
     def load(cls, options):
-        fields2extract = Cohort_Parser.get_fields2extract(options)
-        field_numbers = fields2extract.values()
-        records = Cohort_Parser.read_records(options, fields2extract, field_numbers)
+        valid_fields = ["id_col", "ont_col", "chromosome_col", "start_col", "end_col", "sex_col"]
+        fields2extract, records = cls.get_records(valid_fields, options)
         options["extracted_fields"] = list(fields2extract.keys())
-        cohort, rejected_terms, rejected_recs = Cohort_Parser.create_cohort(records, options)
+        cohort, rejected_terms, rejected_recs = cls.create_cohort(records, options)
         return cohort, rejected_terms, rejected_recs
 
     @classmethod
@@ -19,10 +20,7 @@ class Cohort_Parser():
             for line in f:
                 line = line.strip()
                 if options["header"] and count == 0:
-                    line = re.sub(r"#\s*", "", line) # correct comment like	headers
-                    field_names = line.split("\t")
-                    Cohort_Parser.get_field_numbers2extract(field_names, fields2extract)
-                    field_numbers = fields2extract.values()
+                    field_numbers = cls.get_header(line, fields2extract)
                 else:
                     fields = line.split("\t")
                     record = [fields[n] for n in field_numbers]
@@ -45,21 +43,6 @@ class Cohort_Parser():
                         query.append(record)
                 count +=1
         return records
-
-    @classmethod
-    def get_fields2extract(cls, options):
-        fields2extract = {}
-        for field in ["id_col", "ont_col", "chromosome_col", "start_col", "end_col", "sex_col"]:
-            col = options.get(field)
-            if col:
-                if not options.get("header"): col = int(col)
-                fields2extract[field] = col
-        return fields2extract
-
-    @classmethod
-    def get_field_numbers2extract(cls, field_names, fields2extract):
-        for field, name in fields2extract.items():
-            fields2extract[field] = field_names.index(name)
 
     @classmethod
     def create_cohort(cls, records, options):
