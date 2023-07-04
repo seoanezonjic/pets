@@ -28,8 +28,8 @@
         },
         {
             "type": {
-                "id": "HP:0000717",
-                "label": "Autism"
+                "id": "HP:0001252",
+                "label": "Hypotonia"
             },
             "classOfOnset": {
                 "id": "HP:0003577",
@@ -38,8 +38,8 @@
         },
         {
             "type": {
-                "id": "HP:0001252",
-                "label": "Hypotonia"
+                "id": "HP:0000717",
+                "label": "Autism"
             },
             "classOfOnset": {
                 "id": "HP:0003577",

@@ -1,0 +1,3 @@
+# patient_id	chr	start	end	mean_ratio	inheritance	pathogenicity	contribution	phenotypes	sex
+624	5	100963222	101153990	-0.48	Inherited from normal parent	Unknown	Unknown	Mental retardation	M
+625	7	102358320	105487655	-1	De novo constitutive	Unknown	Unknown	Wrong Phenotype	M

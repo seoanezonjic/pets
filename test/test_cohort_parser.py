@@ -6,7 +6,7 @@ from pets.cohort import Cohort
 
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
-PATIENTS_FILE = os.path.abspath(os.path.join(DATA_TEST_PATH, '100_test_dataset_with_sex.txt'))
+PATIENTS_FILE = os.path.abspath(os.path.join(DATA_TEST_PATH, 'cohort_toy_dataset.txt'))
 CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'pets', 'constants.py'))
 
 with open(CONSTANTS_PATH) as infile:
@@ -14,53 +14,46 @@ with open(CONSTANTS_PATH) as infile:
 
 
 
-class CohortTestSuite(unittest.TestCase):
+class CohortParserTestSuite(unittest.TestCase):
     def setUp(self):
-        hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
-        Cohort.load_ontology("hpo", hpo_file, "./test/data/excluded.txt")
-        #Cohort.load_ontology("hpo", hpo_file )
+        self.hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
+        #Cohort.load_ontology("hpo", self.hpo_file, "./test/data/excluded.txt") #Excluded phenotype is Obesity HP:0001513, that is present in patient 625 and 627. 
+        ##Line above commented: it seems to only affect semtools related methods, not the parser itself 
+        Cohort.load_ontology("hpo", self.hpo_file )
         Cohort.act_ont = "hpo"
-        options = {"input_file": PATIENTS_FILE,
-                   "id_col":"patient_id", "chromosome_col": "chr", 
-                   "header": True, "separator": "|", "names": True,
-                   "start_col":"start", "end_col":"end", "ont_col":"phenotypes",
-                   "sex_col": "sex"}
-        self.patient_data, self.rejected_hpos_L, self.rejected_patients_L = Cohort_Parser.load(options)
+       
+        self.n_patients = 4
+        self.patient_624 = {"regions": {0:{"start":100963222, "stop":101153990, "chrm":"5", "to":0}}, "phenotypes": ["HP:0001249"], "sex":"M"}
+        self.patient_625 = {"regions": {0:{"start":102358320, "stop":105487655, "chrm":"7", "to":0}}, "phenotypes": ["HP:0001249", "HP:0001513"], "sex":"M"}
+        self.patient_626 = {"regions": {0:{"start":31923988, "stop":32092796, "chrm":"6", "to":0},
+                                        1:{"start":44083882, "stop":44210195, "chrm":"17", "to":1}}, "phenotypes": ["HP:0001249"], "sex":"M"}
+        self.patient_627 = {"regions": {0:{"start":154208417, "stop":154309447, "chrm":"X", "to":0}}, "phenotypes": ["HP:0001249", "HP:0000929", "HP:0010461", "HP:0001513"], "sex":"F"}
 
-        self.n_patients = 84
+        self.patients = {"624": self.patient_624, "625": self.patient_625, "626": self.patient_626, "627": self.patient_627}
+
+        self.options = {"input_file": PATIENTS_FILE, "header": True, "separator": "|", "names": True,
+                   "id_col":"patient_id", "chromosome_col": "chr", "start_col":"start", "end_col":"end", "ont_col":"phenotypes", "sex_col": "sex"}    
 
 
     def test_load(self):
-        chroms = [str(chrm) for chrm in range(1,23)] + ['X', 'Y']
-        
-        self.assertEqual(sorted(self.rejected_hpos_L),
-                         sorted(['Generalized tonic-clonic seizures', 'Stereotypy', 'Sparse and thin eyebrow', 'obsolete Prenatal short stature', 'Abnormality of the pinna', 'Capillary hemangiomas']))
+        self.patient_data, self.rejected_hpos_L, self.rejected_patients_L = Cohort_Parser.load(self.options)
+        self.assertEqual(self.rejected_hpos_L, [])
         self.assertEqual(self.rejected_patients_L, [])
-        
-        self.assertEqual(len(self.patient_data.profiles.keys()), self.n_patients) #Checking that all patients are loaded with their phenotypes
-        self.assertEqual(len(self.patient_data.vars.keys()), self.n_patients) #Checking that all patients are loaded with their genomic regions
+
+        for patientID in ["624", "625", "626", "627"]:
+            self.assertEqual(sorted(self.patients[patientID]["phenotypes"]), sorted(self.patient_data.profiles[patientID]))
+            self.assertDictEqual(self.patients[patientID]["regions"], self.patient_data.vars[patientID].reg_by_to)
+            self.assertEqual(self.patients[patientID]["sex"], self.patient_data.extra_attr[patientID]["sex"])
 
 
-        for patient, regions in self.patient_data.vars.items():
-            self.assertIsInstance(regions, Genomic_Feature) #Checking that all patients are loaded with their genomic regions (as Genomic_Feature objects)
-            for chromosome in regions.regions.keys():
-                self.assertIn(chromosome, chroms) #Checking that the chromosomes are correct
-                for region in regions.regions[chromosome]:
-                    self.assertEqual(set(region.keys()), 
-                                     {'start', 'stop', 'to', 'chrm'}) #Checking that each region has the correct attributes
-                    self.assertIs(type(region['start']), int) #Checking that the start position is an integer
-                    self.assertIs(type(region['stop']), int) #Checking that the stop position is an integer
-
-
-        for patient, hpterms in self.patient_data.profiles.items(): 
-            self.assertGreater(len(hpterms), 0) #Checking that all patients are loaded with their phenotypes. Otherwise, they should have been discarded in "rejected_patients_L"
-            self.assertEqual(len(set(hpterms)), len(hpterms)) #Checking that there are no repeated phenotypes for each patient
-            for hpterm in hpterms:
-                self.assertIn("HP:", hpterm) #Checking HPs has been translated to HP:XXXXXXX if name/description was given
-
-
+    def test_load_wrong_patient_data_and_patient_with_alternative_hpo_name(self):
+        self.options.update({"input_file": os.path.join(DATA_TEST_PATH, "cohort_toy_dataset_with_wrong_patient_data.txt")})
+        self.patient_data, self.rejected_hpos_L, self.rejected_patients_L = Cohort_Parser.load(self.options)
+        self.assertEqual(self.rejected_hpos_L, ["Wrong Phenotype"])
+        self.assertEqual(self.rejected_patients_L, ["625"])
     
-        for patient, attrs in self.patient_data.extra_attr.items():
-            for attr, value in attrs.items():
-                self.assertIn(attr, ["sex"]) #Checking that additional attributes are correctly saved (only sex for now)
-                self.assertIn(value, ["M", "F"])
+        #This time "HP:0001249" was described ad Mental Retardation in the input file instead of "Intellectual Disability"
+        self.assertEqual(sorted(self.patients["624"]["phenotypes"]), sorted(self.patient_data.profiles["624"]))
+        self.assertDictEqual(self.patients["624"]["regions"], self.patient_data.vars["624"].reg_by_to)
+        self.assertEqual(self.patients["624"]["sex"], self.patient_data.extra_attr["624"]["sex"])
+          

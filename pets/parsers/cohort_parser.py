@@ -103,5 +103,3 @@ class Cohort_Parser():
             else:
                 checked_vars.append(var)
         return checked_vars
-    
-    #TODO: ask PSZ if this last method should be returning checked_vars or vars

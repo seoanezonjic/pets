@@ -1,0 +1,6 @@
+# patient_id	chr	start	end	mean_ratio	inheritance	pathogenicity	contribution	phenotypes	sex
+624	5	100963222	101153990	-0.48	Inherited from normal parent	Unknown	Unknown	Intellectual disability	M
+625	7	102358320	105487655	-1	De novo constitutive	Unknown	Unknown	Intellectual disability|Obesity	M
+628	6	31923988	32092796	0.37	Unknown	Unknown	Unknown	Intellectual disability	M
+626	17	44083882	44210195	-0.37	Unknown	Unknown	Unknown	Intellectual disability	M
+627	X	154208417	154309447	0.7	Inherited from normal parent	Unknown	Unknown	Abnormality of the male genitalia|Abnormality of the skull|Intellectual disability|Obesity	F

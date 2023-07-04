@@ -7,32 +7,30 @@ from pets.cohort import Cohort
 
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
-PATIENTS_FILE = os.path.abspath(os.path.join(DATA_TEST_PATH, '100_test_dataset_with_sex.txt'))
+COORDS_FILE = os.path.abspath(os.path.join(DATA_TEST_PATH, 'coords_toy_dataset.txt'))
 
 
 class CoordParserTestSuite(unittest.TestCase):
     def setUp(self):
-        self.options = {"input_file": PATIENTS_FILE,
-                   "id_col":"patient_id", "chromosome_col": "chr", 
-                   "header": True, "separator": "|", "names": True,
-                   "start_col":"start", "end_col":"end", "ont_col":"phenotypes",
-                   "sex_col": "sex"}
+        self.options = {"input_file": COORDS_FILE, "header": True,
+                   "id_col":"patient_id", "chromosome_col": "chr", "start_col":"start", "end_col":"end"}
 
-
+        self.regions_by_to = {  "624": {"start":100963222, "stop":101153990, "chrm":"5", "to":"624"},
+                                "625": {"start":102358320, "stop":105487655, "chrm":"7", "to":"625"},
+                                "626": {"start":44083882, "stop":44210195, "chrm":"17", "to":"626"},
+                                "627": {"start":154208417, "stop":154309447, "chrm":"X", "to":"627"},
+                                "628": {"start": 31923988, "stop": 32092796, "chrm":'6', "to": "628"}}
+        
+        self.regions = { "5":  [{"start":100963222, "stop":101153990, "chrm":"5", "to":"624"}],
+                         "6":  [{"start": 31923988, "stop": 32092796, "chrm":'6', "to": "628"}],
+                         "7":  [{"start":102358320, "stop":105487655, "chrm":"7", "to":"625"}],
+                         "17": [{"start":44083882, "stop":44210195, "chrm":"17", "to":"626"}],
+                         "X":  [{"start":154208417, "stop":154309447, "chrm":"X", "to":"627"}]}
+    
     def test_load(self):
-        chroms = set([str(chrm) for chrm in range(1,23)] + ['X', 'Y'])
-        fields = set(["start", "stop", "to", "chrm"])
-
         gen_features = Coord_Parser.load(self.options)
-        # It should be a Genomic_Feature object
-        self.assertIsInstance(gen_features, Genomic_Feature)
+        self.assertEqual(self.regions_by_to, gen_features.reg_by_to)
+        self.assertEqual(self.regions, gen_features.regions)
 
-        # It should have 84 elements and 24 chromosomes (1-22, X and Y) and the fields start, stop, to and chrm
-        self.assertEqual(len(gen_features.reg_by_to),84)
-        self.assertEqual(set(gen_features.regions.keys()), chroms)
-        self.assertEqual(set(gen_features.reg_by_to["763"].keys()), fields)
+          
 
-        self.assertEqual(type(gen_features.reg_by_to["763"]["start"]), int)
-        self.assertEqual(type(gen_features.reg_by_to["763"]["stop"]), int)
-        self.assertEqual(type(gen_features.reg_by_to["763"]["to"]), str)
-        self.assertEqual(type(gen_features.reg_by_to["763"]["chrm"]), str)

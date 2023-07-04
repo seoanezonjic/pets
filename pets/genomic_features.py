@@ -26,7 +26,13 @@ class Genomic_Feature:
         self.reg_by_to = {}
         self.reg_id = -1
         self.load_features(feat_list)
-        if annotations != None: self.load_annotations(annotations) 
+        if annotations != None: self.load_annotations(annotations)
+    
+    def __eq__(self, other):
+        result = False
+        if isinstance(other, Genomic_Feature) and self.regions == other.regions and self.reg_by_to == other.reg_by_to:
+            result = True
+        return result
 
     def load_features(self, feat_list):
         if not feat_list == None and len(feat_list) > 0:            

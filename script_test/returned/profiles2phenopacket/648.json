@@ -28,8 +28,8 @@
         },
         {
             "type": {
-                "id": "HP:0000252",
-                "label": "Microcephaly"
+                "id": "HP:0001249",
+                "label": "Intellectual disability"
             },
             "classOfOnset": {
                 "id": "HP:0003577",
@@ -38,8 +38,8 @@
         },
         {
             "type": {
-                "id": "HP:0001249",
-                "label": "Intellectual disability"
+                "id": "HP:0000252",
+                "label": "Microcephaly"
             },
             "classOfOnset": {
                 "id": "HP:0003577",
