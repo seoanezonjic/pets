@@ -200,65 +200,85 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(Cohort.ont[Cohort.act_ont].profiles.items(),  self.patient_data.profiles.items())
 
 
-#    def test_get_profile_redundancy(self):
+    def test_get_profile_redundancy(self):
+        #Adding a new record with a child and parent HP terms
+        new_record = [2000, ["HP:0001513", "HP:0025500"], [["21", 20, 25], ["X", 1000, 2000]]]
+        extra_attr = {"sex": "M"}
+        self.patient_data.add_record(new_record, extra_attr)
+
+        self.patient_data.link2ont(Cohort.act_ont)
+        profile_sizes, parental_terms_per_profile = self.patient_data.get_profile_redundancy()
+        expected_profile_sizes = (3, 3, 2, 2, 1) #From patients sorted from higher to lower number of HP terms
+        expected_parental_terms_per_profile = (0, 0, 1, 0, 0) #Same order as above
+
+        self.assertEqual(profile_sizes, expected_profile_sizes)
+        self.assertEqual(parental_terms_per_profile, expected_parental_terms_per_profile)
+
+
+    def test_get_profiles_terms_frequency(self):
+        self.patient_data.link2ont(Cohort.act_ont)
+        term_stats = self.patient_data.get_profiles_terms_frequency()
+        expected_term_stats = [['Intellectual disability', 1.0], ['Autism', 0.25], ['Hypotonia', 0.25], 
+                               ['Turricephaly', 0.25], ['Hearing impairment', 0.25], ['Microcephaly', 0.25]]
+        self.assertEqual(term_stats, expected_term_stats)
+
+
+#    def test_compute_term_list_and_childs(self):
 #        self.patient_data.link2ont(Cohort.act_ont)
-#        profile_sizes, parental_terms_per_profile = self.patient_data.get_profile_redundancy()
-#        print(profile_sizes)
-#        print(parental_terms_per_profile)
+#        suggested_childs, term_with_childs_ratio = self.patient_data.compute_term_list_and_childs()
+#        print(suggested_childs)
+#        print(term_with_childs_ratio)
 #
 #
-##    def test_get_profiles_terms_frequency(self):
-##        self.patient_data.link2ont(Cohort.act_ont)
-##        term_stats = self.patient_data.get_profiles_terms_frequency()
-##        print(term_stats)
-##
-##
-##    def test_compute_term_list_and_childs(self):
-##        self.patient_data.link2ont(Cohort.act_ont)
-##        #suggested_childs, term_with_childs_ratio = self.patient_data.compute_term_list_and_childs()
-##        #print(suggested_childs)
-##        #print(term_with_childs_ratio)
-##
-##
-##    def test_get_profile_ontology_distribution_tables(self):
-##        self.patient_data.link2ont(Cohort.act_ont)
-##        #ontology_levels, distribution_percentage = self.patient_data.get_profile_ontology_distribution_tables()
-##        #print(ontology_levels)
-##        #print(distribution_percentage)
-##
-##
-##    def test_get_ic_analysis(self):
-##        self.patient_data.link2ont(Cohort.act_ont)
-##        onto_ic, freq_ic, onto_ic_profile, freq_ic_profile = self.patient_data.get_ic_analysis()
-##        print(onto_ic)
-##        print(freq_ic)
-##        print(onto_ic_profile)
-##        print(freq_ic_profile)
-##
-##
-##    def test_get_profiles_mean_size(self):
-##        self.patient_data.link2ont(Cohort.act_ont)
-##        profile_mean_size = self.patient_data.get_profiles_mean_size()
-##        print(profile_mean_size)
-##
-##
-##    def test_get_profile_length_at_percentile(self):
-##        self.patient_data.link2ont(Cohort.act_ont)
-##        length_percent = self.patient_data.get_profile_length_at_percentile()
-##        print(length_percent)
-##
-##
-##    def test_get_dataset_specifity_index(self):
-##        self.patient_data.link2ont(Cohort.act_ont)
-##        #dsi_uniq = self.patient_data.get_dataset_specifity_index("uniq")
-##        #dsi_weigthed = self.patient_data.get_dataset_specifity_index("weigthed")
-##        #print(dsi_uniq, dsi_weigthed)
-##
-##    def test_compare_profiles(self):
-##        self.patient_data.link2ont(Cohort.act_ont)
-##        similarities = self.patient_data.compare_profiles()
+#    def test_get_profile_ontology_distribution_tables(self):
+#        self.patient_data.link2ont(Cohort.act_ont)
+#        ontology_levels, distribution_percentage = self.patient_data.get_profile_ontology_distribution_tables()
+#        print(ontology_levels)
+#        print(distribution_percentage)
 #
 #
+    def test_get_ic_analysis(self):
+        self.patient_data.link2ont(Cohort.act_ont)
+        onto_ic, freq_ic, onto_ic_profile, freq_ic_profile = self.patient_data.get_ic_analysis()
+        expected_onto_ic = {'HP:0001249': 3.3912376459396496, 'HP:0001252': 3.0902076502756683, 'HP:0000365': 2.6681339618869115, 'HP:0000717': 4.2363356859539065, 'HP:0000262': 3.759214431234244, 'HP:0000252': 3.537365681617888}
+        expected_freq_ic = {'HP:0001249': 0.35218251811136253, 'HP:0001252': 0.9542425094393249, 'HP:0000365': 0.9542425094393249, 'HP:0000717': 0.9542425094393249, 'HP:0000262': 0.9542425094393249, 'HP:0000252': 0.9542425094393249}
+        expected_onto_ic_profile = {'132': 3.5725936607230744, '599': 3.3912376459396496, '647': 3.5752260385869468, '648': 3.198912429814816}
+        expected_freq_ic_profile = {'132': 0.7535558456633374, '599': 0.35218251811136253, '647': 0.6532125137753437, '648': 0.7535558456633374}
+
+        self.assertEqual(onto_ic, expected_onto_ic)
+        self.assertEqual(freq_ic, expected_freq_ic)
+        self.assertEqual(onto_ic_profile, expected_onto_ic_profile)
+        self.assertEqual(freq_ic_profile, expected_freq_ic_profile)
+
+
+    def test_get_profiles_mean_size(self):
+        self.patient_data.link2ont(Cohort.act_ont)
+        profile_mean_size = self.patient_data.get_profiles_mean_size()
+        self.assertEqual(profile_mean_size, 2.25)
+
+
+    def test_get_profile_length_at_percentile(self):
+        self.patient_data.link2ont(Cohort.act_ont)
+        length_percent = self.patient_data.get_profile_length_at_percentile()
+        self.assertEqual(length_percent, 2.5)
+
+
+#    def test_get_dataset_specifity_index(self):
+#        self.patient_data.link2ont(Cohort.act_ont)
+#        dsi_uniq = self.patient_data.get_dataset_specifity_index("uniq")
+#        dsi_weigthed = self.patient_data.get_dataset_specifity_index("weigthed")
+#        print(dsi_uniq, dsi_weigthed)
+
+    def test_compare_profiles(self):
+        self.patient_data.link2ont(Cohort.act_ont)
+        similarities = self.patient_data.compare_profiles()
+        exptected_similarities = {'132': {'132': 3.5725936607230744, '599': 2.104921447549329, '647': 1.9166626779429385, '648': 1.6416691014914389}, 
+                                  '599': {'132': 2.104921447549329, '599': 3.3912376459396496, '647': 2.2639587126068683, '648': 1.9089226834606448}, 
+                                  '647': {'132': 1.9166626779429385, '599': 2.2639587126068683, '647': 3.5752260385869468, '648': 2.0721949277359677}, 
+                                  '648': {'132': 1.6416691014914389, '599': 1.9089226834606448, '647': 2.0721949277359677, '648': 3.198912429814816}}
+        self.assertEqual(similarities, exptected_similarities)
+
+
     def test_index_vars(self):
         #expected_number_of_regions = sum([len(regions) for pat_gen_feats in self.patient_data.vars.values() 
         #                                for chrm, regions in pat_gen_feats.regions.items()])
@@ -382,5 +402,5 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(total_files, 4)
         
         for id in self.patient_data.profiles.keys():
-            pheno_id_file = os.path.join(tmp_file, id + ".json")
+            pheno_id_file = os.path.join(tmp_folder, id + ".json")
             os.remove(f"{pheno_id_file}")
