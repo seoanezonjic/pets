@@ -24,9 +24,10 @@ class Cohort():
     @classmethod
     def load_ontology(cls, ont_name, ont_file, excluded_terms_file = None):
         if excluded_terms_file == None:
-            ont = Ontology(file= ont_file, load_file= True, file_format= ont_file.split(".")[-1], build=True, removable_terms= [])     
+            excluded_terms = []
         else:
-            ont = Ontology(file= ont_file, load_file= True, file_format= ont_file.split(".")[-1], build=True, removable_terms= Cohort.read_excluded_ont_file(excluded_terms_file)) 
+            excluded_terms = Cohort.read_excluded_ont_file(excluded_terms_file)
+        ont = Ontology(file= ont_file, removable_terms= excluded_terms) 
         cls.ont[ont_name] = ont
 
     @classmethod
