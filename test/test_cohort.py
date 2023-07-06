@@ -223,20 +223,19 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(term_stats, expected_term_stats)
 
 
-#    def test_compute_term_list_and_childs(self):
-#        self.patient_data.link2ont(Cohort.act_ont)
-#        suggested_childs, term_with_childs_ratio = self.patient_data.compute_term_list_and_childs()
-#        print(suggested_childs)
-#        print(term_with_childs_ratio)
-#
-#
-#    def test_get_profile_ontology_distribution_tables(self):
-#        self.patient_data.link2ont(Cohort.act_ont)
-#        ontology_levels, distribution_percentage = self.patient_data.get_profile_ontology_distribution_tables()
-#        print(ontology_levels)
-#        print(distribution_percentage)
-#
-#
+    def test_compute_term_list_and_childs(self):
+        self.patient_data.link2ont(Cohort.act_ont)
+        suggested_childs, term_with_childs_ratio = self.patient_data.compute_term_list_and_childs()
+
+
+
+    def test_get_profile_ontology_distribution_tables(self):
+        self.patient_data.link2ont(Cohort.act_ont)
+        ontology_levels, distribution_percentage = self.patient_data.get_profile_ontology_distribution_tables()
+        print(ontology_levels)
+        print(distribution_percentage)
+
+
     def test_get_ic_analysis(self):
         self.patient_data.link2ont(Cohort.act_ont)
         onto_ic, freq_ic, onto_ic_profile, freq_ic_profile = self.patient_data.get_ic_analysis()
@@ -263,11 +262,10 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(length_percent, 2.5)
 
 
-#    def test_get_dataset_specifity_index(self):
-#        self.patient_data.link2ont(Cohort.act_ont)
-#        dsi_uniq = self.patient_data.get_dataset_specifity_index("uniq")
-#        dsi_weigthed = self.patient_data.get_dataset_specifity_index("weigthed")
-#        print(dsi_uniq, dsi_weigthed)
+    def test_get_dataset_specifity_index(self):
+        self.patient_data.link2ont(Cohort.act_ont)
+        dsi_uniq = self.patient_data.get_dataset_specifity_index("uniq")
+        dsi_weigthed = self.patient_data.get_dataset_specifity_index("weigthed")
 
     def test_compare_profiles(self):
         self.patient_data.link2ont(Cohort.act_ont)
