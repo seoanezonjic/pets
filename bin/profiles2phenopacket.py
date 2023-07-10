@@ -2,10 +2,10 @@
 import argparse, os, sys
 
 ROOT_PATH=os.path.dirname(__file__)
-COMMOM_OPTPARSE = os.path.join(ROOT_PATH, "..", "pets", 'commom_optparse.py')
 CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'pets', 'constants.py'))
 sys.path.insert(0, os.path.join(ROOT_PATH, '..'))
 
+from pets.common_optparse import Common_optparse
 from pets.cohort import Cohort
 from pets.parsers.cohort_parser import Cohort_Parser
 
@@ -30,11 +30,7 @@ def load_index(path_index):
 ############################################################################################
 parser = argparse.ArgumentParser(description=f'Usage: {os.path.basename(__file__)} [options]')
 
-#TODO: check how to add the common options
-with open(COMMOM_OPTPARSE) as infile:
-    exec(infile.read())
-#import pets.commom_optparse
-#eval(open(COMMON_OPTPARSE).read())
+Common_optparse.add_options(parser)
 
 parser.add_argument("-i", "--input_file", dest="input_file", default= None,
                     help="Input file with patient data")
