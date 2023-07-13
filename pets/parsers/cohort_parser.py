@@ -33,7 +33,6 @@ class Cohort_Parser(File_Parser):
                         record[0] = record[0].split(options["separator"])
                     else:
                         record[0] = []
-
                     if options.get("start_col"): record[2] = int(record[2])
                     if options.get("end_col"): record[3] = int(record[3]) 
                     query = records.get(id)

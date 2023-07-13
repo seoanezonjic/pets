@@ -159,7 +159,7 @@ class Cohort():
         profile_sizes, parental_terms_per_profile = ont.get_profile_redundancy()
         return profile_sizes, parental_terms_per_profile
 
-    def get_profiles_terms_frequency(self, options={}):
+    def get_profiles_terms_frequency(self, **options):
         ont = Cohort.ont[Cohort.act_ont]
         term_stats = ont.get_profiles_terms_frequency(**options) #https://www.ruby-lang.org/en/news/2019/12/12/separation-of-positional-and-keyword-arguments-in-ruby-3-0/
         return term_stats
