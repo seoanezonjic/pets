@@ -3,6 +3,7 @@ source ~soft_bio_267/initializes/init_python
 export PATH=../bin/:$PATH
 data_to_test=./input_data/paco_translator
 
+mkdir -p ./returned/paco_translator
 
 paco_translator.py -P $data_to_test/cohort_toy_dataset.txt \
     -c chr -d patient_id -s start -e end -p phenotypes -S "|" -m paco -t -n \

@@ -14,6 +14,8 @@ ls ./returned/profiles2phenopacket | sort > ./returned_phenopacket_files.txt
 diff ./expected_phenopacket_files.txt ./returned_phenopacket_files.txt
 rm ./expected_phenopacket_files.txt ./returned_phenopacket_files.txt
 
+mkdir -p ./returned/profiles2phenopacket
+
 for file_to_test in `ls ./expected/profiles2phenopacket`; do
  	echo $file_to_test
     wc ./returned/profiles2phenopacket/$file_to_test | cut -f 2,4,5 -d " " > ./returned_numbers.txt
@@ -26,5 +28,6 @@ for file_to_test in `ls ./expected/profiles2phenopacket`; do
     diff ./tmp_returned_sorted.txt ./tmp_expected_sorted.txt
     rm ./tmp_returned_sorted.txt ./tmp_expected_sorted.txt
  	
+    rm ./returned/profiles2phenopacket/$file_to_test
     #diff ./returned/profiles2phenopacket/$file_to_test ./expected/profiles2phenopacket/$file_to_test
 done

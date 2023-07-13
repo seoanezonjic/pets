@@ -226,15 +226,22 @@ class CohortTestSuite(unittest.TestCase):
     def test_compute_term_list_and_childs(self):
         self.patient_data.link2ont(Cohort.act_ont)
         suggested_childs, term_with_childs_ratio = self.patient_data.compute_term_list_and_childs()
-
+        expected_suggested_childs = {'132': [[['HP:0000717', 'Autism'], []], [['HP:0001252', 'Hypotonia'], [['HP:0000297', 'Facial hypotonia'], ['HP:0001290', 'Generalized hypotonia'], ['HP:0001319', 'Neonatal hypotonia'], ['HP:0003397', 'Generalized hypotonia due to defect at the neuromuscular junction'], ['HP:0006829', 'Severe muscular hypotonia'], ['HP:0006852', 'Episodic generalized hypotonia'], ['HP:0008935', 'Generalized neonatal hypotonia'], ['HP:0008936', 'Axial hypotonia'], ['HP:0008947', 'Infantile muscular hypotonia'], ['HP:0009062', 'Infantile axial hypotonia'], ['HP:0012389', 'Appendicular hypotonia'], ['HP:0030190', 'Oral motor hypotonia'], ['HP:0031139', 'Frog-leg posture']]], [['HP:0001249', 'Intellectual disability'], [['HP:0001256', 'Intellectual disability, mild'], ['HP:0002187', 'Intellectual disability, profound'], ['HP:0002342', 'Intellectual disability, moderate'], ['HP:0006887', 'Intellectual disability, progressive'], ['HP:0006889', 'Intellectual disability, borderline'], ['HP:0010864', 'Intellectual disability, severe']]]], 
+                            '599': [[['HP:0001249', 'Intellectual disability'], [['HP:0001256', 'Intellectual disability, mild'], ['HP:0002187', 'Intellectual disability, profound'], ['HP:0002342', 'Intellectual disability, moderate'], ['HP:0006887', 'Intellectual disability, progressive'], ['HP:0006889', 'Intellectual disability, borderline'], ['HP:0010864', 'Intellectual disability, severe']]]], 
+                            '647': [[['HP:0001249', 'Intellectual disability'], [['HP:0001256', 'Intellectual disability, mild'], ['HP:0002187', 'Intellectual disability, profound'], ['HP:0002342', 'Intellectual disability, moderate'], ['HP:0006887', 'Intellectual disability, progressive'], ['HP:0006889', 'Intellectual disability, borderline'], ['HP:0010864', 'Intellectual disability, severe']]], [['HP:0000262', 'Turricephaly'], [['HP:0000244', 'Brachyturricephaly'], ['HP:0000263', 'Oxycephaly']]]], 
+                            '648': [[['HP:0000365', 'Hearing impairment'], [['HP:0000399', 'Prelingual sensorineural hearing impairment'], ['HP:0011474', 'Childhood onset sensorineural hearing impairment'], ['HP:0000407', 'Sensorineural hearing impairment'], ['HP:0000405', 'Conductive hearing impairment'], ['HP:0000408', 'Progressive sensorineural hearing impairment'], ['HP:0001730', 'Progressive hearing impairment'], ['HP:0000410', 'Mixed hearing impairment'], ['HP:0001757', 'High-frequency sensorineural hearing impairment'], ['HP:0005101', 'High-frequency hearing impairment'], ['HP:0008504', 'Moderate sensorineural hearing impairment'], ['HP:0012713', 'Moderate hearing impairment'], ['HP:0008513', 'Bilateral conductive hearing impairment'], ['HP:0008527', 'Congenital sensorineural hearing impairment'], ['HP:0008542', 'Low-frequency hearing loss'], ['HP:0008573', 'Low-frequency sensorineural hearing impairment'], ['HP:0008587', 'Mild neurosensory hearing impairment'], ['HP:0012712', 'Mild hearing impairment'], ['HP:0008591', 'Congenital conductive hearing impairment'], ['HP:0008596', 'Postlingual sensorineural hearing impairment'], ['HP:0008598', 'Mild conductive hearing impairment'], ['HP:0008607', 'Progressive conductive hearing impairment'], ['HP:0008610', 'Infantile sensorineural hearing impairment'], ['HP:0008615', 'Adult onset sensorineural hearing impairment'], ['HP:0008619', 'Bilateral sensorineural hearing impairment'], ['HP:0008625', 'Severe sensorineural hearing impairment'], ['HP:0012714', 'Severe hearing impairment'], ['HP:0009900', 'Unilateral deafness'], ['HP:0011476', 'Profound sensorineural hearing impairment'], ['HP:0012715', 'Profound hearing impairment'], ['HP:0011975', 'Aminoglycoside-induced hearing loss'], ['HP:0012716', 'Moderate conductive hearing impairment'], ['HP:0012717', 'Severe conductive hearing impairment'], ['HP:0012779', 'Transient hearing impairment'], ['HP:0012781', 'Mid-frequency hearing loss'], ['HP:0040113', 'Old-aged sensorineural hearing impairment'], ['HP:0040119', 'Unilateral conductive hearing impairment']]], [['HP:0000252', 'Microcephaly'], [['HP:0000253', 'Progressive microcephaly'], ['HP:0005484', 'Secondary microcephaly'], ['HP:0004485', 'Cessation of head growth'], ['HP:0011451', 'Primary microcephaly']]], [['HP:0001249', 'Intellectual disability'], [['HP:0001256', 'Intellectual disability, mild'], ['HP:0002187', 'Intellectual disability, profound'], ['HP:0002342', 'Intellectual disability, moderate'], ['HP:0006887', 'Intellectual disability, progressive'], ['HP:0006889', 'Intellectual disability, borderline'], ['HP:0010864', 'Intellectual disability, severe']]]]}
+        expected_term_with_childs_ratio = 0.8888888888888888
+        self.assertEqual(suggested_childs, expected_suggested_childs)
+        self.assertEqual(term_with_childs_ratio, expected_term_with_childs_ratio)
 
 
     def test_get_profile_ontology_distribution_tables(self):
         self.patient_data.link2ont(Cohort.act_ont)
         ontology_levels, distribution_percentage = self.patient_data.get_profile_ontology_distribution_tables()
-        print(ontology_levels)
-        print(distribution_percentage)
-
+        expected_ontology_levels = [['level', 'ontology', 'cohort'], [1, 1, 0], [2, 6, 0], [3, 62, 0], [4, 304, 0], [5, 882, 0], [6, 2234, 5], [7, 3810, 2], [8, 3802, 2], [9, 3008, 0], [10, 1914, 0], [11, 709, 0], [12, 348, 0], [13, 106, 0], [14, 31, 0], [15, 13, 0], [16, 2, 0]]
+        expected_distribution_percentage = [['level', 'ontology', 'weighted cohort', 'uniq terms cohort'], [1, 0.006, 0.0, 0.0], [2, 0.035, 0.0, 0.0], [3, 0.36, 0.0, 0.0], [4, 1.764, 0.0, 0.0], [5, 5.118, 0.0, 0.0], [6, 12.964, 55.556, 33.333], [7, 22.11, 22.222, 33.333], [8, 22.064, 22.222, 33.333], [9, 17.456, 0.0, 0.0], [10, 11.107, 0.0, 0.0], [11, 4.114, 0.0, 0.0], [12, 2.019, 0.0, 0.0], [13, 0.615, 0.0, 0.0], [14, 0.18, 0.0, 0.0], [15, 0.075, 0.0, 0.0], [16, 0.012, 0.0, 0.0]]
+        self.assertEqual(ontology_levels, expected_ontology_levels)
+        self.assertEqual(distribution_percentage, expected_distribution_percentage)
 
     def test_get_ic_analysis(self):
         self.patient_data.link2ont(Cohort.act_ont)
@@ -264,8 +271,16 @@ class CohortTestSuite(unittest.TestCase):
 
     def test_get_dataset_specifity_index(self):
         self.patient_data.link2ont(Cohort.act_ont)
+        
         dsi_uniq = self.patient_data.get_dataset_specifity_index("uniq")
         dsi_weigthed = self.patient_data.get_dataset_specifity_index("weigthed")
+
+        expected_dsi_uniq = 0.16867992874998128
+        expected_dsi_weigthed = 0.0014407344880051807
+        
+        self.assertEqual(dsi_uniq, expected_dsi_uniq)
+        self.assertEqual(dsi_weigthed, expected_dsi_weigthed)
+
 
     def test_compare_profiles(self):
         self.patient_data.link2ont(Cohort.act_ont)
