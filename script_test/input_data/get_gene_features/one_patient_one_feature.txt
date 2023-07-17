@@ -1,0 +1,2 @@
+# patient_id	chr	start	end
+Pat1	5	103546340	103567388

@@ -13,6 +13,7 @@ CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'pets', 'constant
 class RefParserTestSuite(unittest.TestCase):
     def setUp(self):
         self.gtf_file = os.path.join(DATA_TEST_PATH, "ref_parser", "toy_example.gtf")
+        self.gtf_gz = os.path.join(DATA_TEST_PATH, "ref_parser", "toy_example_compr.gtf.gz")
 
         attrs_dict = {"ENSG00000170006.12": {"feature": "gene", "source": "HAVANA", "gene_id": "ENSG00000170006.12", "gene_type": "protein_coding", "gene_name": "TMEM154", "level": "2", "hgnc_id": "HGNC:26489", "havana_gene": "OTTHUMG00000161463.2"},
                       "ENSG00000248571.1":  {"feature": "gene", "source": "HAVANA", "gene_id": "ENSG00000248571.1", "gene_type": "lncRNA", "gene_name": "AC106882.1", "level": "2", "havana_gene": "OTTHUMG00000161462.1"},
@@ -38,3 +39,13 @@ class RefParserTestSuite(unittest.TestCase):
         for gene in ["ENSG00000170006.12", "ENSG00000248571.1", "ENSG00000169989.3", "ENSG00000164144.16", "ENSG00000250980.1"]:
             self.assertEqual(self.regions["4"][gene], reference_chunk.reg_by_to[gene])
         
+
+    def test_load_gz(self):
+        reference_chunk = Reference_parser.load( file_path=self.gtf_gz, feature_type="gene")
+
+        self.assertIsInstance(reference_chunk, Genomic_Feature) #Asserting that the resulting object is a Genomic_Feature
+        self.assertEqual(len(reference_chunk.reg_by_to), 5) #Asserting that we have 5 genes
+        self.assertEqual(list(reference_chunk.regions.keys()), ["4"]) #Asserting all the regions are from chromosome 4
+
+        for gene in ["ENSG00000170006.12", "ENSG00000248571.1", "ENSG00000169989.3", "ENSG00000164144.16", "ENSG00000250980.1"]:
+            self.assertEqual(self.regions["4"][gene], reference_chunk.reg_by_to[gene])

@@ -1,19 +1,27 @@
 from pets import Genomic_Feature
-import warnings
+import warnings, gzip
 class Reference_parser():
     
     @classmethod
     def load(cls, file_path, file_format = None, feature_type = None):
-        if file_format == None: file_format = file_path.split('.', maxsplit=2)[-1]
-        if file_format == 'gtf':
-            regions, all_attrs = cls.parse_gtf(file_path, feature_type=feature_type)
+        if file_format == None: file_format = file_path.split('.')[-1]
+        if file_format == 'gtf' or file_format == 'gz':
+            regions, all_attrs = cls.parse_gtf(file_path, feature_type=feature_type, file_format=file_format)
         return Genomic_Feature(regions, annotations= all_attrs)
 
     @classmethod
-    def parse_gtf(cls, file_path, feature_type= None): # https://www.ensembl.org/info/website/upload/gff.html
+    def parse_gtf(cls, file_path, feature_type= None, file_format='gtf'): # https://www.ensembl.org/info/website/upload/gff.html
         features = []
         all_attrs = {}
-        with open(file_path) as f:
+        
+        if file_format == 'gz':
+            open_func = gzip.open
+            open_mode = 'rt'
+        else:
+            open_func = open
+            open_mode = 'r'
+            
+        with open_func(file_path, mode=open_mode, encoding="utf-8") as f:
             for line in f:
                 if line.startswith("#"): continue
                 seqname, source, feature, start, stop, score, strand, frame, attribute = line.strip().split("\t")
