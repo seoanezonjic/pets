@@ -116,7 +116,7 @@ class Genomic_Feature:
         for chrm, region in self.each():
             size = region["stop"] - region["start"] + 1
             sizes[size] += 1
-        return sorted(sizes.items(), key=lambda s: [s[1],s[0]], reverse=True)
+        return sorted([list(sublist) for sublist in sizes.items()], key=lambda s: [s[1],s[0]], reverse=True)
  
     def merge(self, gen_fet, to = None): # 'to' the regions must be connected "to" given id
         for chrm, region in gen_fet.each():

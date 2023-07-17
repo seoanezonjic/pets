@@ -316,7 +316,7 @@ class CohortTestSuite(unittest.TestCase):
 
         #Getting summary sizes, that is a 2D list with the size and number of patients with that size
         returned_sizes = self.patient_data.get_vars_sizes(summary=True)
-        expected_sizes = [(51, 2), (10001, 1), (501, 1), (200, 1)]    
+        expected_sizes = [[51, 2], [10001, 1], [501, 1], [200, 1]]    
         self.assertEqual(expected_sizes, returned_sizes)
 
 

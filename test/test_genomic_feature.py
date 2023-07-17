@@ -151,7 +151,7 @@ class GenomicFeatureTestSuite(unittest.TestCase):
 		#It calculate the sizes of each region and return an ordered list
 		#of list in which the first element is the size and the second the number
 		#of regions with that size
-		expected = [(1, 3), (6, 2), (99001, 1)]
+		expected = [[1, 3], [6, 2], [99001, 1]]
 		returned = self.repeated_genomic_feature_size.get_summary_sizes()
 		self.assertEqual(expected, returned)
 
