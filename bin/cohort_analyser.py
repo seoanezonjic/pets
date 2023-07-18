@@ -200,7 +200,7 @@ if not opts.get('chromosome_col') == None:
 #----------------------------------
 # CLUSTER COHORT ANALYZER REPORT
 #----------------------------------
-get_semantic_similarity_clustering(opts, patient_data, temp_folder)
+get_semantic_similarity_clustering(opts, patient_data, temp_folder, os.path.join(REPORT_FOLDER, 'cluster_report.txt'))
 
 #----------------------------------
 # GENERAL COHORT ANALYZER REPORT

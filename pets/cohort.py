@@ -197,7 +197,7 @@ class Cohort():
         dsi = ont.get_dataset_specifity_index(type)
         return dsi
 
-    def compare_profiles(self, options={}):
+    def compare_profiles(self, **options):
         ont = Cohort.ont[Cohort.act_ont]
         similarities = ont.compare_profiles(**options)
         return similarities

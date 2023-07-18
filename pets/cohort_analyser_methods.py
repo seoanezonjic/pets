@@ -200,6 +200,53 @@ def to_bmatrix(dictio):
     i += 1
   return matrix, y_names, x_names
 
+def to_wmatrix(dictio, squared = True, symm = True):
+  if squared:
+    matrix, element_names = to_wmatrix_squared(dictio, symm=symm)
+    return matrix, element_names
+  else:
+    matrix, y_names, x_names = to_wmatrix_rectangular(dictio, symm=symm)
+    return matrix, y_names, x_names
+
+def to_wmatrix_squared(dictio, symm = True):
+  element_names = list(dictio.keys())
+  matrix = np.zeros((len(dictio), len(dictio)))
+  i = 0
+  for elementA, relations in dictio.items():
+    for j, elementB in enumerate(element_names):
+      if elementA != elementB:
+        query = relations.get(elementB)
+        if query != None:
+          matrix[i, j] = query
+        elif symm: # TODO: PSZ, lo q se hace aqui no me cuadra
+          matrix[i, j] = dictio[elementB][elementA]
+    i += 1
+  return matrix, element_names
+
+def to_wmatrix_rectangular(dictio, symm = True):
+  y_names = list(dictio.keys())
+  x_names = list(dictio.get_hash_values_idx().keys())
+  matrix = np.zeros((len(y_names), len(x_names)))
+  i = 0
+  for elementA, relations in dictio.items():
+    for j, elementB in enumerate(x_names):
+        query = relations.get(elementB)
+        if query != None:
+          matrix[i, j] = query
+        elif symm: # TODO: PSZ, lo q se hace aqui no me cuadra
+          query = dig(dictio, elementB, elementA)
+          if query != None: matrix[i, j] = query
+    i += 1
+  return matrix, y_names, x_names
+
+def dig(dictio, *keys):
+  try:
+    for key in keys:
+        dictio = dictio[key]
+    return dictio
+  except KeyError:
+    return None 
+
 def save(matrix, matrix_filename, x_axis_names=None, x_axis_file=None, y_axis_names=None, y_axis_file=None):
   if not x_axis_names == None:
     with open(x_axis_file, 'w') as f:
@@ -265,5 +312,77 @@ def write_coverage_data(coverage_to_plot, coverage_to_plot_file):
     for chrm, position, freq in coverage_to_plot:
       f.write(f"{chrm}\t{position}\t{freq}")
 
-def get_semantic_similarity_clustering(options, patient_data, temp_folder):
-  return True
+def write_profile_pairs(similarity_pairs, filename):
+  with open(filename, 'w') as f:
+    for pairsA, pairsB_and_values in similarity_pairs.items():
+      for pairsB, values in pairsB_and_values.items():
+        f.write(f"{pairsA}\t{pairsB}\t{values}\n")
+
+def load_profiles(file_path, hpo):
+  profiles = {}
+  with open(file_path) as f:
+    for line in f:
+      id, profile = line.rstrip().split("\t")
+      hpos = profile.split(',')
+      hpos, rejected_hpos = hpo.check_ids(hpos)
+      if len(hpos) > 0:
+        hpos = hpo.clean_profile(hpos)
+        if len(hpos) > 0 : profiles[id] = hpos
+  return profiles
+
+def invert_nested_hash(h):
+  new_h = {}
+  for k1, vals1 in h.items():
+    for k2, vals2 in vals1: 
+      query = new_h.get(k2)
+      if query == None:
+        new_h[k2] = {k1 : vals2}
+      else:
+        query[k1] = vals2
+  return new_h
+
+def remove_nested_entries(nested_hash, func):
+  empty_root_ids = []
+  for root_id, entries in nested_hash.items():
+    delete_entries = []
+    for k, v in entries:
+      if not func(k,v): delete_entries.append(k)
+    if len(delete_entries) == len(entries):
+      empty_root_ids.append(root_id)
+    else:
+      for k in delete_entries: entries.pop(k)
+  for k in empty_root_ids: nested_hash.pop(k)
+
+
+def get_semantic_similarity_clustering(options, patient_data, temp_folder, template_path):
+  template = open(template_path).read()
+  hpo = Cohort.get_ontology(Cohort.act_ont)
+  reference_profiles = None
+  if options['reference_profiles'] != None: reference_profiles = load_profiles(options['reference_profiles'], hpo)
+  for method_name in options['clustering_methods']:
+    matrix_filename = os.path.join(temp_folder, f"similarity_matrix_{method_name}.npy")
+    profiles_similarity_filename = os.path.join(temp_folder, f'profiles_similarity_{method_name}.txt')
+    clusters_distribution_filename = os.path.join(temp_folder, f'clusters_distribution_{method_name}.txt')
+    if not os.path.exists(matrix_filename):
+      if reference_profiles == None: 
+        profiles_similarity = patient_data.compare_profiles(sim_type = method_name, external_profiles = reference_profiles)
+      else: # AS reference profiles are constant, the sematic comparation will be A => B (A reference). So, we have to invert the elements to perform the comparation
+        ont = Cohort.get_ontology('hpo')
+        pat_profiles = ont.profiles
+        ont.load_profiles(reference_profiles, reset_stored = True)
+        profiles_similarity = ont.compare_profiles(sim_type = method_name, 
+          external_profiles = pat_profiles, 
+          bidirectional = False)
+        ont.load_profiles(pat_profiles, reset_stored = True)
+        profiles_similarity = invert_nested_hash(profiles_similarity)
+      if options.get('sim_thr') != None: remove_nested_entries(profiles_similarity, lambda id, sim: sim >= options['sim_thr']) 
+      write_profile_pairs(profiles_similarity, profiles_similarity_filename)
+      if reference_profiles == None:
+        axis_file = re.sub('.npy','.lst', matrix_filename)
+        similarity_matrix, axis_names = to_wmatrix(profiles_similarity, squared = True, symm = True)
+        save(similarity_matrix, matrix_filename, axis_names, axis_file)
+      else:
+        axis_file_x = re.sub('.npy','_x.lst', matrix_filename)
+        axis_file_y = re.sub('.npy','_y.lst', matrix_filename)
+        similarity_matrix, y_names, x_names = to_wmatrix(profiles_similarity, squared = False, symm = True)
+        save(similarity_matrix, matrix_filename, y_names, axis_file_y, x_names, axis_file_x)
