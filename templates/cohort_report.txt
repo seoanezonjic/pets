@@ -60,26 +60,27 @@
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO annotations distribution</h1>
 	<p> Analysis of the HPO terms within the HPO ontology and the cohort of patients. Left: distribution of terms within the ontology and the cohort. Right: percentage of terms distribution within the ontology and the cohort.</p>
 	<div style="overflow: hidden">
-		% if plotter.hash_vars("ontology_levels"):
+		% if plotter.hash_vars.get("ontology_levels"):
 			${plotter.barplot(id= "ontology_levels", header= True, x_label= 'Number of HPO terms', title= 'HPO annotations distribution', width= "800px", height= "800px", responsive= False, transpose= True, 
-					config: { 'graphOrientation': 'vertical'}) }
+					config = { 'graphOrientation': 'vertical'}) }
 		% endif
 		% if plotter.hash_vars.get("distribution_percentage"):
 			${plotter.line(id= "distribution_percentage", header= True, x_label= 'Percentage of terms', title= 'HPO percentage distribution', width= "800px", height= "800px", responsive= False, transpose= True, 
-					config: { 'graphOrientation' => 'vertical' }) }
+					config = { 'graphOrientation' : 'vertical' }) }
 		% endif
 	</div>
+
+
 	<p> HPOs frequency distribution. Colour based on the HPO frequency.</p>
 	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;">
 		<% plot = os.path.join(plotter.hash_vars["temp_folder"],'hpo_freq_colour.png') %>
-			% if File.exists(plot):
-				plotter.embed_img(plot, 'width="800" height="800"') 
+			% if os.path.exists(plot):
+				${plotter.embed_img(plot, 'width="800" height="800"') }
 			% else:
 				"<p> Invalid file specified. </p>"
 			% endif
 	</div>
 </div>
-
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">Clustering patients by HPO profile</h1>
@@ -99,10 +100,10 @@
 	<p> For each patient profile size (number of phenotypes, x-axis) it is shown the number of HPO phenotypes that are parent of other terms within the profile (number of parent terms, y-axis). </p>
 	<% plot = os.path.join(plotter.hash_vars["temp_folder"],'parents_per_term.pdf') %>
 		% if os.path.exists(plot):
-			plotter.embed_pdf(plot, 'width="800" height="800"')
+			${plotter.embed_pdf(plot, 'width="800" height="800"')}
 		% else:
 			"<p> Unable to find parents_per_term.pdf file. </p>"
-		% endfor
+		% endif
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
@@ -113,10 +114,9 @@
 			${plotter.embed_pdf(plot, 'width="600" height="600"')} 
 		% else:
 			"<p> Unable to find hpo_ics.pdf file. </p>"
-		% endfor
+		% endif
 	${ plotter.embed_pdf(os.path.join(plotter.hash_vars["temp_folder"],'hpo_profile_ics.pdf'), 'width="600" height="600"') }
 </div>
-
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO frequency by cluster</h1>
@@ -134,18 +134,18 @@
 	<h1 style="text-align: center; background-color:#d6eaf8">Patient profiles heatmaps</h1>
 	<p> For each patient, their HPO profile similarity coefficient is calculated according to the different methods specified in the analysis and represented in these heatmaps. </p>
 
-		% for clust_method in plotter.hash_vars["clustering_methods"]:
-			<% plot = os.path.join(plotter.hash_vars["temp_folder"], f"{clust_method}_heatmap.png") %>
-			% if os.path.exist(plot):
-				${ plotter.embed_img(plot, 'width="800" height="800"') }
-			% else:
-				<% print('File not found or method not specified.') %>
-			% endif
+	% for clust_method in plotter.hash_vars["clustering_methods"]:
+		<% plot = os.path.join(plotter.hash_vars["temp_folder"], f"{clust_method}_heatmap.png") %>
+		% if os.path.exists(plot):
+			${ plotter.embed_img(plot, 'width="800" height="800"') }
+		% else:
+			<% print('File not found or method not specified.') %>
+		% endif
 
-			<% plot = os.path.join(plotter.hash_vars["temp_folder"], clust_method + '_sim_boxplot.png') %>
-			% if os.path.exist(plot):
-				${ plotter.embed_img(plot, 'width="800" height="800"') }
-			% endif
-		% endfor
+		<% plot = os.path.join(plotter.hash_vars["temp_folder"], clust_method + '_sim_boxplot.png') %>
+		% if os.path.exists(plot):
+			${ plotter.embed_img(plot, 'width="800" height="800"') }
+		% endif
+	% endfor
 
 </div>
