@@ -449,7 +449,17 @@ def get_semantic_similarity_clustering(options, patient_data, temp_folder, templ
     out_file = os.path.join(temp_folder, f"{method_name}_clusters_distribution")
     if not os.path.exists(out_file): system_call(code_folder, 'xyplot_graph.R', f"-d {clusters_distribution_filename} -o {out_file} -x PatientsNumber -y HPOAverage") 
     sim_mat4cluster = {}
-
+    if options['detailed_clusters']:
+      for clID, patient_number, patient_ids, hpo_codes in clusters_codes:
+        cluster_cohort = Cohort()
+        for i, patID in enumerate(patient_ids): cluster_cohort.add_record([patID, hpo_codes[i], []])
+        cluster_profiles = cluster_cohort.profiles
+        ref_profile = cluster_cohort.get_general_profile()
+        hpo.load_profiles({'ref': ref_profile}, reset_stored = True)    
+        similarities = hpo.compare_profiles(external_profiles = cluster_profiles, sim_type = 'lin', bidirectional = False)
+        candidate_sim_matrix, candidates, candidates_ids = get_similarity_matrix(ref_profile, similarities['ref'], cluster_profiles, hpo, 100, 100)
+        candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
+        sim_mat4cluster[clID] = candidate_sim_matrix
 
     clusters = translate_codes(clusters_codes, hpo)
     container = {
@@ -467,7 +477,7 @@ def get_semantic_similarity_clustering(options, patient_data, temp_folder, templ
 
 
 def get_similarity_matrix(reference_prof, similarities, evidence_profiles, hpo, term_limit, candidate_limit, other_scores = {}, id2label = {}):
-  candidates = list(similarities)
+  candidates = [ list(pair) for pair in similarities.items()]
   if len(other_scores) == 0:
     candidates.sort(key=lambda s: s[-1])
     candidates = candidates[:candidate_limit]
@@ -502,7 +512,7 @@ def get_detailed_similarity(profile, candidates, evidences, hpo):
   for times in range(profile_length):
     matrix.append([0]*len(candidates))
   cand_number = 0
-  for candidate_id, similarity in candidates.items():
+  for candidate_id, similarity in candidates:
     local_sim = []
     candidate_evidence = evidences[candidate_id]
     for profile_term in profile:

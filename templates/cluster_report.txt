@@ -48,7 +48,7 @@
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8"> Cluster detailed view.</h1>
 	
-		% for clID, sim_matrix in plotter.hash_vars["sim_mat4cluster"]:
+		% for clID, sim_matrix in plotter.hash_vars["sim_mat4cluster"].items():
 			<% plotter.hash_vars["sim_matrix"] = sim_matrix %>
 			${ plotter.heatmap(id= "sim_matrix", header= True, row_names= True, title= f"Cluster {clID}" ) }
 		% endfor
