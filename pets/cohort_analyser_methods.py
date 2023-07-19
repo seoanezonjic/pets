@@ -464,3 +464,64 @@ def get_semantic_similarity_clustering(options, patient_data, temp_folder, templ
     report.build(template)
     report.write(options['output_file']+ f"_{method_name}_clusters.html")
     if not os.path.exists(os.path.join(temp_folder, method_name + '_sim_boxplot.png')): system_call(code_folder, 'generate_boxpot.R', f"-i {temp_folder} -m {method_name} -o {os.path.join(temp_folder, method_name + '_sim_boxplot')}") 
+
+
+def get_similarity_matrix(reference_prof, similarities, evidence_profiles, hpo, term_limit, candidate_limit, other_scores = {}, id2label = {}):
+  candidates = list(similarities)
+  if len(other_scores) == 0:
+    candidates.sort(key=lambda s: s[-1])
+    candidates = candidates[:candidate_limit]
+  else: # Prioritize first by the external list of scores, select the candidates and then rioritize by similarities
+    selected_candidates = []
+    for cand in candidates:
+      cand_id = cand[0]
+      cand_lab = id2label.get(str(cand_id))
+      if cand_lab == None: continue
+      other_score = other_scores.get(cand_lab)
+      if other_score == None: continue
+      cand.append(other_score)
+      selected_candidates.append(cand)
+    selected_candidates.sort(key=lambda e: e[2])
+    candidates = selected_candidates[:candidate_limit]
+    candidates.sort(key=lambda e: e[1])
+    for c in candidates:
+      c.pop()
+
+  candidates_ids = [c[0] for c in candidates]
+  candidate_similarity_matrix = get_detailed_similarity(reference_prof, candidates, evidence_profiles, hpo)
+  for i, row in enumerate(candidate_similarity_matrix):
+    row.insert(0,hpo.translate_id(reference_prof[i]))
+
+  candidate_similarity_matrix.sort(key=lambda r: sum(r[1:len(r)]))
+  candidate_similarity_matrix = candidate_similarity_matrix[:term_limit]
+  return candidate_similarity_matrix, candidates, candidates_ids
+
+def get_detailed_similarity(profile, candidates, evidences, hpo):
+  profile_length = len(profile)
+  matrix = []
+  for times in range(profile_length):
+    matrix.append([0]*len(candidates))
+  cand_number = 0
+  for candidate_id, similarity in candidates.items():
+    local_sim = []
+    candidate_evidence = evidences[candidate_id]
+    for profile_term in profile:
+      for candidate_term in candidate_evidence:
+        term_sim = hpo.compare([candidate_term], [profile_term], sim_type = "lin", bidirectional= False)
+        local_sim.append([profile_term, candidate_term, term_sim])
+
+    local_sim.sort(key = lambda s: s[-1])
+    final_pairs = []
+    processed_profile_terms = []
+    processed_candidate_terms = []
+    for pr_term, cd_term, sim in local_sim:
+      if pr_term not in processed_profile_terms and cd_term not in processed_candidate_terms:
+        final_pairs.append( [pr_term, cd_term, sim])
+        processed_profile_terms.append( pr_term)
+        processed_candidate_terms.append( cd_term)
+      if profile_length == len(processed_profile_terms): break
+
+    for pr_term, cd_term, similarity in final_pairs:
+      matrix[profile.index(pr_term)][cand_number] = similarity
+    cand_number += 1
+  return matrix    
