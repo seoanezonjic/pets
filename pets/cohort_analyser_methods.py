@@ -479,7 +479,7 @@ def get_semantic_similarity_clustering(options, patient_data, temp_folder, templ
 def get_similarity_matrix(reference_prof, similarities, evidence_profiles, hpo, term_limit, candidate_limit, other_scores = {}, id2label = {}):
   candidates = [ list(pair) for pair in similarities.items()]
   if len(other_scores) == 0:
-    candidates.sort(key=lambda s: s[-1], reverse=True)
+    candidates.sort(key=lambda s: s[-1])
     candidates = candidates[:candidate_limit]
   else: # Prioritize first by the external list of scores, select the candidates and then rioritize by similarities
     selected_candidates = []
@@ -491,9 +491,9 @@ def get_similarity_matrix(reference_prof, similarities, evidence_profiles, hpo, 
       if other_score == None: continue
       cand.append(other_score)
       selected_candidates.append(cand)
-    selected_candidates.sort(key=lambda e: e[2], reverse=True)
+    selected_candidates.sort(key=lambda e: e[2])
     candidates = selected_candidates[:candidate_limit]
-    candidates.sort(key=lambda e: e[1], reverse=True)
+    candidates.sort(key=lambda e: e[1])
     for c in candidates:
       c.pop()
 
@@ -502,7 +502,7 @@ def get_similarity_matrix(reference_prof, similarities, evidence_profiles, hpo, 
   for i, row in enumerate(candidate_similarity_matrix):
     row.insert(0,hpo.translate_id(reference_prof[i]))
 
-  candidate_similarity_matrix.sort(key=lambda r: sum(r[1:len(r)]), reverse=True)
+  candidate_similarity_matrix.sort(key=lambda r: sum(r[1:len(r)]))
   candidate_similarity_matrix = candidate_similarity_matrix[:term_limit]
   return candidate_similarity_matrix, candidates, candidates_ids
 
@@ -520,7 +520,7 @@ def get_detailed_similarity(profile, candidates, evidences, hpo):
         term_sim = hpo.compare([candidate_term], [profile_term], sim_type = "lin", bidirectional= False)
         local_sim.append([profile_term, candidate_term, term_sim])
 
-    local_sim.sort(key = lambda s: s[-1], reverse=True)
+    local_sim.sort(key = lambda s: s[-1])
     final_pairs = []
     processed_profile_terms = []
     processed_candidate_terms = []
