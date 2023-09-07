@@ -5,6 +5,7 @@ import time
 from collections import defaultdict
 import csv
 
+from py_exp_calc import exp_calc
 from py_report_html import Py_report_html
 from pets.cohort import Cohort
 from pets.parsers.cohort_parser import Cohort_Parser
@@ -37,7 +38,7 @@ def system_call(code_folder, script, args_string):
 
 def dummy_cluster_patients(patient_data, matrix_file, clust_pat_file):
   if not os.path.exists(matrix_file):
-    pat_hpo_matrix, pat_id, hp_id  = to_bmatrix(patient_data)
+    pat_hpo_matrix, pat_id, hp_id  = exp_calc.to_bmatrix(patient_data)
     x_axis_file = re.sub('.npy','_x.lst', matrix_file)
     y_axis_file = re.sub('.npy','_y.lst', matrix_file)
     save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
@@ -175,77 +176,6 @@ def add_record(dictio, key, record, uniq=False):
     query.append(record)
   elif not record in query: # We want uniq entries
     query.append(record)
-
-def get_hash_values_idx(dictio):
-  x_names_indx = {}
-  i = 0
-  for k, values in dictio.items():
-    for val_id in values:
-      if type(val_id) is list: val_id = val_id[0]
-      query = x_names_indx.get(val_id)
-      if query == None:
-        x_names_indx[val_id] = i
-        i += 1
-  return x_names_indx
-
-def to_bmatrix(dictio):
-  x_names_indx = get_hash_values_idx(dictio)
-  y_names = list(dictio.keys())
-  x_names = list(x_names_indx.keys())
-   # row (y), cols (x)
-  matrix = np.zeros((len(dictio), len(x_names)))
-  i = 0
-  for id, items in dictio.items():
-    for item_id in items: matrix[i, x_names_indx[item_id]] = 1
-    i += 1
-  return matrix, y_names, x_names
-
-def to_wmatrix(dictio, squared = True, symm = True):
-  if squared:
-    matrix, element_names = to_wmatrix_squared(dictio, symm=symm)
-    return matrix, element_names
-  else:
-    matrix, y_names, x_names = to_wmatrix_rectangular(dictio, symm=symm)
-    return matrix, y_names, x_names
-
-def to_wmatrix_squared(dictio, symm = True):
-  element_names = list(dictio.keys())
-  matrix = np.zeros((len(dictio), len(dictio)))
-  i = 0
-  for elementA, relations in dictio.items():
-    for j, elementB in enumerate(element_names):
-      if elementA != elementB:
-        query = relations.get(elementB)
-        if query != None:
-          matrix[i, j] = query
-        elif symm: # TODO: PSZ, lo q se hace aqui no me cuadra
-          matrix[i, j] = dictio[elementB][elementA]
-    i += 1
-  return matrix, element_names
-
-def to_wmatrix_rectangular(dictio, symm = True):
-  y_names = list(dictio.keys())
-  x_names = list(dictio.get_hash_values_idx().keys())
-  matrix = np.zeros((len(y_names), len(x_names)))
-  i = 0
-  for elementA, relations in dictio.items():
-    for j, elementB in enumerate(x_names):
-        query = relations.get(elementB)
-        if query != None:
-          matrix[i, j] = query
-        elif symm: # TODO: PSZ, lo q se hace aqui no me cuadra
-          query = dig(dictio, elementB, elementA)
-          if query != None: matrix[i, j] = query
-    i += 1
-  return matrix, y_names, x_names
-
-def dig(dictio, *keys):
-  try:
-    for key in keys:
-        dictio = dictio[key]
-    return dictio
-  except KeyError:
-    return None 
 
 def save(matrix, matrix_filename, x_axis_names=None, x_axis_file=None, y_axis_names=None, y_axis_file=None):
   if not x_axis_names == None:
