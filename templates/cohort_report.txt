@@ -98,24 +98,15 @@
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO profile redundancy</h1>
 	<p> For each patient profile size (number of phenotypes, x-axis) it is shown the number of HPO phenotypes that are parent of other terms within the profile (number of parent terms, y-axis). </p>
-	<% plot = os.path.join(plotter.hash_vars["temp_folder"],'parents_per_term.pdf') %>
-		% if os.path.exists(plot):
-			${plotter.embed_pdf(plot, 'width="800" height="800"')}
-		% else:
-			"<p> Unable to find parents_per_term.pdf file. </p>"
-		% endif
+	${ plotter.scatter2D(id= 'parents_per_term', header=False, row_names=False, x_label = 'ProfileSize', y_label = 'ParentTerms') }
+
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO ICs distribution</h1>
 	<p> First figure shows the ICs distribution in terms of the HP ontology (x-axis) and for each single HPO term, its frequency in the cohort according to the HP ontology structure (y-axis) and the second figure shows the same distributions considering the profiles analyzed. </p>
-	<% plot = os.path.join(plotter.hash_vars["temp_folder"],'hpo_ics.pdf') %>
-		% if os.path.exists(plot):
-			${plotter.embed_pdf(plot, 'width="600" height="600"')} 
-		% else:
-			"<p> Unable to find hpo_ics.pdf file. </p>"
-		% endif
-	${ plotter.embed_pdf(os.path.join(plotter.hash_vars["temp_folder"],'hpo_profile_ics.pdf'), 'width="600" height="600"') }
+	${ plotter.scatter2D(id= 'hpo_ic_data', header=False, row_names=False, x_label = 'HP Ontology IC', y_label = 'HP Frequency based IC') }
+	${ plotter.scatter2D(id= 'hpo_ic_data_profiles', header=False, row_names=False, x_label = 'HP Ontology Profile IC', y_label = 'HP Frequency based Profile IC') }
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 

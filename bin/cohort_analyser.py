@@ -83,10 +83,7 @@ detailed_profile_evaluation_file = os.path.join(output_folder, 'detailed_hpo_pro
 rejected_file = os.path.join(output_folder, 'rejected_records.txt')
 temp_folder = os.path.join(output_folder, 'temp')
 matrix_file = os.path.join(temp_folder, 'pat_hpo_matrix.npy')
-hpo_ic_file = os.path.join(temp_folder, 'hpo_ic.txt')
-hpo_profile_ic_file = os.path.join(temp_folder, 'hpo_ic_profile.txt')
 hpo_frequency_file = os.path.join(temp_folder, 'hpo_cohort_frequency.txt')
-parents_per_term_file = os.path.join(temp_folder, 'parents_per_term.txt')
 clustered_patients_file = os.path.join(temp_folder, 'cluster_asignation')
 cluster_ic_data_file = os.path.join(temp_folder, 'cluster_ic_data.txt')
 cluster_chromosome_data_file = os.path.join(temp_folder, 'cluster_chromosome_data.txt')
@@ -173,14 +170,8 @@ if not opts.get('chromosome_col') == None:
 # Write files for report
 #----------------------------------
 write_detailed_hpo_profile_evaluation(suggested_childs, detailed_profile_evaluation_file, summary_stats)
-write_arrays4scatterplot(list(onto_ic.values()), list(freq_ic.values()), hpo_ic_file, 'OntoIC', 'FreqIC') # hP terms
-write_arrays4scatterplot(list(onto_ic_profile.values()), list(freq_ic_profile.values()), hpo_profile_ic_file, 'OntoIC', 'FreqIC') #HP profiles
-write_arrays4scatterplot(profile_sizes, parental_hpos_per_profile, parents_per_term_file, 'ProfileSize', 'ParentTerms')
 write_cluster_ic_data(all_ics, prof_lengths, cluster_ic_data_file, opts['clusters2graph'])
 
-if not os.path.exists(os.path.join(temp_folder, 'hpo_ics.pdf')): system_call(EXTERNAL_CODE, 'plot_scatterplot_simple.R', f"-i {hpo_ic_file} -o {os.path.join(temp_folder, 'hpo_ics.pdf')} -x 'OntoIC' -y 'FreqIC' --x_tag 'HP Ontology IC' --y_tag 'HP Frequency based IC' --x_lim '0,4.5' --y_lim '0,4.5'") 
-if not os.path.exists(os.path.join(temp_folder, 'hpo_profile_ics.pdf')): system_call(EXTERNAL_CODE, 'plot_scatterplot_simple.R', f"-i {hpo_profile_ic_file} -o {os.path.join(temp_folder, 'hpo_profile_ics.pdf')} -x 'OntoIC' -y 'FreqIC' --x_tag 'HP Ontology Profile IC' --y_tag 'HP Frequency based Profile IC' --x_lim '0,4.5' --y_lim '0,4.5'")
-system_call(EXTERNAL_CODE, 'plot_scatterplot_simple.R', f"-i {parents_per_term_file} -o {os.path.join(temp_folder, 'parents_per_term.pdf')} -x 'ProfileSize' -y 'ParentTerms' --x_tag 'Patient HPO profile size' --y_tag 'Parent HPO terms within the profile'")
 if not os.path.exists(ronto_file + '.png'): system_call(EXTERNAL_CODE, 'ronto_plotter.R', f"-i {hpo_frequency_file} -o {ronto_file} --root_node {opts['root_node']} -O {re.sub('.json','.obo', hpo_file)}") ###Cohort frequency calculation
 system_call(EXTERNAL_CODE, 'plot_boxplot.R', f"{cluster_ic_data_file} {temp_folder} cluster_id ic 'Cluster size/id' 'Information coefficient' 'Plen' 'Profile size'")
 
@@ -216,7 +207,10 @@ container = {
   'all_sor_length' : all_sor_length,
   'new_cluster_phenotypes' : len(new_cluster_phenotypes),
   'ontology_levels' : ontology_levels,
-  'distribution_percentage' : distribution_percentage
+  'distribution_percentage' : distribution_percentage,
+  'hpo_ic_data': [ list(p) for p in zip(list(onto_ic.values()),list(freq_ic.values())) ],
+  'hpo_ic_data_profiles': [ list(p) for p in zip(list(onto_ic_profile.values()), list(freq_ic_profile.values())) ],
+  'parents_per_term': [ list(p) for p in zip(profile_sizes, parental_hpos_per_profile) ]
 }
 
 clust_info = []

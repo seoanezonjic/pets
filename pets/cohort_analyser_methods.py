@@ -191,14 +191,6 @@ def write_detailed_hpo_profile_evaluation(suggested_childs, detailed_profile_eva
             csvwriter.writerow([parent_field, f"{child_name} ({child_code})"])
       csvwriter.writerow(["", ""])
 
-def write_arrays4scatterplot(x_axis_value, y_axis_value, filename, x_axis_name, y_axis_name):
-  with open(filename, 'w') as f:
-    f.write(f"{x_axis_name}\t{y_axis_name}\n")
-    for i, value in enumerate(x_axis_value):
-      y_value = y_axis_value[i]
-      if y_value == None: raise Exception(f"The {i} position is not presented in y_axis_value") 
-      f.write(f"{value}\t{y_value}\n")
-
 def write_cluster_ic_data(all_ics, profile_lengths, cluster_ic_data_file, limit):
   with open(cluster_ic_data_file, 'w') as f:
     f.write("\t".join(['cluster_id', 'ic', 'Plen']) + "\n")
