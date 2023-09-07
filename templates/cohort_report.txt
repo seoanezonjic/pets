@@ -87,7 +87,7 @@
 	<p> All patients are clustered using their HPO profiles. First figure shows the information coefficient distribution for the top clusters. Second figure shows which chromosomes are affected in the patients for each top cluster. </p>
 	<%  plot = os.path.join(plotter.hash_vars["temp_folder"],'scatterplot.pdf') %>
 		% if os.path.exists(plot):
-			plotter.embed_pdf(plot, 'width="800" height="800"') 
+			${plotter.embed_pdf(plot, 'width="800" height="800"')}
 		% else:
 			"<p> Genomic data was not specified </p>"
 		% endif

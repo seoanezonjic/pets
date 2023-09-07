@@ -132,7 +132,7 @@ elif opts['ic_stats'] == 'freq':
 elif opts['ic_stats'] == 'onto':
   phenotype_ic = onto_ic
 
-clustered_patients = dummy_cluster_patients(patient_data.profiles, matrix_file, clustered_patients_file)
+clustered_patients = dummy_cluster_patients(patient_data.profiles, matrix_file, clustered_patients_file, EXTERNAL_CODE)
 all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_pats = process_dummy_clustered_patients(opts, clustered_patients, patient_data, phenotype_ic)
 
 summary_stats = get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos)
@@ -158,7 +158,6 @@ if not opts.get('chromosome_col') == None:
       ['Number of genome windows', n_cnv],
       ['Mean patients per genome window', round(pats_per_region, 4)]])
     coverage_to_plot = get_final_coverage(raw_coverage, opts['bin_size'])
-
     ###2. Process SORs
     raw_sor_coverage, n_sor, nt, pats_per_region = calculate_coverage(sors, opts['patients_filter'] - 1)
     summary_stats.extend(

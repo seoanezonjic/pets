@@ -36,14 +36,14 @@ def system_call(code_folder, script, args_string):
   os.system(cmd)
   print(f"Execution time: {time.time() - start}")
 
-def dummy_cluster_patients(patient_data, matrix_file, clust_pat_file):
+def dummy_cluster_patients(patient_data, matrix_file, clust_pat_file, external_code_path):
   if not os.path.exists(matrix_file):
     pat_hpo_matrix, pat_id, hp_id  = exp_calc.to_bmatrix(patient_data)
     x_axis_file = re.sub('.npy','_x.lst', matrix_file)
     y_axis_file = re.sub('.npy','_y.lst', matrix_file)
-    save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
+    exp_calc.save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
   if not os.path.exists(clust_pat_file):
-    system_call(EXTERNAL_CODE, 'get_clusters.R', f"-d {matrix_file} -o {clust_pat_file} -y {re.sub('.npy','', matrix_file)}")
+    system_call(external_code_path, 'get_clusters.R', f"-d {matrix_file} -o {clust_pat_file} -y {re.sub('.npy','', matrix_file)}")
   clustered_patients = load_clustered_patients(clust_pat_file)
   return(clustered_patients)
 
@@ -130,7 +130,7 @@ def calculate_coverage(regions_data, delete_thresold = 0):
     else:
       n_regions += 1
       nt += stop - start      
-    add_record(raw_coverage, chrm, [start, stop, number_of_patients])
+    exp_calc.add_record(raw_coverage, chrm, [start, stop, number_of_patients])
     patients += number_of_patients
   return raw_coverage, n_regions, nt, patients /n_regions 
 
@@ -167,24 +167,6 @@ def get_top_dummy_clusters_stats(top_clust_phen):
   return new_cluster_phenotypes
 
 ### AUX
-
-def add_record(dictio, key, record, uniq=False):
-  query = dictio.get(key)
-  if query == None:
-    dictio[key] = [record]
-  elif not uniq: # We not take care by repeated entries
-    query.append(record)
-  elif not record in query: # We want uniq entries
-    query.append(record)
-
-def save(matrix, matrix_filename, x_axis_names=None, x_axis_file=None, y_axis_names=None, y_axis_file=None):
-  if not x_axis_names == None:
-    with open(x_axis_file, 'w') as f:
-      f.write("\n".join(x_axis_names))
-  if not y_axis_names == None:
-    with open(y_axis_file, 'w') as f:
-      f.write("\n".join(y_axis_names))
-  np.save(matrix_filename, matrix)
 
 def write_detailed_hpo_profile_evaluation(suggested_childs, detailed_profile_evaluation_file, summary_stats):
   with open(detailed_profile_evaluation_file, 'w', newline='') as csvfile:
@@ -234,13 +216,13 @@ def write_cluster_chromosome_data(cluster_data, cluster_chromosome_data_file, li
     for cluster_id, patient_number, chrm, count in cluster_data:
       if cluster_id != last_id: index += 1 
       if index == limit: break 
-      f.write("\t".join(["{patient_number}_{index}", chrm, str(count)]) + "\n")
+      f.write("\t".join([f"{patient_number}_{index}", chrm, str(count)]) + "\n")
       last_id = cluster_id
 
 def write_coverage_data(coverage_to_plot, coverage_to_plot_file):
   with open(coverage_to_plot_file, 'w') as f:
     for chrm, position, freq in coverage_to_plot:
-      f.write(f"{chrm}\t{position}\t{freq}")
+      f.write(f"{chrm}\t{position}\t{freq}\n")
 
 def write_profile_pairs(similarity_pairs, filename):
   with open(filename, 'w') as f:
@@ -265,29 +247,6 @@ def load_profiles(file_path, hpo):
         hpos = hpo.clean_profile(hpos)
         if len(hpos) > 0 : profiles[id] = hpos
   return profiles
-
-def invert_nested_hash(h):
-  new_h = {}
-  for k1, vals1 in h.items():
-    for k2, vals2 in vals1: 
-      query = new_h.get(k2)
-      if query == None:
-        new_h[k2] = {k1 : vals2}
-      else:
-        query[k1] = vals2
-  return new_h
-
-def remove_nested_entries(nested_hash, func):
-  empty_root_ids = []
-  for root_id, entries in nested_hash.items():
-    delete_entries = []
-    for k, v in entries:
-      if not func(k,v): delete_entries.append(k)
-    if len(delete_entries) == len(entries):
-      empty_root_ids.append(root_id)
-    else:
-      for k in delete_entries: entries.pop(k)
-  for k in empty_root_ids: nested_hash.pop(k)
 
 def parse_clusters_file(clusters_file, patient_data):
   clusters_info = {}
@@ -352,15 +311,15 @@ def get_semantic_similarity_clustering(options, patient_data, temp_folder, templ
           external_profiles = pat_profiles, 
           bidirectional = False)
         ont.load_profiles(pat_profiles, reset_stored = True)
-        profiles_similarity = invert_nested_hash(profiles_similarity)
-      if options.get('sim_thr') != None: remove_nested_entries(profiles_similarity, lambda id, sim: sim >= options['sim_thr']) 
+        profiles_similarity = exp_calc.invert_nested_hash(profiles_similarity)
+      if options.get('sim_thr') != None: exp_calc.remove_nested_entries(profiles_similarity, lambda id, sim: sim >= options['sim_thr']) 
       write_profile_pairs(profiles_similarity, profiles_similarity_filename)
       if reference_profiles == None:
-        similarity_matrix, axis_names = to_wmatrix(profiles_similarity, squared = True, symm = True)
-        save(similarity_matrix, matrix_filename, axis_names, axis_file)
+        similarity_matrix, axis_names = exp_calc.to_wmatrix(profiles_similarity, squared = True, symm = True)
+        exp_calc.save(similarity_matrix, matrix_filename, axis_names, axis_file)
       else:
-        similarity_matrix, y_names, x_names = to_wmatrix(profiles_similarity, squared = False, symm = True)
-        save(similarity_matrix, matrix_filename, y_names, axis_file_y, x_names, axis_file_x)
+        similarity_matrix, y_names, x_names = exp_calc.to_wmatrix(profiles_similarity, squared = False, symm = True)
+        exp_calc.save(similarity_matrix, matrix_filename, y_names, axis_file_y, x_names, axis_file_x)
 
     ext_var = ''
     if method_name == 'resnik':
