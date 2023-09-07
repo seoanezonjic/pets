@@ -1,15 +1,15 @@
 <% 
 	def format_table(data):
 		for row in data:
-			row[1] = " ".join(row[1])
-			row[2] = ",".join(row[2])
-			row[3] = ",".join(row[3])
+			row[1] = " ".join([str(element) for element in row[1]])
+			row[2] = ",".join([str(element) for element in row[2]])
+			row[3] = ",".join([str(element) for element in row[3]])
 %>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">Profile ${ plotter.hash_vars["profile_id"] }</h1>
 	<h1 style="text-align: center; background-color:#d6eaf8">Evidence similar to profile</h1>
-	% for pair, similarity_matrix in plotter.hash_vars["similarity_matrixs"]:
+	% for pair, similarity_matrix in plotter.hash_vars["similarity_matrixs"].items():
 		<% 
 			matrix_name = pair + '_sim_matrix'
 			if "gene_HP" in pair:
