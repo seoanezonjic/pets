@@ -128,7 +128,7 @@ elif opts['ic_stats'] == 'freq':
 elif opts['ic_stats'] == 'onto':
   phenotype_ic = onto_ic
 
-clustered_patients = dummy_cluster_patients(patient_data.profiles, matrix_file, clustered_patients_file, EXTERNAL_CODE)
+clustered_patients = dummy_cluster_patients(patient_data.profiles, matrix_file, clustered_patients_file)
 all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_pats = process_dummy_clustered_patients(opts, clustered_patients, patient_data, phenotype_ic)
 
 summary_stats = get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos)
@@ -167,7 +167,7 @@ if not opts.get('chromosome_col') == None:
     all_sor_length = get_sor_length_distribution(raw_sor_coverage)  
 
 #--------------------------------------------
-# Write files for report and generate plots
+# Write files and generate plots for report 
 #--------------------------------------------
 write_detailed_hpo_profile_evaluation(suggested_childs, detailed_profile_evaluation_file, summary_stats)
 if not os.path.exists(ronto_file + '.png'): system_call(EXTERNAL_CODE, 'ronto_plotter.R', f"-i {hpo_frequency_file} -o {ronto_file} --root_node {opts['root_node']} -O {re.sub('.json','.obo', hpo_file)}") ###Cohort frequency calculation

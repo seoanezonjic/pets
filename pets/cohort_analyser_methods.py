@@ -36,27 +36,39 @@ def system_call(code_folder, script, args_string):
   os.system(cmd)
   print(f"Execution time: {time.time() - start}")
 
-def dummy_cluster_patients(patient_data, matrix_file, clust_pat_file, external_code_path):
-  if not os.path.exists(matrix_file):
-    pat_hpo_matrix, pat_id, hp_id  = exp_calc.to_bmatrix(patient_data)
+def dummy_cluster_patients(patient_data, matrix_file, clust_pat_file):
+
+  if not os.path.exists(clust_pat_file):
     x_axis_file = re.sub('.npy','_x.lst', matrix_file)
     y_axis_file = re.sub('.npy','_y.lst', matrix_file)
-    exp_calc.save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
-  if not os.path.exists(clust_pat_file):
-    system_call(external_code_path, 'get_clusters.R', f"-d {matrix_file} -o {clust_pat_file} -y {re.sub('.npy','', matrix_file)}")
-  clustered_patients = load_clustered_patients(clust_pat_file)
+    if not os.path.exists(matrix_file):
+      pat_hpo_matrix, pat_id, hp_id  = exp_calc.to_bmatrix(patient_data)
+      exp_calc.save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
+    else:
+      pat_hpo_matrix, hp_id, pat_id = exp_calc.load(matrix_file, x_axis_file, y_axis_file)
+    clusters = exp_calc.get_hc_clusters(pat_hpo_matrix, dist = 'euclidean', method = 'ward', height = [1.5])
+    clustered_patients = get_clustered_patients(clusters, pat_id)
+    with open(clust_pat_file, 'w') as f:
+      for clusterID, pat_ids in clustered_patients.items(): 
+        f.write(f"{clusterID}\t{','.join(pat_ids)}\n")
+  else:
+    clustered_patients = {}
+    with open(clust_pat_file) as f:
+      for line in f:
+        clusterID, pat_ids = line.rstrip().split('\t')
+        clustered_patients[int(clusterID)] = pat_ids.split(',')
   return(clustered_patients)
 
-def load_clustered_patients(file):
+def get_clustered_patients(data, item_list):
+  clustering_data = []
+  for i, cluster_id in enumerate(data): clustering_data.append([item_list[i], cluster_id[0]])
   clusters = {}
-  with open(file) as f:
-    for line in f:
-      pat_id, cluster_id = line.rstrip().split("\t")
-      query = clusters.get(cluster_id)
-      if query == None:
-        clusters[cluster_id] = [pat_id]
-      else:
-        query.append(pat_id)
+  for pat_id, cluster_id in clustering_data:
+    query = clusters.get(cluster_id)
+    if query == None:
+      clusters[cluster_id] = [pat_id]
+    else:
+      query.append(pat_id)
   return clusters
 
 def process_dummy_clustered_patients(options, clustered_patients, patient_data, phenotype_ic): # get ic and chromosomes
