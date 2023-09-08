@@ -167,6 +167,34 @@ def get_top_dummy_clusters_stats(top_clust_phen):
   return new_cluster_phenotypes
 
 ### AUX
+def get_cluster_chromosome_data(cluster_data, limit):
+  index = 0
+  cl_ids = []
+  data = {}
+  if len(cluster_data) > 0: last_id = cluster_data[0][0] 
+  for cluster_id, patient_number, chrm, count in cluster_data:
+    if cluster_id != last_id: index += 1 
+    if index == limit: break 
+    cl_id = f"{patient_number}_{index}"
+    if not cl_id in cl_ids: cl_ids.append(cl_id)
+    query_chrm = data.get(chrm)
+    if query_chrm == None:
+      data[chrm] = {cl_id: count}
+    else:
+      query_chrm[cl_id] = count
+    last_id = cluster_id
+
+  cl_chr_data = [['cls_id'] + cl_ids]
+  for chrm, ids_counts in data.items():
+    chr_counts = [chrm]
+    for cl_id in cl_ids:
+      count = ids_counts.get(cl_id)
+      if count == None:
+        chr_counts.append(0)
+      else:
+        chr_counts.append(count)
+    cl_chr_data.append(chr_counts)
+  return cl_chr_data
 
 def write_detailed_hpo_profile_evaluation(suggested_childs, detailed_profile_evaluation_file, summary_stats):
   with open(detailed_profile_evaluation_file, 'w', newline='') as csvfile:
@@ -199,17 +227,6 @@ def write_cluster_ic_data(all_ics, profile_lengths, cluster_ic_data_file, limit)
       cluster_length = len(cluster_ics)
       for j, clust_ic in enumerate(cluster_ics):
         f.write(f"{cluster_length}_{i}\t{clust_ic}\t{profile_lengths[i][j]}\n")
-
-def write_cluster_chromosome_data(cluster_data, cluster_chromosome_data_file, limit):
-  with open(cluster_chromosome_data_file, 'w') as f:
-    f.write("\t".join(['cluster_id', 'chr', 'count']) + "\n")
-    index = 0
-    if len(cluster_data) > 0: last_id = cluster_data[0][0] 
-    for cluster_id, patient_number, chrm, count in cluster_data:
-      if cluster_id != last_id: index += 1 
-      if index == limit: break 
-      f.write("\t".join([f"{patient_number}_{index}", chrm, str(count)]) + "\n")
-      last_id = cluster_id
 
 def write_coverage_data(coverage_to_plot, coverage_to_plot_file):
   with open(coverage_to_plot_file, 'w') as f:

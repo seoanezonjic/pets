@@ -86,7 +86,6 @@ matrix_file = os.path.join(temp_folder, 'pat_hpo_matrix.npy')
 hpo_frequency_file = os.path.join(temp_folder, 'hpo_cohort_frequency.txt')
 clustered_patients_file = os.path.join(temp_folder, 'cluster_asignation')
 cluster_ic_data_file = os.path.join(temp_folder, 'cluster_ic_data.txt')
-cluster_chromosome_data_file = os.path.join(temp_folder, 'cluster_chromosome_data.txt')
 coverage_to_plot_file = os.path.join(temp_folder, 'coverage_data.txt')
 sor_coverage_to_plot_file = os.path.join(temp_folder, 'sor_coverage_data.txt')
 ronto_file = os.path.join(temp_folder, 'hpo_freq_colour')
@@ -135,6 +134,7 @@ all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_pats = process_du
 summary_stats = get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos)
 
 all_cnvs_length = []
+all_sor_length = []
 if not opts.get('chromosome_col') == None:
   summary_stats.append(['Number of clusters with mutations accross > 1 chromosomes', multi_chr_pats])
   
@@ -166,19 +166,17 @@ if not opts.get('chromosome_col') == None:
 
     all_sor_length = get_sor_length_distribution(raw_sor_coverage)  
 
-#----------------------------------
-# Write files for report
-#----------------------------------
+#--------------------------------------------
+# Write files for report and generate plots
+#--------------------------------------------
 write_detailed_hpo_profile_evaluation(suggested_childs, detailed_profile_evaluation_file, summary_stats)
-write_cluster_ic_data(all_ics, prof_lengths, cluster_ic_data_file, opts['clusters2graph'])
-
 if not os.path.exists(ronto_file + '.png'): system_call(EXTERNAL_CODE, 'ronto_plotter.R', f"-i {hpo_frequency_file} -o {ronto_file} --root_node {opts['root_node']} -O {re.sub('.json','.obo', hpo_file)}") ###Cohort frequency calculation
+write_cluster_ic_data(all_ics, prof_lengths, cluster_ic_data_file, opts['clusters2graph'])
 system_call(EXTERNAL_CODE, 'plot_boxplot.R', f"{cluster_ic_data_file} {temp_folder} cluster_id ic 'Cluster size/id' 'Information coefficient' 'Plen' 'Profile size'")
 
-
+dummy_cluster_chr_data = []
 if not opts.get('chromosome_col') == None:
-  write_cluster_chromosome_data(clust_by_chr, cluster_chromosome_data_file, opts['clusters2graph'])
-  system_call(EXTERNAL_CODE, 'plot_scatterplot.R', f"{cluster_chromosome_data_file} {temp_folder} cluster_id chr count 'Cluster size/id' 'Chromosome' 'Patients'")
+  dummy_cluster_chr_data = get_cluster_chromosome_data(clust_by_chr, opts['clusters2graph'])
   if opts['coverage_analysis']:
     ###1. Process CNVs
     write_coverage_data(coverage_to_plot, coverage_to_plot_file)
@@ -210,7 +208,8 @@ container = {
   'distribution_percentage' : distribution_percentage,
   'hpo_ic_data': [ list(p) for p in zip(list(onto_ic.values()),list(freq_ic.values())) ],
   'hpo_ic_data_profiles': [ list(p) for p in zip(list(onto_ic_profile.values()), list(freq_ic_profile.values())) ],
-  'parents_per_term': [ list(p) for p in zip(profile_sizes, parental_hpos_per_profile) ]
+  'parents_per_term': [ list(p) for p in zip(profile_sizes, parental_hpos_per_profile) ],
+  'dummy_cluster_chr_data' : dummy_cluster_chr_data
 }
 
 clust_info = []
