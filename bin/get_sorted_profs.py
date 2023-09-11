@@ -10,8 +10,7 @@ sys.path.insert(0, os.path.join(ROOT_PATH, '..'))
 from pets.cohort import Cohort
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort_analyser_methods import get_similarity_matrix
-#from pets.generalMethods import get_similarity_matrix
-
+from pets.common_optparse import Common_optparse
 
 CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'pets', 'constants.py'))
 with open(CONSTANTS_PATH) as infile:
@@ -22,33 +21,13 @@ with open(CONSTANTS_PATH) as infile:
 ############################################################################################
 
 parser = argparse.ArgumentParser(description=f'Usage: {os.path.basename(__file__)} [options]')
-
-parser.add_argument("-c", "--chromosome_col", dest="chromosome_col", default= None,
-                    help="Column name if header is true, otherwise 0-based position of the column with the chromosome")
-
-parser.add_argument("-d", "--pat_id_col", dest="id_col", default= None,
-                    help="Column name if header is true, otherwise 0-based position of the column with the patient id")
-
-parser.add_argument("-e", "--end_col", dest="end_col", default= None,
-                    help="Column name if header is true, otherwise 0-based position of the column with the end mutation coordinate")
-
-parser.add_argument("-H", "--header", dest="header", default= True, action="store_false",
-                    help="File has a line header. Default true")
+Common_optparse.add_options(parser)
 
 parser.add_argument("-o", "--output_file", dest="output_file", default= 'report.html',
                     help="Output paco file with HPO names")
 
 parser.add_argument("-P", "--input_file", dest="input_file", default= None,
                     help="Input file with PACO extension")
-
-parser.add_argument("-p", "--hpo_term_col", dest="ont_col", default= None,
-                    help="Column name if header true or 0-based position of the column with the HPO terms")
-
-parser.add_argument("-S", "--hpo_separator", dest="separator", default= '|',
-                    help="Set which character must be used to split the HPO profile. Default '|'")
-
-parser.add_argument("-s", "--start_col", dest="start_col", default= None,
-                    help="Column name if header is true, otherwise 0-based position of the column with the start mutation coordinate")
 
 parser.add_argument("-f", "--general_prof_freq", dest="term_freq", default= 0, type= int,
                     help="When reference profile is not given, a general ine is computed with all profiles. If a freq is defined (0-1), all terms with freq minor than limit are removed")

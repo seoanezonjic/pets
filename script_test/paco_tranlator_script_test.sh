@@ -6,19 +6,19 @@ data_to_test=./input_data/paco_translator
 mkdir -p ./returned/paco_translator
 
 paco_translator.py -P $data_to_test/cohort_toy_dataset.txt \
-    -c chr -d patient_id -s start -e end -p phenotypes -S "|" -m paco -t -n \
+    -c chr -d patient_id -s start -e end -p phenotypes -S "|" -m paco -t -n -C --n_phens 2 \
     -o ./returned/paco_translator/translated_paco_file.txt
 
 paco_translator.py -P $data_to_test/cohort_toy_dataset.txt \
-    -c chr -d patient_id -s start -e end -p phenotypes -S "|" -m paco -n \
+    -c chr -d patient_id -s start -e end -p phenotypes -S "|" -m paco -n -C --n_phens 2 \
     -o ./returned/paco_translator/untranslated_paco_file.txt
 
 paco_translator.py -P $data_to_test/cohort_toy_dataset.txt \
-    -c chr -d patient_id -s start -e end -p phenotypes -S "|" -m default -t -n \
+    -c chr -d patient_id -s start -e end -p phenotypes -S "|" -m default -t -n -C --n_phens 2 \
     -o ./returned/paco_translator/translated_default_file.txt
 
 paco_translator.py -P $data_to_test/cohort_toy_dataset.txt \
-    -c chr -d patient_id -s start -e end -p phenotypes -S "|" -m default -n \
+    -c chr -d patient_id -s start -e end -p phenotypes -S "|" -m default -n -C --n_phens 2 \
     -o ./returned/paco_translator/untranslated_default_file.txt
 
 

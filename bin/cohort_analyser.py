@@ -41,18 +41,10 @@ parser.add_argument("-i", "--input_file", dest="input_file", default= None,
   help="Input file with patient data")
 parser.add_argument("-m", "--clustering_methods", dest="clustering_methods", default=['resnik', 'jiang_conrath', 'lin'], type=tolist,
   help="Clustering methods")
-parser.add_argument("-n","--hpo_names", dest="names", default= False, action="store_true",
-  help="Define if the input HPO are human readable names. Default false")
 parser.add_argument("-o", "--output_file", dest="output_file", default= None,
   help="Output file with patient data")
 parser.add_argument("-P", "--hpo_file", dest="hpo_file", default= None,
   help="Input HPO file for extracting HPO codes")
-parser.add_argument("-p", "--hpo_term_col", dest="ont_col", default= None,
-  help="Column name if header true or 0-based position of the column with the HPO terms")
-parser.add_argument("-S", "--hpo_separator", dest="separator", default='|',
-  help="Set which character must be used to split the HPO profile. Default '|'")
-parser.add_argument("-s", "--start_col", dest="start_col", default= None,
-  help="Column name if header is true, otherwise 0-based position of the column with the start mutation coordinate")
 parser.add_argument("-r", "--root_node", dest="root_node", default= "HP:0000118",
   help="Root node from which the ontology will be represented")
 parser.add_argument("-t", "--ic_stats", dest="ic_stats", default= "freq",
