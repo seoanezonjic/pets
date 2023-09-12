@@ -90,7 +90,20 @@
 	% else:
 		"<p> Genomic data was not specified </p>"
 	% endif
-	${ plotter.embed_pdf(os.path.join(plotter.hash_vars["temp_folder"],'boxplot.pdf'), 'width="800" height="800"') }
+	${ plotter.boxplot(id = 'dummy_ic_data', header = True, row_names = True, fields= [0,2], x_label = 'Profile size',
+			config = {
+				'graphOrientation' : 'vertical',
+				'smpTitle' : 'Cluster size/id'
+			}
+		) 
+	}
+	${ plotter.boxplot(id = 'dummy_ic_data', header = True, row_names = True, fields= [0,1], x_label = 'Information coefficient',
+			config = {
+				'graphOrientation' : 'vertical',
+				'smpTitle' : 'Cluster size/id'
+			}
+		) 
+	}
 </div>
 
 

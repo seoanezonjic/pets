@@ -25,18 +25,6 @@
 %>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
-	<h1 style="text-align: center; background-color:#d6eaf8">Average of patients by HPO profile average in clusters</h1>
-	<p> Distribution of patients in clusters based on the average of phenotypes by profile. </p>
-
-	<% plot = os.path.join( plotter.hash_vars["temp_folder"], f"{plotter.hash_vars['cluster_name']}_clusters_distribution.pdf") %>
-	% if os.path.exists(plot):
-		${plotter.embed_pdf(plot, 'width="800" height="800"')} 
-	% else:
-		"<p> File not specified. </p>"
-	% endif
-</div>
-
-<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">Patient HPO profiles by cluster.</h1>
 		${ plotter.table(id="clusters", header= True, border= 2, row_names= False, text= True, cell_align= ["center"] * 5, 
 			 styled= 'dt', attrib= {'class': 'table'},

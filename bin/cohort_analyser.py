@@ -82,10 +82,7 @@ output_folder = os.path.dirname(opts['output_file'])
 detailed_profile_evaluation_file = os.path.join(output_folder, 'detailed_hpo_profile_evaluation.csv')
 rejected_file = os.path.join(output_folder, 'rejected_records.txt')
 temp_folder = os.path.join(output_folder, 'temp')
-matrix_file = os.path.join(temp_folder, 'pat_hpo_matrix.npy')
 hpo_frequency_file = os.path.join(temp_folder, 'hpo_cohort_frequency.txt')
-clustered_patients_file = os.path.join(temp_folder, 'cluster_asignation')
-cluster_ic_data_file = os.path.join(temp_folder, 'cluster_ic_data.txt')
 coverage_to_plot_file = os.path.join(temp_folder, 'coverage_data.txt')
 sor_coverage_to_plot_file = os.path.join(temp_folder, 'sor_coverage_data.txt')
 ronto_file = os.path.join(temp_folder, 'hpo_freq_colour')
@@ -128,8 +125,7 @@ elif opts['ic_stats'] == 'freq':
 elif opts['ic_stats'] == 'onto':
   phenotype_ic = onto_ic
 
-clustered_patients = dummy_cluster_patients(patient_data.profiles, matrix_file, clustered_patients_file)
-all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_pats = process_dummy_clustered_patients(opts, clustered_patients, patient_data, phenotype_ic)
+all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_pats = process_dummy_clustered_patients(opts, patient_data, phenotype_ic, temp_folder = temp_folder)
 
 summary_stats = get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos)
 
@@ -171,8 +167,6 @@ if not opts.get('chromosome_col') == None:
 #--------------------------------------------
 write_detailed_hpo_profile_evaluation(suggested_childs, detailed_profile_evaluation_file, summary_stats)
 if not os.path.exists(ronto_file + '.png'): system_call(EXTERNAL_CODE, 'ronto_plotter.R', f"-i {hpo_frequency_file} -o {ronto_file} --root_node {opts['root_node']} -O {re.sub('.json','.obo', hpo_file)}") ###Cohort frequency calculation
-write_cluster_ic_data(all_ics, prof_lengths, cluster_ic_data_file, opts['clusters2graph'])
-system_call(EXTERNAL_CODE, 'plot_boxplot.R', f"{cluster_ic_data_file} {temp_folder} cluster_id ic 'Cluster size/id' 'Information coefficient' 'Plen' 'Profile size'")
 
 dummy_cluster_chr_data = []
 if not opts.get('chromosome_col') == None:
@@ -209,7 +203,8 @@ container = {
   'hpo_ic_data': [ list(p) for p in zip(list(onto_ic.values()),list(freq_ic.values())) ],
   'hpo_ic_data_profiles': [ list(p) for p in zip(list(onto_ic_profile.values()), list(freq_ic_profile.values())) ],
   'parents_per_term': [ list(p) for p in zip(profile_sizes, parental_hpos_per_profile) ],
-  'dummy_cluster_chr_data' : dummy_cluster_chr_data
+  'dummy_cluster_chr_data' : dummy_cluster_chr_data,
+  'dummy_ic_data' : format_cluster_ic_data(all_ics, prof_lengths, opts['clusters2graph'])
 }
 
 clust_info = []

@@ -36,8 +36,9 @@ def system_call(code_folder, script, args_string):
   os.system(cmd)
   print(f"Execution time: {time.time() - start}")
 
-def dummy_cluster_patients(patient_data, matrix_file, clust_pat_file):
-
+def dummy_cluster_patients(patient_data, temp_folder = "./"):
+  clust_pat_file = os.path.join(temp_folder, 'cluster_asignation')
+  matrix_file = os.path.join(temp_folder, 'pat_hpo_matrix.npy')
   if not os.path.exists(clust_pat_file):
     x_axis_file = re.sub('.npy','_x.lst', matrix_file)
     y_axis_file = re.sub('.npy','_y.lst', matrix_file)
@@ -71,7 +72,8 @@ def get_clustered_patients(data, item_list):
       query.append(pat_id)
   return clusters
 
-def process_dummy_clustered_patients(options, clustered_patients, patient_data, phenotype_ic): # get ic and chromosomes
+def process_dummy_clustered_patients(options, patient_data, phenotype_ic, temp_folder = './'): # get ic and chromosomes
+  clustered_patients = dummy_cluster_patients(patient_data.profiles, temp_folder = temp_folder)
   ont = Cohort.get_ontology(Cohort.act_ont)
   all_ics = []
   all_lengths = []
@@ -231,14 +233,13 @@ def write_detailed_hpo_profile_evaluation(suggested_childs, detailed_profile_eva
             csvwriter.writerow([parent_field, f"{child_name} ({child_code})"])
       csvwriter.writerow(["", ""])
 
-def write_cluster_ic_data(all_ics, profile_lengths, cluster_ic_data_file, limit):
-  with open(cluster_ic_data_file, 'w') as f:
-    f.write("\t".join(['cluster_id', 'ic', 'Plen']) + "\n")
-    for i, cluster_ics in enumerate(all_ics):
-      if i == limit: break
-      cluster_length = len(cluster_ics)
-      for j, clust_ic in enumerate(cluster_ics):
-        f.write(f"{cluster_length}_{i}\t{clust_ic}\t{profile_lengths[i][j]}\n")
+def format_cluster_ic_data(all_ics, profile_lengths, limit):
+  ic_data = [['cluster_id', 'ic', 'Plen']]
+  for i, cluster_ics in enumerate(all_ics):
+    if i == limit: break
+    cluster_length = len(cluster_ics)
+    for j, clust_ic in enumerate(cluster_ics): ic_data.append([f"{cluster_length}_{i}", clust_ic, profile_lengths[i][j]])
+  return ic_data
 
 def write_coverage_data(coverage_to_plot, coverage_to_plot_file):
   with open(coverage_to_plot_file, 'w') as f:
@@ -355,9 +356,6 @@ def get_semantic_similarity_clustering(options, patient_data, temp_folder, templ
     out_file = os.path.join(temp_folder, method_name)
     if not os.path.exists(out_file +  '_heatmap.png'): system_call(code_folder, 'plot_heatmap.R', f"-y {axis_file} -d {matrix_filename} -o {out_file} -M {options['minClusterProportion']} -t dynamic -H {ext_var}") 
     clusters_codes, clusters_info = parse_clusters_file(os.path.join(temp_folder, cluster_file), patient_data)  
-    write_patient_hpo_stat(get_cluster_metadata(clusters_info), clusters_distribution_filename)
-    out_file = os.path.join(temp_folder, f"{method_name}_clusters_distribution")
-    if not os.path.exists(out_file): system_call(code_folder, 'xyplot_graph.R', f"-d {clusters_distribution_filename} -o {out_file} -x PatientsNumber -y HPOAverage") 
     sim_mat4cluster = {}
     if options['detailed_clusters']:
       for clID, patient_number, patient_ids, hpo_codes in clusters_codes:
