@@ -1,5 +1,4 @@
 132	Autism|Hypotonia|Intellectual disability	22	50	100
-599	Intellectual disability	15	1	200
 647	Intellectual disability|Turricephaly	22	500	1000
-648	Hearing impairment|Microcephaly|Intellectual disability	22	52	102
-648	Hearing impairment|Microcephaly|Intellectual disability	22	10000	20000
+648	Hearing impairment|Intellectual disability|Microcephaly	22	52	102
+648	Hearing impairment|Intellectual disability|Microcephaly	22	10000	20000

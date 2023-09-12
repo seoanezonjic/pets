@@ -233,9 +233,9 @@ class Cohort():
                 for var in variants:
                     vars_joined = "\t".join([str(item) for item in var])
                     if mode == "default":
-                        f.write(f"{id}\t{'|'.join(terms)}\t{vars_joined}\n")
+                        f.write(f"{id}\t{'|'.join(sorted(terms))}\t{vars_joined}\n")
                     elif mode == "paco":
-                        f.write(f"{id}\t{vars_joined}\t{'|'.join(terms)}\n")
+                        f.write(f"{id}\t{vars_joined}\t{'|'.join(sorted(terms))}\n")
                     else:
                         raise Exception('Wrong save mode option, please try default or paco')
     
