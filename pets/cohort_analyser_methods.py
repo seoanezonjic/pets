@@ -3,7 +3,6 @@ import re
 import numpy as np
 import time
 from collections import defaultdict
-import csv
 
 from py_exp_calc import exp_calc
 from py_report_html import Py_report_html
@@ -18,17 +17,6 @@ def load_hpo_ci_values(information_coefficient_file):
       hpos_ci_values[hpo_code] = float(ci)
   return hpos_ci_values
 
-def get_profile_ic(hpo_names, phenotype_ic):
-  ic = 0
-  profile_length = 0
-  for hpo_id in hpo_names:
-    hpo_ic = phenotype_ic.get(hpo_id)
-    if hpo_ic == None: raise Exception(f"The term {hpo_id} not exists in the given ic table")
-    ic += hpo_ic 
-    profile_length += 1
-  if profile_length == 0: profile_length = 1 
-  return ic/profile_length
-
 def system_call(code_folder, script, args_string):
   cmd = f"{os.path.join(code_folder, script)} {args_string}"
   print(f"==> {cmd}")
@@ -36,79 +24,6 @@ def system_call(code_folder, script, args_string):
   os.system(cmd)
   print(f"Execution time: {time.time() - start}")
 
-def dummy_cluster_patients(patient_data, temp_folder = "./"):
-  clust_pat_file = os.path.join(temp_folder, 'cluster_asignation')
-  matrix_file = os.path.join(temp_folder, 'pat_hpo_matrix.npy')
-  if not os.path.exists(clust_pat_file):
-    x_axis_file = re.sub('.npy','_x.lst', matrix_file)
-    y_axis_file = re.sub('.npy','_y.lst', matrix_file)
-    if not os.path.exists(matrix_file):
-      pat_hpo_matrix, pat_id, hp_id  = exp_calc.to_bmatrix(patient_data)
-      exp_calc.save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
-    else:
-      pat_hpo_matrix, hp_id, pat_id = exp_calc.load(matrix_file, x_axis_file, y_axis_file)
-    clusters = exp_calc.get_hc_clusters(pat_hpo_matrix, dist = 'euclidean', method = 'ward', height = [1.5])
-    clustered_patients = get_clustered_patients(clusters, pat_id)
-    with open(clust_pat_file, 'w') as f:
-      for clusterID, pat_ids in clustered_patients.items(): 
-        f.write(f"{clusterID}\t{','.join(pat_ids)}\n")
-  else:
-    clustered_patients = {}
-    with open(clust_pat_file) as f:
-      for line in f:
-        clusterID, pat_ids = line.rstrip().split('\t')
-        clustered_patients[int(clusterID)] = pat_ids.split(',')
-  return(clustered_patients)
-
-def get_clustered_patients(data, item_list):
-  clustering_data = []
-  for i, cluster_id in enumerate(data): clustering_data.append([item_list[i], cluster_id[0]])
-  clusters = {}
-  for pat_id, cluster_id in clustering_data:
-    query = clusters.get(cluster_id)
-    if query == None:
-      clusters[cluster_id] = [pat_id]
-    else:
-      query.append(pat_id)
-  return clusters
-
-def process_dummy_clustered_patients(options, patient_data, phenotype_ic, temp_folder = './'): # get ic and chromosomes
-  clustered_patients = dummy_cluster_patients(patient_data.profiles, temp_folder = temp_folder)
-  ont = Cohort.get_ontology(Cohort.act_ont)
-  all_ics = []
-  all_lengths = []
-  top_cluster_phenotypes = []
-  cluster_data_by_chromosomes = []
-  multi_chromosome_patients = 0
-  processed_clusters = 0
-  for cluster_id, patient_ids in sorted(list(clustered_patients.items()), key=lambda x: len(x[1]), reverse=True):
-    num_of_patients = len(patient_ids)
-    if num_of_patients == 1: continue 
-    chrs, all_phens, profile_ics, profile_lengths = process_cluster(patient_ids, patient_data, phenotype_ic, options, ont, processed_clusters)
-    if processed_clusters < options['clusters2show_detailed_phen_data']: top_cluster_phenotypes.append(all_phens)
-    all_ics.append(profile_ics)
-    all_lengths.append(profile_lengths)
-    if not options.get('chromosome_col') == None:
-      if len(chrs) > 1: multi_chromosome_patients += num_of_patients
-      for chrm, count in chrs.items(): cluster_data_by_chromosomes.append([cluster_id, num_of_patients, chrm, count])
-    processed_clusters += 1
-  return all_ics, all_lengths, cluster_data_by_chromosomes, top_cluster_phenotypes, multi_chromosome_patients
-
-def process_cluster(patient_ids, patient_data, phenotype_ic, options, ont, processed_clusters):
-  chrs = defaultdict(lambda: 0)
-  all_phens = []
-  profile_ics = []
-  profile_lengths = []
-  for pat_id in patient_ids:
-    phenotypes = patient_data.get_profile(pat_id) 
-    profile_ics.append(get_profile_ic(phenotypes, phenotype_ic))
-    profile_lengths.append(len(phenotypes))
-    if processed_clusters < options['clusters2show_detailed_phen_data']:
-      phen_names, rejected_codes = ont.translate_ids(phenotypes) #optional
-      all_phens.append(phen_names)
-    if not options.get('chromosome_col') == None: 
-      for chrm in patient_data.get_vars(pat_id).get_chr(): chrs[chrm] += 1
-  return chrs, all_phens, profile_ics, profile_lengths 
 
 def get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos):
   stats = [
@@ -123,14 +38,6 @@ def get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms
     ['Number of unknown phenotypes', len(rejected_hpos)]
   ]
   return stats
-
-def get_mean_size(all_sizes):
-  accumulated_size = 0
-  number = 0
-  for size, occurrences in all_sizes: 
-    accumulated_size += size *occurrences
-    number += occurrences
-  return accumulated_size /number
 
 def calculate_coverage(regions_data, delete_thresold = 0):
   raw_coverage = {}
@@ -161,12 +68,11 @@ def get_final_coverage(raw_coverage, bin_size):
 
 def get_sor_length_distribution(raw_coverage):
   all_cnvs_length = []
-  cnvs_count = []
   for chrm, coords_info in raw_coverage.items():
     for start, stop, pat_records in coords_info:
       region_length = stop - start + 1
-      all_cnvs_length.append([region_length, pat_records])
-  all_cnvs_length.sort(key=lambda x: x[1])
+      for i in range(pat_records):
+        all_cnvs_length.append(region_length)
   return all_cnvs_length
 
 def get_top_dummy_clusters_stats(top_clust_phen):
@@ -209,29 +115,6 @@ def get_cluster_chromosome_data(cluster_data, limit):
         chr_counts.append(count)
     cl_chr_data.append(chr_counts)
   return cl_chr_data
-
-def write_detailed_hpo_profile_evaluation(suggested_childs, detailed_profile_evaluation_file, summary_stats):
-  with open(detailed_profile_evaluation_file, 'w', newline='') as csvfile:
-    csvwriter = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-    for pat_id, suggestions in suggested_childs.items():
-      warning = None
-      if len(suggestions) < 4: warning = 'WARNING: Very few phenotypes' 
-      csvwriter.writerow([f"PATIENT {pat_id}", f"{warning}"])
-      csvwriter.writerow(["CURRENT PHENOTYPES", "PUTATIVE MORE SPECIFIC PHENOTYPES"])
-      for parent, childs in suggestions:
-        parent_code, parent_name = parent
-        if len(childs) == 0:
-          csvwriter.writerow([f"{parent_name} ({parent_code})", '-'])
-        else:
-          parent_writed = False
-          for child_code, child_name in childs:
-            if not parent_writed:
-              parent_field = f"{parent_name} ({parent_code})"
-              parent_writed = True
-            else:
-              parent_field = ""
-            csvwriter.writerow([parent_field, f"{child_name} ({child_code})"])
-      csvwriter.writerow(["", ""])
 
 def format_cluster_ic_data(all_ics, profile_lengths, limit):
   ic_data = [['cluster_id', 'ic', 'Plen']]
@@ -327,7 +210,7 @@ def get_semantic_similarity_clustering(options, patient_data, temp_folder, templ
         profiles_similarity = patient_data.compare_profiles(sim_type = method_name, external_profiles = reference_profiles)
       else: # AS reference profiles are constant, the sematic comparation will be A => B (A reference). So, we have to invert the elements to perform the comparation
         ont = Cohort.get_ontology('hpo')
-        pat_profiles = ont.profiles
+        pat_profiles = ont.profiles # TEmporal copy to preserve patient profiles and inject reference profiles
         ont.load_profiles(reference_profiles, reset_stored = True)
         profiles_similarity = ont.compare_profiles(sim_type = method_name, 
           external_profiles = pat_profiles, 
@@ -340,7 +223,7 @@ def get_semantic_similarity_clustering(options, patient_data, temp_folder, templ
         similarity_matrix, axis_names = exp_calc.to_wmatrix(profiles_similarity, squared = True, symm = True)
         exp_calc.save(similarity_matrix, matrix_filename, axis_names, axis_file)
       else:
-        similarity_matrix, y_names, x_names = exp_calc.to_wmatrix(profiles_similarity, squared = False, symm = True)
+        similarity_matrix, y_names, x_names = exp_calc.to_wmatrix(profiles_similarity, squared = False, symm = False)
         exp_calc.save(similarity_matrix, matrix_filename, y_names, axis_file_y, x_names, axis_file_x)
 
     ext_var = ''
@@ -369,11 +252,10 @@ def get_semantic_similarity_clustering(options, patient_data, temp_folder, templ
         candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
         sim_mat4cluster[clID] = candidate_sim_matrix
 
-    clusters = translate_codes(clusters_codes, hpo)
     container = {
       'temp_folder' : temp_folder,
       'cluster_name' : method_name,
-      'clusters' : clusters,
+      'clusters' : translate_codes(clusters_codes, hpo),
       'hpo' : hpo,
       'sim_mat4cluster' : sim_mat4cluster
      }

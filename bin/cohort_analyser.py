@@ -5,6 +5,7 @@ ROOT_PATH=os.path.dirname(__file__)
 CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'pets', 'constants.py'))
 sys.path.insert(0, os.path.join(ROOT_PATH, '..'))
 
+import numpy as np
 from pets.common_optparse import Common_optparse
 from pets.cohort_analyser_methods import *
 
@@ -29,8 +30,6 @@ parser.add_argument("-C", "--clusters2show", dest="clusters2show_detailed_phen_d
   help="How many patient clusters are show in detailed phenotype cluster data section. Default 3")
 parser.add_argument("-D","--detailed_clusters", dest="detailed_clusters", default= False, action="store_true",
   help="Show detailed cluster comparation using heatmaps. Default false")
-parser.add_argument("-E", "--excluded_hpo", dest="--excluded_hpo", default= None,
-  help="Path to file with a list of HPO phenotypes to exclude (low informative)")
 parser.add_argument("-M", "--minClusterProportion", dest="minClusterProportion", default= 0.01, type=float,
   help="Minimum percentage of patients per cluster")
 parser.add_argument("-f", "--patients_filter", dest="patients_filter", default= 2, type=int,
@@ -85,10 +84,8 @@ hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
 Cohort.load_ontology("hpo", hpo_file, opts.get("excluded_hpo"))
 Cohort.act_ont = "hpo"
 
-patient_data, rejected_hpos_L, rejected_patients_L = Cohort_Parser.load(opts)
-rejected_hpos_C, rejected_patients_C = patient_data.check()
-rejected_hpos = list(set(rejected_hpos_L).union(rejected_hpos_C))
-rejected_patients = list(set(rejected_patients_L).union(rejected_patients_C))
+opts['check'] = True
+patient_data, rejected_hpos, rejected_patients = Cohort_Parser.load(opts)
 with open(rejected_file, 'w') as f: f.write("\n".join(rejected_patients))
 
 patient_data.link2ont(Cohort.act_ont) # TODO: check if method load should call to this and use the semtools checking methods (take care to only remove invalid terms)
@@ -101,11 +98,12 @@ with open(hpo_frequency_file, 'w') as f:
   for hpo_code, freq in patient_data.get_profiles_terms_frequency(translate= False): # hpo CODE, freq
     f.write(f"{hpo_code}\t{freq}\n")
 
-suggested_childs, fraction_terms_specific_childs = patient_data.compute_term_list_and_childs()
+suggested_childs, fraction_terms_specific_childs = patient_data.compute_term_list_and_childs(file = detailed_profile_evaluation_file)
+
 ontology_levels, distribution_percentage = patient_data.get_profile_ontology_distribution_tables()
 onto_ic, freq_ic, onto_ic_profile, freq_ic_profile = patient_data.get_ic_analysis()
 
-if opts['ic_stats'] == 'freq_internal':
+if opts['ic_stats'] == 'freq_internal': # TODO: Make semtools to load ci external values
   ic_file = os.environ['ic_file'] if os.environ.get('ic_file') else IC_FILE
   freq_ic = load_hpo_ci_values(ic_file)
   phenotype_ic = freq_ic
@@ -117,7 +115,7 @@ elif opts['ic_stats'] == 'freq':
 elif opts['ic_stats'] == 'onto':
   phenotype_ic = onto_ic
 
-all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_pats = process_dummy_clustered_patients(opts, patient_data, phenotype_ic, temp_folder = temp_folder)
+all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_pats = patient_data.process_dummy_clustered_patients(opts, phenotype_ic, temp_folder = temp_folder)
 
 summary_stats = get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos)
 
@@ -126,20 +124,19 @@ all_sor_length = []
 if not opts.get('chromosome_col') == None:
   summary_stats.append(['Number of clusters with mutations accross > 1 chromosomes', multi_chr_pats])
   
+  patient_data.index_vars()
+  all_cnvs_length = patient_data.get_vars_sizes(False)
+  summary_stats.append(['Average variant size', round(np.mean(all_cnvs_length), 4)])
   #----------------------------------
   # Prepare data to plot coverage
   #----------------------------------
   if opts.get('coverage_analysis'):
-    patient_data.index_vars()
-    all_cnvs_length = patient_data.get_vars_sizes(True)
-    cnv_size_average = get_mean_size(all_cnvs_length)
     patients_by_cluster, sors = patient_data.generate_cluster_regions('reg_overlap', 'A', 0)
 
     ###1. Process CNVs
     raw_coverage, n_cnv, nt, pats_per_region = calculate_coverage(sors)
     summary_stats.extend(
-      [['Average variant size', round(cnv_size_average, 4)],
-      ['Nucleotides affected by mutations', nt],
+      [['Nucleotides affected by mutations', nt],
       ['Number of genome windows', n_cnv],
       ['Mean patients per genome window', round(pats_per_region, 4)]])
     coverage_to_plot = get_final_coverage(raw_coverage, opts['bin_size'])
@@ -149,7 +146,6 @@ if not opts.get('chromosome_col') == None:
       [[f"Number of genome window shared by >= {opts['patients_filter']} patients", n_sor],
       ["Number of patients with at least 1 SOR", len(patients_by_cluster)],
       ['Nucleotides affected by mutations', nt]])
-    # ['Patient average per region', pats_per_region]
     sor_coverage_to_plot = get_final_coverage(raw_sor_coverage, opts['bin_size'])
 
     all_sor_length = get_sor_length_distribution(raw_sor_coverage)  
@@ -157,7 +153,6 @@ if not opts.get('chromosome_col') == None:
 #--------------------------------------------
 # Write files and generate plots for report 
 #--------------------------------------------
-write_detailed_hpo_profile_evaluation(suggested_childs, detailed_profile_evaluation_file, summary_stats)
 if not os.path.exists(ronto_file + '.png'): system_call(EXTERNAL_CODE, 'ronto_plotter.R', f"-i {hpo_frequency_file} -o {ronto_file} --root_node {opts['root_node']} -O {re.sub('.json','.obo', hpo_file)}") ###Cohort frequency calculation
 
 dummy_cluster_chr_data = []
@@ -187,8 +182,8 @@ container = {
   'summary_stats' : summary_stats,
   'clustering_methods' : opts['clustering_methods'],
   'hpo_stats' : hpo_stats,
-  'all_cnvs_length' : all_cnvs_length,
-  'all_sor_length' : all_sor_length,
+  'all_cnvs_length' : [ [l] for l in all_cnvs_length ],
+  'all_sor_length' : [ [l] for l in all_sor_length ],
   'new_cluster_phenotypes' : len(new_cluster_phenotypes),
   'ontology_levels' : ontology_levels,
   'distribution_percentage' : distribution_percentage,

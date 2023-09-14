@@ -43,13 +43,13 @@
 		<h1 style="text-align: center; background-color:#d6eaf8">Distribution of mutations</h1>
 		<p> Distribution of all mutations along the genome (Length) and the number of patients that have at least one of them (Count). Second figure shows the same for SORs. </p>
 			% if len(plotter.hash_vars["all_cnvs_length"]) > 0:
-				${plotter.scatter2D(id= "all_cnvs_length", header= False, title= 'CNV', row_names= False, x_label= 'Length', y_label= 'Count', width= "800px", height= "800px", responsive= False)}
+				${plotter.density(id= "all_cnvs_length", header= False, title= 'CNV', row_names= False, x_label= 'Length', y_label= 'Count', width= "600px", height= "600px", responsive= False)}
 			% else:
 				"<p> No genomic data was specified for this cohort </p>"
 			% endif
 
 			% if len(plotter.hash_vars["all_sor_length"]) > 0:
-				${plotter.scatter2D(id= "all_sor_length", header= False, title= 'SOR', row_names= False, x_label= 'Length', y_label= 'Count', width= "800px", height= "800px", responsive= False)}
+				${plotter.density(id= "all_sor_length", header= False, title= 'SOR', row_names= False, x_label= 'Length', y_label= 'Count', width= "600px", height= "600px", responsive= False)}
 			% else:
 				"<p> No genomic data was specified for this cohort </p>"
 			% endif

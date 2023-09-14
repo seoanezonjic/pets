@@ -10,6 +10,10 @@ class Cohort_Parser(File_Parser):
         fields2extract, records = cls.get_records(valid_fields, options)
         options["extracted_fields"] = list(fields2extract.keys())
         cohort, rejected_terms, rejected_recs = cls.create_cohort(records, options)
+        if options.get('check'): 
+            rejected_terms_C, rejected_recs_C = cohort.check()
+            rejected_terms = list(set(rejected_terms).union(rejected_terms_C))
+            rejected_recs = list(set(rejected_recs).union(rejected_recs_C))
         return cohort, rejected_terms, rejected_recs
 
     @classmethod

@@ -1,6 +1,8 @@
 import json
 import os, sys
 from collections import defaultdict
+import csv
+from py_exp_calc import exp_calc
 from py_semtools.ontology import Ontology
 from pets.genomic_features import Genomic_Feature
 
@@ -164,9 +166,10 @@ class Cohort():
         term_stats = ont.get_profiles_terms_frequency(**options) #https://www.ruby-lang.org/en/news/2019/12/12/separation-of-positional-and-keyword-arguments-in-ruby-3-0/
         return term_stats
 
-    def compute_term_list_and_childs(self):
+    def compute_term_list_and_childs(self, file = None):
         ont = Cohort.ont[Cohort.act_ont]
         suggested_childs, term_with_childs_ratio = ont.compute_term_list_and_childs()
+        if file != None: self.write_detailed_hpo_profile_evaluation(suggested_childs, file)
         return suggested_childs, term_with_childs_ratio
 
     def get_profile_ontology_distribution_tables(self):
@@ -286,6 +289,114 @@ class Cohort():
             with open(os.path.join(output_folder, str(id) + ".json"), "w") as f:
                 f.write(json.dumps(phenopacket, indent=4))
 
+    def process_dummy_clustered_patients(self, options, phenotype_ic, temp_folder = './'): # get ic and chromosomes
+        clustered_patients = self.dummy_cluster_patients(temp_folder = temp_folder)
+        ont = self.get_ontology(Cohort.act_ont)
+        all_ics = []
+        all_lengths = []
+        top_cluster_phenotypes = []
+        cluster_data_by_chromosomes = []
+        multi_chromosome_patients = 0
+        processed_clusters = 0
+        for cluster_id, patient_ids in sorted(list(clustered_patients.items()), key=lambda x: len(x[1]), reverse=True):
+            num_of_patients = len(patient_ids)
+            if num_of_patients == 1: continue 
+            chrs, all_phens, profile_ics, profile_lengths = self.process_cluster(patient_ids, phenotype_ic, options, ont, processed_clusters)
+            if processed_clusters < options['clusters2show_detailed_phen_data']: top_cluster_phenotypes.append(all_phens)
+            all_ics.append(profile_ics)
+            all_lengths.append(profile_lengths)
+            if not options.get('chromosome_col') == None:
+                if len(chrs) > 1: multi_chromosome_patients += num_of_patients
+                for chrm, count in chrs.items(): cluster_data_by_chromosomes.append([cluster_id, num_of_patients, chrm, count])
+            processed_clusters += 1
+        return all_ics, all_lengths, cluster_data_by_chromosomes, top_cluster_phenotypes, multi_chromosome_patients
+
+    def dummy_cluster_patients(self, temp_folder = "./"):
+        clust_pat_file = os.path.join(temp_folder, 'cluster_asignation')
+        matrix_file = os.path.join(temp_folder, 'pat_hpo_matrix.npy')
+        if not os.path.exists(clust_pat_file):
+            x_axis_file = re.sub('.npy','_x.lst', matrix_file)
+            y_axis_file = re.sub('.npy','_y.lst', matrix_file)
+            if not os.path.exists(matrix_file):
+                pat_hpo_matrix, pat_id, hp_id  = exp_calc.to_bmatrix(self.profiles)
+                exp_calc.save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
+            else:
+                pat_hpo_matrix, hp_id, pat_id = exp_calc.load(matrix_file, x_axis_file, y_axis_file)
+            clusters = exp_calc.get_hc_clusters(pat_hpo_matrix, dist = 'euclidean', method = 'ward', height = [1.5])
+            clustered_patients = self.get_clustered_patients(clusters, pat_id)
+            with open(clust_pat_file, 'w') as f:
+                for clusterID, pat_ids in clustered_patients.items(): 
+                    f.write(f"{clusterID}\t{','.join(pat_ids)}\n")
+        else:
+            clustered_patients = {}
+            with open(clust_pat_file) as f:
+                for line in f:
+                    clusterID, pat_ids = line.rstrip().split('\t')
+                    clustered_patients[int(clusterID)] = pat_ids.split(',')
+        return(clustered_patients)
+
+    def get_clustered_patients(self, data, item_list):
+        clustering_data = []
+        for i, cluster_id in enumerate(data): clustering_data.append([item_list[i], cluster_id[0]])
+        clusters = {}
+        for pat_id, cluster_id in clustering_data:
+            query = clusters.get(cluster_id)
+            if query == None:
+                clusters[cluster_id] = [pat_id]
+            else:
+                query.append(pat_id)
+        return clusters
+
+    def process_cluster(self, patient_ids, phenotype_ic, options, ont, processed_clusters):
+      chrs = defaultdict(lambda: 0)
+      all_phens = []
+      profile_ics = []
+      profile_lengths = []
+      for pat_id in patient_ids:
+        phenotypes = self.get_profile(pat_id) 
+        profile_ics.append(self.get_profile_ic(phenotypes, phenotype_ic))
+        profile_lengths.append(len(phenotypes))
+        if processed_clusters < options['clusters2show_detailed_phen_data']:
+          phen_names, rejected_codes = ont.translate_ids(phenotypes) #optional
+          all_phens.append(phen_names)
+        if not options.get('chromosome_col') == None: 
+          for chrm in self.get_vars(pat_id).get_chr(): chrs[chrm] += 1
+      return chrs, all_phens, profile_ics, profile_lengths 
+
+    def get_profile_ic(self, hpo_names, phenotype_ic):
+        ic = 0
+        profile_length = 0
+        for hpo_id in hpo_names:
+            hpo_ic = phenotype_ic.get(hpo_id)
+            if hpo_ic == None: raise Exception(f"The term {hpo_id} not exists in the given ic table")
+            ic += hpo_ic 
+            profile_length += 1
+        if profile_length == 0: profile_length = 1 
+        return ic/profile_length
+
+    def write_detailed_hpo_profile_evaluation(self, suggested_childs, detailed_profile_evaluation_file):
+        with open(detailed_profile_evaluation_file, 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            for pat_id, suggestions in suggested_childs.items():
+                warning = None
+                if len(suggestions) < 4: warning = 'WARNING: Very few phenotypes' 
+                csvwriter.writerow([f"PATIENT {pat_id}", f"{warning}"])
+                csvwriter.writerow(["CURRENT PHENOTYPES", "PUTATIVE MORE SPECIFIC PHENOTYPES"])
+                for parent, childs in suggestions:
+                    parent_code, parent_name = parent
+                    if len(childs) == 0:
+                        csvwriter.writerow([f"{parent_name} ({parent_code})", '-'])
+                    else:
+                        parent_writed = False
+                    for child_code, child_name in childs:
+                        if not parent_writed:
+                            parent_field = f"{parent_name} ({parent_code})"
+                            parent_writed = True
+                        else:
+                            parent_field = ""
+                        csvwriter.writerow([parent_field, f"{child_name} ({child_code})"])
+                csvwriter.writerow(["", ""])
+
     #Supplementary functions
     def intersection(self, arr1, arr2):
-         return [item for item in arr1 if item in arr2] 
+        return [item for item in arr1 if item in arr2] 
