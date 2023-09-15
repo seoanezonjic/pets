@@ -169,7 +169,9 @@ if not opts.get('chromosome_col') == None:
 #----------------------------------
 # CLUSTER COHORT ANALYZER REPORT
 #----------------------------------
-get_semantic_similarity_clustering(opts, patient_data, temp_folder, os.path.join(REPORT_FOLDER, 'cluster_report.txt'), EXTERNAL_CODE)
+reference_profiles = None
+if opts.get('reference_profiles') != None: reference_profiles = load_profiles(opts['reference_profiles'], Cohort.get_ontology('hpo'))
+get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, os.path.join(REPORT_FOLDER, 'cluster_report.txt'), EXTERNAL_CODE)
 
 #----------------------------------
 # GENERAL COHORT ANALYZER REPORT

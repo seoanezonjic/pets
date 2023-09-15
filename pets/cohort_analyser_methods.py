@@ -1,7 +1,7 @@
 import os, sys
-import re
 import numpy as np
 import time
+import re
 from collections import defaultdict
 
 from py_exp_calc import exp_calc
@@ -129,12 +129,6 @@ def write_coverage_data(coverage_to_plot, coverage_to_plot_file):
     for chrm, position, freq in coverage_to_plot:
       f.write(f"{chrm}\t{position}\t{freq}\n")
 
-def write_profile_pairs(similarity_pairs, filename):
-  with open(filename, 'w') as f:
-    for pairsA, pairsB_and_values in similarity_pairs.items():
-      for pairsB, values in pairsB_and_values.items():
-        f.write(f"{pairsA}\t{pairsB}\t{values}\n")
-
 def write_patient_hpo_stat(average_hp_per_pat_distribution, output_file):
   with open(output_file, 'w') as f:
     f.write("PatientsNumber\tHPOAverage\n")
@@ -153,11 +147,10 @@ def load_profiles(file_path, hpo):
         if len(hpos) > 0 : profiles[id] = hpos
   return profiles
 
-def parse_clusters_file(clusters_file, patient_data):
+def parse_clusters_data(patient_clusters, patient_data):
   clusters_info = {}
-  with open(clusters_file) as f:
-    for line in f:
-      patientID, clusterID = line.rstrip().split("\t")
+  for clusterID, patientIDs, in patient_clusters.items():
+    for patientID in patientIDs:
       patientHPOProfile = patient_data.get_profile(patientID)
       query = clusters_info.get(clusterID)
       if query == None :
@@ -190,55 +183,39 @@ def translate_codes(clusters, hpo):
         ])
   return translated_clusters
 
-def get_semantic_similarity_clustering(options, patient_data, temp_folder, template_path, code_folder):
+def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path, code_folder):
   template = open(template_path).read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
-  reference_profiles = None
-  if options['reference_profiles'] != None: reference_profiles = load_profiles(options['reference_profiles'], hpo)
   for method_name in options['clustering_methods']:
     matrix_filename = os.path.join(temp_folder, f"similarity_matrix_{method_name}.npy")
-    if reference_profiles == None:
-      axis_file = re.sub('.npy','.lst', matrix_filename)
-    else:
-      axis_file_x = re.sub('.npy','_x.lst', matrix_filename)
-      axis_file_y = re.sub('.npy','_y.lst', matrix_filename)
+    axis_file = re.sub('.npy','_x.lst', matrix_filename)
+    axis_file_y = None if reference_profiles == None else re.sub('.npy','_y.lst', matrix_filename)
     profiles_similarity_filename = os.path.join(temp_folder, f'profiles_similarity_{method_name}.txt')
-    clusters_distribution_filename = os.path.join(temp_folder, f'clusters_distribution_{method_name}.txt')
-
+    cluster_file = os.path.join(temp_folder, f"{method_name}_clusters.txt")
     if not os.path.exists(matrix_filename):
-      if reference_profiles == None: 
-        profiles_similarity = patient_data.compare_profiles(sim_type = method_name, external_profiles = reference_profiles)
-      else: # AS reference profiles are constant, the sematic comparation will be A => B (A reference). So, we have to invert the elements to perform the comparation
-        ont = Cohort.get_ontology('hpo')
-        pat_profiles = ont.profiles # TEmporal copy to preserve patient profiles and inject reference profiles
-        ont.load_profiles(reference_profiles, reset_stored = True)
-        profiles_similarity = ont.compare_profiles(sim_type = method_name, 
-          external_profiles = pat_profiles, 
-          bidirectional = False)
-        ont.load_profiles(pat_profiles, reset_stored = True)
-        profiles_similarity = exp_calc.invert_nested_hash(profiles_similarity)
-      if options.get('sim_thr') != None: exp_calc.remove_nested_entries(profiles_similarity, lambda id, sim: sim >= options['sim_thr']) 
-      write_profile_pairs(profiles_similarity, profiles_similarity_filename)
-      if reference_profiles == None:
-        similarity_matrix, axis_names = exp_calc.to_wmatrix(profiles_similarity, squared = True, symm = True)
-        exp_calc.save(similarity_matrix, matrix_filename, axis_names, axis_file)
-      else:
-        similarity_matrix, y_names, x_names = exp_calc.to_wmatrix(profiles_similarity, squared = False, symm = False)
-        exp_calc.save(similarity_matrix, matrix_filename, y_names, axis_file_y, x_names, axis_file_x)
+      similarity_matrix, y_names, x_names = patient_data.get_matrix_similarity(method_name, options, 
+        reference_profiles=reference_profiles, ontology = 'hpo', 
+        profiles_similarity_filename=profiles_similarity_filename, 
+        matrix_filename = matrix_filename)
+    elif not os.path.exists(cluster_file):
+      similarity_matrix, x_names, y_names = exp_calc.load(matrix_filename, x_axis_file=axis_file, y_axis_file=axis_file_y)
+    
+    clusters = {}
+    if not os.path.exists(cluster_file):
+      if method_name == 'resnik':
+        similarity_matrix = np.amax(similarity_matrix) - similarity_matrix
+      elif method_name == 'lin':
+        similarity_matrix = 1 - similarity_matrix
+      clusters = exp_calc.get_hc_clusters(similarity_matrix, dist = 'euclidean', method = 'ward', height = 1.5, item_list = x_names)
+      with open(cluster_file, 'w') as f:
+        for clusterID, patientIDs in clusters.items(): f.write(f"{clusterID}\t{','.join(patientIDs)}\n")
+    else:
+      with open(cluster_file) as f:
+        for l in f: 
+          clusterID, patientIDs = l.rstrip().split("\t")
+          clusters[int(clusterID)] = patientIDs.split(",")
+    clusters_codes, clusters_info = parse_clusters_data(clusters, patient_data)
 
-    ext_var = ''
-    if method_name == 'resnik':
-      ext_var = '-m max'
-    elif method_name == 'lin':
-      ext_var = '-m comp1'
-    cluster_file = f"{method_name}_clusters.txt"
-    if reference_profiles != None:
-      ext_var = ext_var + ' -s' 
-      axis_file = f"{axis_file_y},{axis_file_x}"
-      cluster_file = f"{method_name}_clusters_rows.txt"
-    out_file = os.path.join(temp_folder, method_name)
-    if not os.path.exists(out_file +  '_heatmap.png'): system_call(code_folder, 'plot_heatmap.R', f"-y {axis_file} -d {matrix_filename} -o {out_file} -M {options['minClusterProportion']} -t dynamic -H {ext_var}") 
-    clusters_codes, clusters_info = parse_clusters_file(os.path.join(temp_folder, cluster_file), patient_data)  
     sim_mat4cluster = {}
     if options['detailed_clusters']:
       for clID, patient_number, patient_ids, hpo_codes in clusters_codes:

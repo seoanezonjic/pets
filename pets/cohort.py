@@ -1,5 +1,6 @@
 import json
 import os, sys
+import re
 from collections import defaultdict
 import csv
 from py_exp_calc import exp_calc
@@ -322,8 +323,7 @@ class Cohort():
                 exp_calc.save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
             else:
                 pat_hpo_matrix, hp_id, pat_id = exp_calc.load(matrix_file, x_axis_file, y_axis_file)
-            clusters = exp_calc.get_hc_clusters(pat_hpo_matrix, dist = 'euclidean', method = 'ward', height = [1.5])
-            clustered_patients = self.get_clustered_patients(clusters, pat_id)
+            clustered_patients = exp_calc.get_hc_clusters(pat_hpo_matrix, dist = 'euclidean', method = 'ward', height = [1.5], item_list=pat_id)
             with open(clust_pat_file, 'w') as f:
                 for clusterID, pat_ids in clustered_patients.items(): 
                     f.write(f"{clusterID}\t{','.join(pat_ids)}\n")
@@ -335,17 +335,7 @@ class Cohort():
                     clustered_patients[int(clusterID)] = pat_ids.split(',')
         return(clustered_patients)
 
-    def get_clustered_patients(self, data, item_list):
-        clustering_data = []
-        for i, cluster_id in enumerate(data): clustering_data.append([item_list[i], cluster_id[0]])
-        clusters = {}
-        for pat_id, cluster_id in clustering_data:
-            query = clusters.get(cluster_id)
-            if query == None:
-                clusters[cluster_id] = [pat_id]
-            else:
-                query.append(pat_id)
-        return clusters
+
 
     def process_cluster(self, patient_ids, phenotype_ic, options, ont, processed_clusters):
       chrs = defaultdict(lambda: 0)
@@ -374,6 +364,33 @@ class Cohort():
         if profile_length == 0: profile_length = 1 
         return ic/profile_length
 
+    def get_matrix_similarity(self, method_name, options, reference_profiles=None, ontology = 'hpo', profiles_similarity_filename=None, matrix_filename = None):
+        if reference_profiles == None: 
+            profiles_similarity = self.compare_profiles(sim_type = method_name, external_profiles = reference_profiles)
+        else: # AS reference profiles are constant, the sematic comparation will be A => B (A reference). So, we have to invert the elements to perform the comparation
+            ont = Cohort.get_ontology(ontology)
+            pat_profiles = ont.profiles # TEmporal copy to preserve patient profiles and inject reference profiles
+            ont.load_profiles(reference_profiles, reset_stored = True)
+            profiles_similarity = ont.compare_profiles(sim_type = method_name, 
+                external_profiles = pat_profiles, 
+                bidirectional = False)
+            ont.load_profiles(pat_profiles, reset_stored = True)
+            profiles_similarity = exp_calc.invert_nested_hash(profiles_similarity)
+        if options.get('sim_thr') != None: exp_calc.remove_nested_entries(profiles_similarity, lambda id, sim: sim >= options['sim_thr']) 
+        if profiles_similarity_filename != None: self.write_profile_pairs(profiles_similarity, profiles_similarity_filename)
+        axis_file_x = re.sub('.npy','_x.lst', matrix_filename)
+        axis_file_y = re.sub('.npy','_y.lst', matrix_filename)
+        if reference_profiles == None:
+            y_names = None
+            similarity_matrix, x_names = exp_calc.to_wmatrix(profiles_similarity, squared = True, symm = True)
+        else:
+            similarity_matrix, y_names, x_names = exp_calc.to_wmatrix(profiles_similarity, squared = False, symm = False)
+        exp_calc.save(similarity_matrix, matrix_filename, 
+            x_axis_names=x_names, x_axis_file=axis_file_x, 
+            y_axis_names=y_names, y_axis_file=axis_file_y)
+        return similarity_matrix, y_names, x_names
+
+
     def write_detailed_hpo_profile_evaluation(self, suggested_childs, detailed_profile_evaluation_file):
         with open(detailed_profile_evaluation_file, 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
@@ -396,6 +413,12 @@ class Cohort():
                             parent_field = ""
                         csvwriter.writerow([parent_field, f"{child_name} ({child_code})"])
                 csvwriter.writerow(["", ""])
+
+    def write_profile_pairs(self, similarity_pairs, filename):
+        with open(filename, 'w') as f:
+            for pairsA, pairsB_and_values in similarity_pairs.items():
+                for pairsB, values in pairsB_and_values.items():
+                    f.write(f"{pairsA}\t{pairsB}\t{values}\n")
 
     #Supplementary functions
     def intersection(self, arr1, arr2):
