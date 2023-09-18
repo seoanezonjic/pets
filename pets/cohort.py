@@ -291,7 +291,7 @@ class Cohort():
                 f.write(json.dumps(phenopacket, indent=4))
 
     def process_dummy_clustered_patients(self, options, phenotype_ic, temp_folder = './'): # get ic and chromosomes
-        clustered_patients = self.dummy_cluster_patients(temp_folder = temp_folder)
+        if len(self.profiles) > 1 : clustered_patients = self.dummy_cluster_patients(temp_folder = temp_folder)
         ont = self.get_ontology(Cohort.act_ont)
         all_ics = []
         all_lengths = []
@@ -299,17 +299,18 @@ class Cohort():
         cluster_data_by_chromosomes = []
         multi_chromosome_patients = 0
         processed_clusters = 0
-        for cluster_id, patient_ids in sorted(list(clustered_patients.items()), key=lambda x: len(x[1]), reverse=True):
-            num_of_patients = len(patient_ids)
-            if num_of_patients == 1: continue 
-            chrs, all_phens, profile_ics, profile_lengths = self.process_cluster(patient_ids, phenotype_ic, options, ont, processed_clusters)
-            if processed_clusters < options['clusters2show_detailed_phen_data']: top_cluster_phenotypes.append(all_phens)
-            all_ics.append(profile_ics)
-            all_lengths.append(profile_lengths)
-            if not options.get('chromosome_col') == None:
-                if len(chrs) > 1: multi_chromosome_patients += num_of_patients
-                for chrm, count in chrs.items(): cluster_data_by_chromosomes.append([cluster_id, num_of_patients, chrm, count])
-            processed_clusters += 1
+        if len(self.profiles) > 1 :
+            for cluster_id, patient_ids in sorted(list(clustered_patients.items()), key=lambda x: len(x[1]), reverse=True):
+                num_of_patients = len(patient_ids)
+                if num_of_patients == 1: continue 
+                chrs, all_phens, profile_ics, profile_lengths = self.process_cluster(patient_ids, phenotype_ic, options, ont, processed_clusters)
+                if processed_clusters < options['clusters2show_detailed_phen_data']: top_cluster_phenotypes.append(all_phens)
+                all_ics.append(profile_ics)
+                all_lengths.append(profile_lengths)
+                if not options.get('chromosome_col') == None:
+                    if len(chrs) > 1: multi_chromosome_patients += num_of_patients
+                    for chrm, count in chrs.items(): cluster_data_by_chromosomes.append([cluster_id, num_of_patients, chrm, count])
+                processed_clusters += 1
         return all_ics, all_lengths, cluster_data_by_chromosomes, top_cluster_phenotypes, multi_chromosome_patients
 
     def dummy_cluster_patients(self, temp_folder = "./"):
@@ -390,36 +391,37 @@ class Cohort():
             y_axis_names=y_names, y_axis_file=axis_file_y)
         return similarity_matrix, y_names, x_names
 
-    def get_similarity_clusters(self, method_name, ontology, temp_folder = None, reference_profiles = None):
-        if temp_folder != None: # To save and load results from disk
-            matrix_filename = os.path.join(temp_folder, f"similarity_matrix_{method_name}.npy")
-            axis_file = re.sub('.npy','_x.lst', matrix_filename)
-            axis_file_y = None if reference_profiles == None else re.sub('.npy','_y.lst', matrix_filename)
-            profiles_similarity_filename = os.path.join(temp_folder, f'profiles_similarity_{method_name}.txt')
-            cluster_file = os.path.join(temp_folder, f"{method_name}_clusters.txt")
-        if temp_folder == None or not os.path.exists(matrix_filename):
-          similarity_matrix, y_names, x_names = self.get_matrix_similarity(method_name, options, 
-            ontology = ontology, reference_profiles=reference_profiles,  
-            profiles_similarity_filename=profiles_similarity_filename, 
-            matrix_filename = matrix_filename)
-        elif temp_folder != None or os.path.exists(matrix_filename):
-            similarity_matrix, x_names, y_names = exp_calc.load(matrix_filename, x_axis_file=axis_file, y_axis_file=axis_file_y)
-        
+    def get_similarity_clusters(self, method_name, ontology, options, temp_folder = None, reference_profiles = None):
         clusters = {}
-        if temp_folder == None or not os.path.exists(cluster_file):
-            if method_name == 'resnik':
-                similarity_matrix = np.amax(similarity_matrix) - similarity_matrix
-            elif method_name == 'lin':
-                similarity_matrix = 1 - similarity_matrix
-            clusters = exp_calc.get_hc_clusters(similarity_matrix, dist = 'euclidean', method = 'ward', height = 1.5, item_list = x_names)
-            if temp_folder != None:
-                with open(cluster_file, 'w') as f:
-                    for clusterID, patientIDs in clusters.items(): f.write(f"{clusterID}\t{','.join(patientIDs)}\n")
-        elif temp_folder != None or os.path.exists(cluster_file):
-            with open(cluster_file) as f:
-                for l in f: 
-                    clusterID, patientIDs = l.rstrip().split("\t")
-                    clusters[int(clusterID)] = patientIDs.split(",")
+        if len(self.profiles) > 1:
+            if temp_folder != None: # To save and load results from disk
+                matrix_filename = os.path.join(temp_folder, f"similarity_matrix_{method_name}.npy")
+                axis_file = re.sub('.npy','_x.lst', matrix_filename)
+                axis_file_y = None if reference_profiles == None else re.sub('.npy','_y.lst', matrix_filename)
+                profiles_similarity_filename = os.path.join(temp_folder, f'profiles_similarity_{method_name}.txt')
+                cluster_file = os.path.join(temp_folder, f"{method_name}_clusters.txt")
+            if temp_folder == None or not os.path.exists(matrix_filename):
+              similarity_matrix, y_names, x_names = self.get_matrix_similarity(method_name, options, 
+                ontology = ontology, reference_profiles=reference_profiles,  
+                profiles_similarity_filename=profiles_similarity_filename, 
+                matrix_filename = matrix_filename)
+            elif temp_folder != None or os.path.exists(matrix_filename):
+                similarity_matrix, x_names, y_names = exp_calc.load(matrix_filename, x_axis_file=axis_file, y_axis_file=axis_file_y)
+            
+            if temp_folder == None or not os.path.exists(cluster_file):
+                if method_name == 'resnik':
+                    similarity_matrix = np.amax(similarity_matrix) - similarity_matrix
+                elif method_name == 'lin':
+                    similarity_matrix = 1 - similarity_matrix
+                clusters = exp_calc.get_hc_clusters(similarity_matrix, dist = 'euclidean', method = 'ward', height = 1.5, item_list = x_names)
+                if temp_folder != None:
+                    with open(cluster_file, 'w') as f:
+                        for clusterID, patientIDs in clusters.items(): f.write(f"{clusterID}\t{','.join(patientIDs)}\n")
+            elif temp_folder != None or os.path.exists(cluster_file):
+                with open(cluster_file) as f:
+                    for l in f: 
+                        clusterID, patientIDs = l.rstrip().split("\t")
+                        clusters[int(clusterID)] = patientIDs.split(",")
         return clusters
 
     def calc_sim_term2term_similarity_matrix(self, ref_profile, ref_profile_id, external_profiles, ontology, term_limit = 100, candidate_limit = 100, sim_type = 'lin', bidirectional = True):

@@ -184,4 +184,4 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
     report = Py_report_html(container, title='Patient clusters report')
     report.build(template)
     report.write(options['output_file']+ f"_{method_name}_clusters.html")
-    if not os.path.exists(os.path.join(temp_folder, method_name + '_sim_boxplot.png')): system_call(code_folder, 'generate_boxpot.R', f"-i {temp_folder} -m {method_name} -o {os.path.join(temp_folder, method_name + '_sim_boxplot')}") 
+    if len(clusters) > 0 and not os.path.exists(os.path.join(temp_folder, method_name + '_sim_boxplot.png')): system_call(code_folder, 'generate_boxpot.R', f"-i {temp_folder} -m {method_name} -o {os.path.join(temp_folder, method_name + '_sim_boxplot')}") 
