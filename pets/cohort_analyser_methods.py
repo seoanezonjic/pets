@@ -182,7 +182,7 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
   template = open(template_path).read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
   for method_name in options['clustering_methods']:
-    clusters = patient_data.get_similarity_clusters(method_name, 'hpo', temp_folder = temp_folder, reference_profiles = reference_profiles)
+    clusters = patient_data.get_similarity_clusters(method_name, 'hpo', options, temp_folder = temp_folder, reference_profiles = reference_profiles)
     clusters_codes, clusters_info = parse_clusters_data(clusters, patient_data)
 
     sim_mat4cluster = {}
