@@ -13,6 +13,7 @@ def load_variants(variant_folder):
       variants[profile_id] = Genomic_Feature(vars)
   return variants
 
+
 def load_tabular_vars(path):
   vars = []
   with open(path) as f:
@@ -22,6 +23,7 @@ def load_tabular_vars(path):
       start = int(fields[1])
       vars.append([chr, start, start])
   return vars
+
 
 def load_vcf(path, ext): # Some compressed files are fragmented internally. If so, VCFfile only reads first fragment
   vars = []             # Use zcat original.vcf.gz | gzip > new.vcf.gz to obtain a contigous file
@@ -96,3 +98,32 @@ def load_evidence_profiles(file_path, hpo):
         if hpos and len(hpos) > 0: profiles[id] = hpos
         id2label[id] = label
   return profiles, id2label
+
+
+def load_hpo_ci_values(information_coefficient_file):
+  hpos_ci_values = {}
+  with open(information_coefficient_file) as f:
+    for line in f:
+      hpo_code, ci = line.rstrip().split("\t")
+      hpos_ci_values[hpo_code] = float(ci)
+  return hpos_ci_values
+
+
+def write_tabulated_data(data, file, header = None):
+  with open(file, 'w') as f:
+    if header != None: f.write("\t".join(header))
+    for row in data:
+      f.write("\t".join(map(lambda x: str(x), row)) + "\n")
+
+
+def load_profiles(file_path, hpo):
+  profiles = {}
+  with open(file_path) as f:
+    for line in f:
+      id, profile = line.rstrip().split("\t")
+      hpos = profile.split(',')
+      hpos, rejected_hpos = hpo.check_ids(hpos)
+      if len(hpos) > 0:
+        hpos = hpo.clean_profile(hpos)
+        if len(hpos) > 0 : profiles[id] = hpos
+  return profiles

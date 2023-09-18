@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(ROOT_PATH, '..'))
 import numpy as np
 from pets.common_optparse import Common_optparse
 from pets.cohort_analyser_methods import *
+from pets.io import load_hpo_ci_values, write_tabulated_data, load_profiles
 
 with open(CONSTANTS_PATH) as infile:
     exec(infile.read())

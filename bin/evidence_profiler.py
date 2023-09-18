@@ -12,12 +12,8 @@ sys.path.insert(0, os.path.join(ROOT_PATH, '..', '..', 'py_report_html'))
 from py_report_html import Py_report_html
 import pets
 from pets.cohort import Cohort
-from pets.cohort_analyser_methods import load_profiles
-from pets.evidence_profiler_methods import load_variants, load_evidences
+from pets.io import load_variants, load_evidences, load_profiles
 from pets.genomic_features import Genomic_Feature
-#from pets.io import load_profiles, load_variants, load_evidences
-
-
 
 ROOT_PATH = os.path.dirname(__file__)
 CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'pets', 'constants.py'))

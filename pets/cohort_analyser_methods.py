@@ -9,13 +9,6 @@ from py_report_html import Py_report_html
 from pets.cohort import Cohort
 from pets.parsers.cohort_parser import Cohort_Parser
 
-def load_hpo_ci_values(information_coefficient_file):
-  hpos_ci_values = {}
-  with open(information_coefficient_file) as f:
-    for line in f:
-      hpo_code, ci = line.rstrip().split("\t")
-      hpos_ci_values[hpo_code] = float(ci)
-  return hpos_ci_values
 
 def system_call(code_folder, script, args_string):
   cmd = f"{os.path.join(code_folder, script)} {args_string}"
@@ -123,24 +116,6 @@ def format_cluster_ic_data(all_ics, profile_lengths, limit):
     cluster_length = len(cluster_ics)
     for j, clust_ic in enumerate(cluster_ics): ic_data.append([f"{cluster_length}_{i}", clust_ic, profile_lengths[i][j]])
   return ic_data
-
-def write_tabulated_data(data, file, header = None):
-  with open(file, 'w') as f:
-    if header != None: f.write("\t".join(header))
-    for row in data:
-      f.write("\t".join(map(lambda x: str(x), row)) + "\n")
-
-def load_profiles(file_path, hpo):
-  profiles = {}
-  with open(file_path) as f:
-    for line in f:
-      id, profile = line.rstrip().split("\t")
-      hpos = profile.split(',')
-      hpos, rejected_hpos = hpo.check_ids(hpos)
-      if len(hpos) > 0:
-        hpos = hpo.clean_profile(hpos)
-        if len(hpos) > 0 : profiles[id] = hpos
-  return profiles
 
 def parse_clusters_data(patient_clusters, patient_data):
   clusters_info = {}
