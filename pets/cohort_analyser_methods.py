@@ -124,16 +124,11 @@ def format_cluster_ic_data(all_ics, profile_lengths, limit):
     for j, clust_ic in enumerate(cluster_ics): ic_data.append([f"{cluster_length}_{i}", clust_ic, profile_lengths[i][j]])
   return ic_data
 
-def write_coverage_data(coverage_to_plot, coverage_to_plot_file):
-  with open(coverage_to_plot_file, 'w') as f:
-    for chrm, position, freq in coverage_to_plot:
-      f.write(f"{chrm}\t{position}\t{freq}\n")
-
-def write_patient_hpo_stat(average_hp_per_pat_distribution, output_file):
-  with open(output_file, 'w') as f:
-    f.write("PatientsNumber\tHPOAverage\n")
-    for patient_num, ave in average_hp_per_pat_distribution:
-      f.write(f"{patient_num}\t{ave}\n")
+def write_tabulated_data(data, file, header = None):
+  with open(file, 'w') as f:
+    if header != None: f.write("\t".join(header))
+    for row in data:
+      f.write("\t".join(map(lambda x: str(x), row)) + "\n")
 
 def load_profiles(file_path, hpo):
   profiles = {}
@@ -187,33 +182,7 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
   template = open(template_path).read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
   for method_name in options['clustering_methods']:
-    matrix_filename = os.path.join(temp_folder, f"similarity_matrix_{method_name}.npy")
-    axis_file = re.sub('.npy','_x.lst', matrix_filename)
-    axis_file_y = None if reference_profiles == None else re.sub('.npy','_y.lst', matrix_filename)
-    profiles_similarity_filename = os.path.join(temp_folder, f'profiles_similarity_{method_name}.txt')
-    cluster_file = os.path.join(temp_folder, f"{method_name}_clusters.txt")
-    if not os.path.exists(matrix_filename):
-      similarity_matrix, y_names, x_names = patient_data.get_matrix_similarity(method_name, options, 
-        reference_profiles=reference_profiles, ontology = 'hpo', 
-        profiles_similarity_filename=profiles_similarity_filename, 
-        matrix_filename = matrix_filename)
-    elif not os.path.exists(cluster_file):
-      similarity_matrix, x_names, y_names = exp_calc.load(matrix_filename, x_axis_file=axis_file, y_axis_file=axis_file_y)
-    
-    clusters = {}
-    if not os.path.exists(cluster_file):
-      if method_name == 'resnik':
-        similarity_matrix = np.amax(similarity_matrix) - similarity_matrix
-      elif method_name == 'lin':
-        similarity_matrix = 1 - similarity_matrix
-      clusters = exp_calc.get_hc_clusters(similarity_matrix, dist = 'euclidean', method = 'ward', height = 1.5, item_list = x_names)
-      with open(cluster_file, 'w') as f:
-        for clusterID, patientIDs in clusters.items(): f.write(f"{clusterID}\t{','.join(patientIDs)}\n")
-    else:
-      with open(cluster_file) as f:
-        for l in f: 
-          clusterID, patientIDs = l.rstrip().split("\t")
-          clusters[int(clusterID)] = patientIDs.split(",")
+    clusters = patient_data.get_similarity_clusters(method_name, 'hpo', temp_folder = temp_folder, reference_profiles = reference_profiles)
     clusters_codes, clusters_info = parse_clusters_data(clusters, patient_data)
 
     sim_mat4cluster = {}
@@ -224,8 +193,8 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
         cluster_profiles = cluster_cohort.profiles
         ref_profile = cluster_cohort.get_general_profile()
         hpo.load_profiles({'ref': ref_profile}, reset_stored = True)    
-        similarities = hpo.compare_profiles(external_profiles = cluster_profiles, sim_type = 'lin', bidirectional = False)
-        candidate_sim_matrix, candidates, candidates_ids = get_similarity_matrix(ref_profile, similarities['ref'], cluster_profiles, hpo, 100, 100)
+        candidate_sim_matrix, candidates, candidates_ids = cluster_cohort.calc_sim_term2term_similarity_matrix(ref_profile, 'ref', cluster_profiles, hpo, 
+          term_limit = 100, candidate_limit = 100, sim_type = 'lin', bidirectional = False)
         candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
         sim_mat4cluster[clID] = candidate_sim_matrix
 
@@ -241,64 +210,3 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
     report.build(template)
     report.write(options['output_file']+ f"_{method_name}_clusters.html")
     if not os.path.exists(os.path.join(temp_folder, method_name + '_sim_boxplot.png')): system_call(code_folder, 'generate_boxpot.R', f"-i {temp_folder} -m {method_name} -o {os.path.join(temp_folder, method_name + '_sim_boxplot')}") 
-
-
-def get_similarity_matrix(reference_prof, similarities, evidence_profiles, hpo, term_limit, candidate_limit, other_scores = {}, id2label = {}):
-  candidates = [ list(pair) for pair in similarities.items()]
-  if len(other_scores) == 0:
-    candidates.sort(key=lambda s: s[-1], reverse=True)
-    candidates = candidates[:candidate_limit]
-  else: # Prioritize first by the external list of scores, select the candidates and then rioritize by similarities
-    selected_candidates = []
-    for cand in candidates:
-      cand_id = cand[0]
-      cand_lab = id2label.get(str(cand_id))
-      if cand_lab == None: continue
-      other_score = other_scores.get(cand_lab)
-      if other_score == None: continue
-      cand.append(other_score)
-      selected_candidates.append(cand)
-    selected_candidates.sort(key=lambda e: e[2], reverse=True)
-    candidates = selected_candidates[:candidate_limit]
-    candidates.sort(key=lambda e: e[1], reverse=True)
-    for c in candidates:
-      c.pop()
-
-  candidates_ids = [c[0] for c in candidates]
-  candidate_similarity_matrix = get_detailed_similarity(reference_prof, candidates, evidence_profiles, hpo)
-  for i, row in enumerate(candidate_similarity_matrix):
-    row.insert(0,hpo.translate_id(reference_prof[i]))
-
-  candidate_similarity_matrix.sort(key=lambda r: sum(r[1:len(r)]), reverse=True)
-  candidate_similarity_matrix = candidate_similarity_matrix[:term_limit]
-  return candidate_similarity_matrix, candidates, candidates_ids
-
-def get_detailed_similarity(profile, candidates, evidences, hpo):
-  profile_length = len(profile)
-  matrix = []
-  for times in range(profile_length):
-    matrix.append([0]*len(candidates))
-  cand_number = 0
-  for candidate_id, similarity in candidates:
-    local_sim = []
-    candidate_evidence = evidences[candidate_id]
-    for profile_term in profile:
-      for candidate_term in candidate_evidence:
-        term_sim = hpo.compare([candidate_term], [profile_term], sim_type = "lin", bidirectional= False)
-        local_sim.append([profile_term, candidate_term, term_sim])
-
-    local_sim.sort(key = lambda s: s[-1], reverse=True)
-    final_pairs = []
-    processed_profile_terms = []
-    processed_candidate_terms = []
-    for pr_term, cd_term, sim in local_sim:
-      if pr_term not in processed_profile_terms and cd_term not in processed_candidate_terms:
-        final_pairs.append( [pr_term, cd_term, sim])
-        processed_profile_terms.append( pr_term)
-        processed_candidate_terms.append( cd_term)
-      if profile_length == len(processed_profile_terms): break
-
-    for pr_term, cd_term, similarity in final_pairs:
-      matrix[profile.index(pr_term)][cand_number] = similarity
-    cand_number += 1
-  return matrix

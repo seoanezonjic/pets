@@ -364,7 +364,7 @@ class Cohort():
         if profile_length == 0: profile_length = 1 
         return ic/profile_length
 
-    def get_matrix_similarity(self, method_name, options, reference_profiles=None, ontology = 'hpo', profiles_similarity_filename=None, matrix_filename = None):
+    def get_matrix_similarity(self, method_name, options, ontology = 'hpo', reference_profiles=None, profiles_similarity_filename=None, matrix_filename = None):
         if reference_profiles == None: 
             profiles_similarity = self.compare_profiles(sim_type = method_name, external_profiles = reference_profiles)
         else: # AS reference profiles are constant, the sematic comparation will be A => B (A reference). So, we have to invert the elements to perform the comparation
@@ -390,6 +390,101 @@ class Cohort():
             y_axis_names=y_names, y_axis_file=axis_file_y)
         return similarity_matrix, y_names, x_names
 
+    def get_similarity_clusters(self, method_name, ontology, temp_folder = None, reference_profiles = None):
+        if temp_folder != None: # To save and load results from disk
+            matrix_filename = os.path.join(temp_folder, f"similarity_matrix_{method_name}.npy")
+            axis_file = re.sub('.npy','_x.lst', matrix_filename)
+            axis_file_y = None if reference_profiles == None else re.sub('.npy','_y.lst', matrix_filename)
+            profiles_similarity_filename = os.path.join(temp_folder, f'profiles_similarity_{method_name}.txt')
+            cluster_file = os.path.join(temp_folder, f"{method_name}_clusters.txt")
+        if temp_folder == None or not os.path.exists(matrix_filename):
+          similarity_matrix, y_names, x_names = self.get_matrix_similarity(method_name, options, 
+            ontology = ontology, reference_profiles=reference_profiles,  
+            profiles_similarity_filename=profiles_similarity_filename, 
+            matrix_filename = matrix_filename)
+        elif temp_folder != None or os.path.exists(matrix_filename):
+            similarity_matrix, x_names, y_names = exp_calc.load(matrix_filename, x_axis_file=axis_file, y_axis_file=axis_file_y)
+        
+        clusters = {}
+        if temp_folder == None or not os.path.exists(cluster_file):
+            if method_name == 'resnik':
+                similarity_matrix = np.amax(similarity_matrix) - similarity_matrix
+            elif method_name == 'lin':
+                similarity_matrix = 1 - similarity_matrix
+            clusters = exp_calc.get_hc_clusters(similarity_matrix, dist = 'euclidean', method = 'ward', height = 1.5, item_list = x_names)
+            if temp_folder != None:
+                with open(cluster_file, 'w') as f:
+                    for clusterID, patientIDs in clusters.items(): f.write(f"{clusterID}\t{','.join(patientIDs)}\n")
+        elif temp_folder != None or os.path.exists(cluster_file):
+            with open(cluster_file) as f:
+                for l in f: 
+                    clusterID, patientIDs = l.rstrip().split("\t")
+                    clusters[int(clusterID)] = patientIDs.split(",")
+        return clusters
+
+    def calc_sim_term2term_similarity_matrix(self, ref_profile, ref_profile_id, external_profiles, ontology, term_limit = 100, candidate_limit = 100, sim_type = 'lin', bidirectional = True):
+        similarities = ontology.compare_profiles(external_profiles = external_profiles, sim_type = sim_type, bidirectional = bidirectional)
+        candidate_sim_matrix, candidates, candidates_ids = self.get_term2term_similarity_matrix(ref_profile, similarities[ref_profile_id], external_profiles, ontology, term_limit, candidate_limit)
+        return candidate_sim_matrix, candidates, candidates_ids
+
+    def get_term2term_similarity_matrix(self, reference_prof, similarities, evidence_profiles, hpo, term_limit, candidate_limit, other_scores = {}, id2label = {}):
+        candidates = [ list(pair) for pair in similarities.items()]
+        if len(other_scores) == 0:
+            candidates.sort(key=lambda s: s[-1], reverse=True)
+            candidates = candidates[:candidate_limit]
+        else: # Prioritize first by the external list of scores, select the candidates and then rioritize by similarities
+            selected_candidates = []
+            for cand in candidates:
+                cand_id = cand[0]
+                cand_lab = id2label.get(str(cand_id))
+                if cand_lab == None: continue
+                other_score = other_scores.get(cand_lab)
+                if other_score == None: continue
+                cand.append(other_score)
+                selected_candidates.append(cand)
+            selected_candidates.sort(key=lambda e: e[2], reverse=True)
+            candidates = selected_candidates[:candidate_limit]
+            candidates.sort(key=lambda e: e[1], reverse=True)
+            for c in candidates: c.pop()
+
+        candidates_ids = [c[0] for c in candidates]
+        candidate_similarity_matrix = self.get_detailed_similarity(reference_prof, candidates, evidence_profiles, hpo)
+        for i, row in enumerate(candidate_similarity_matrix):
+            row.insert(0,hpo.translate_id(reference_prof[i]))
+
+        candidate_similarity_matrix.sort(key=lambda r: sum(r[1:len(r)]), reverse=True)
+        candidate_similarity_matrix = candidate_similarity_matrix[:term_limit]
+        return candidate_similarity_matrix, candidates, candidates_ids
+
+    def get_detailed_similarity(self, profile, candidates, evidences, hpo):
+        profile_length = len(profile)
+        matrix = []
+        for times in range(profile_length):
+            matrix.append([0]*len(candidates))
+        cand_number = 0
+        for candidate_id, similarity in candidates:
+            local_sim = []
+            candidate_evidence = evidences[candidate_id]
+            for profile_term in profile:
+                for candidate_term in candidate_evidence:
+                    term_sim = hpo.compare([candidate_term], [profile_term], sim_type = "lin", bidirectional= False)
+                    local_sim.append([profile_term, candidate_term, term_sim])
+
+            local_sim.sort(key = lambda s: s[-1], reverse=True)
+            final_pairs = []
+            processed_profile_terms = []
+            processed_candidate_terms = []
+            for pr_term, cd_term, sim in local_sim:
+                if pr_term not in processed_profile_terms and cd_term not in processed_candidate_terms:
+                    final_pairs.append( [pr_term, cd_term, sim])
+                    processed_profile_terms.append( pr_term)
+                    processed_candidate_terms.append( cd_term)
+                if profile_length == len(processed_profile_terms): break
+
+            for pr_term, cd_term, similarity in final_pairs:
+                matrix[profile.index(pr_term)][cand_number] = similarity
+            cand_number += 1
+        return matrix
 
     def write_detailed_hpo_profile_evaluation(self, suggested_childs, detailed_profile_evaluation_file):
         with open(detailed_profile_evaluation_file, 'w', newline='') as csvfile:

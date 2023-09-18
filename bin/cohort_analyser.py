@@ -160,10 +160,10 @@ if not opts.get('chromosome_col') == None:
   dummy_cluster_chr_data = get_cluster_chromosome_data(clust_by_chr, opts['clusters2graph'])
   if opts['coverage_analysis']:
     ###1. Process CNVs
-    write_coverage_data(coverage_to_plot, coverage_to_plot_file)
+    write_tabulated_data(coverage_to_plot, coverage_to_plot_file)
     system_call(EXTERNAL_CODE, 'plot_area.R', f"-d {coverage_to_plot_file} -o {temp_folder}/coverage_plot -x V2 -y V3 -f V1 -H -m {CHR_SIZE} -t CNV")
     ###2. Process SORs
-    write_coverage_data(sor_coverage_to_plot, sor_coverage_to_plot_file)
+    write_tabulated_data(sor_coverage_to_plot, sor_coverage_to_plot_file)
     system_call(EXTERNAL_CODE, 'plot_area.R', f"-d {sor_coverage_to_plot_file} -o {temp_folder}/sor_coverage_plot -x V2 -y V3 -f V1 -H -m {CHR_SIZE} -t SOR")
 
 #----------------------------------

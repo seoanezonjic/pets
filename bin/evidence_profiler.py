@@ -11,7 +11,8 @@ sys.path.insert(0, os.path.join(ROOT_PATH, '..', '..', 'py_report_html'))
 
 from py_report_html import Py_report_html
 import pets
-from pets.cohort_analyser_methods import get_similarity_matrix, load_profiles
+from pets.cohort import Cohort
+from pets.cohort_analyser_methods import load_profiles
 from pets.evidence_profiler_methods import load_variants, load_evidences
 from pets.genomic_features import Genomic_Feature
 #from pets.io import load_profiles, load_variants, load_evidences
@@ -143,6 +144,7 @@ options = vars(opts)
 hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
 
 hpo = Ontology(file= hpo_file, load_file= True)
+cohort = Cohort() # needed until get_similarity
 
 profiles = load_profiles(options["profiles_file"], hpo)
 profile_variants = {} if options.get("variant_data") == None else load_variants(options["variant_data"])
@@ -169,11 +171,11 @@ for profile_id, reference_prof in profiles.items():
 	for pair, ev_profiles_similarity in evidences_similarity.items():
 		entity = pair.split('_')[0]
 		similarities = ev_profiles_similarity[profile_id]
-		candidate_sim_matrix, candidates, candidates_ids = get_similarity_matrix(reference_prof, similarities, evidences[pair]["prof"], hpo, 40, 40)
+		candidate_sim_matrix, candidates, candidates_ids = cohort.get_term2term_similarity_matrix(reference_prof, similarities, evidences[pair]["prof"], hpo, 40, 40)
 		coords = get_evidence_coordinates(entity, genomic_coordinates, candidates_ids)
 		candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
 		if len(pathogenic_scores) > 0: # priorize by pathogenic scores
-			candidate_sim_matrix_patho, candidates_patho, candidates_ids_patho = get_similarity_matrix(
+			candidate_sim_matrix_patho, candidates_patho, candidates_ids_patho = cohort.get_term2term_similarity_matrix(
 				reference_prof, similarities, 
 				evidences[pair]["prof"], hpo, 40, 40, 
 				other_scores = pathogenic_scores, id2label = evidences[pair]["id2lab"])
