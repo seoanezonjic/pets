@@ -9,7 +9,6 @@ sys.path.insert(0, os.path.join(ROOT_PATH, '..'))
 
 from pets.cohort import Cohort
 from pets.parsers.cohort_parser import Cohort_Parser
-from pets.cohort_analyser_methods import get_similarity_matrix
 from pets.common_optparse import Common_optparse
 
 CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'pets', 'constants.py'))
@@ -66,7 +65,7 @@ hpo.load_profiles({"ref": ref_profile}, reset_stored= True)
 
 similarities = hpo.compare_profiles(external_profiles= clean_profiles, sim_type= "lin", bidirectional= False)
 
-candidate_sim_matrix, candidates, candidates_ids = patient_data.get_similarity_matrix(ref_profile, similarities["ref"], clean_profiles, hpo, options["matrix_limits"][0], options["matrix_limits"][-1])
+candidate_sim_matrix, candidates, candidates_ids = patient_data.get_term2term_similarity_matrix(ref_profile, similarities["ref"], clean_profiles, hpo, options["matrix_limits"][0], options["matrix_limits"][-1])
 candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
 
 template = open(os.path.join(REPORT_FOLDER, 'similarity_matrix.txt')).read()
