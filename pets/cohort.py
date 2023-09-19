@@ -1,6 +1,7 @@
 import json
 import os, sys
 import re
+import numpy as np
 from collections import defaultdict
 import csv
 from py_exp_calc import exp_calc
