@@ -24,6 +24,16 @@ class CohortTestSuite(unittest.TestCase):
                     ]
         self.n_patients = len(patients)
 
+        self.expected_y_names = ['132', '599', '647', '648']
+        self.expected_x_names = ['HP:0000717', 'HP:0001252', 'HP:0001249', 'HP:0000262', 'HP:0000365', 'HP:0000252']
+        self.expected_matrix = [[1, 1, 1, 0, 0, 0],
+                                [0, 0, 1, 0, 0, 0],
+                                [0, 0, 1, 1, 0, 0],
+                                [0, 0, 1, 0, 1, 1]]
+        
+        self.ic_hpos = {"HP:0000717": 1.0876789846883463, "HP:0001252": 1.3467739354833985,
+                        "HP:0001249": 0.4615785999681353, "HP:0000262": 3.2505419780102724,
+                        "HP:0000365": 1.8888141419926796, "HP:0000252": 1.1510339842823074}
 
         hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
         Cohort.load_ontology("hpo", hpo_file)
@@ -377,7 +387,8 @@ class CohortTestSuite(unittest.TestCase):
         patient_data, rejected_hpos_L, rejected_patients_L = Cohort_Parser.load(options)
         
         #Checking that patient_id and phenotypic profile are the same
-        self.assertEqual(patient_data.profiles.items(), self.patient_data.profiles.items())
+        self.assertEqual([[pair[0], sorted(pair[1])] for pair in patient_data.profiles.items()], 
+                         [[pair[0], sorted(pair[1])] for pair in self.patient_data.profiles.items()])
         
         #Checking that patient_id and genomic regions are the same
         #(doing for loop because the region identifiers ("to") could be different because of
@@ -417,3 +428,104 @@ class CohortTestSuite(unittest.TestCase):
         for id in self.patient_data.profiles.keys():
             pheno_id_file = os.path.join(tmp_folder, id + ".json")
             os.remove(f"{pheno_id_file}")
+
+    def test_process_dummy_clustered_patients(self):
+        tmp_folder = os.path.join(ROOT_PATH, "tmp", "dummy_cluster")
+        os.makedirs(tmp_folder, exist_ok=True)
+
+        options = {"chromosome_col": True, "clusters2show_detailed_phen_data": 3}
+        all_ics, all_lengths, cluster_data_by_chromosomes, top_cluster_phenotypes, multi_chromosome_patients = self.patient_data.process_dummy_clustered_patients(options, phenotype_ic=self.ic_hpos, temp_folder=tmp_folder)
+        
+        self.assertEqual(all_ics, [[0.4615785999681353, 1.856060288989204]])
+        self.assertEqual(all_lengths, [[1, 2]])
+        self.assertEqual(cluster_data_by_chromosomes, [[1, 2, '15', 1], [1, 2, '22', 1]])
+        self.assertEqual(top_cluster_phenotypes, [[['Intellectual disability'], ['Intellectual disability', 'Turricephaly']]])
+        self.assertEqual(multi_chromosome_patients, 2)
+        
+        for file in os.listdir(tmp_folder):
+            os.remove(os.path.join(tmp_folder, file))
+
+    def test_dummy_cluster_patients(self):        
+        tmp_folder = os.path.join(ROOT_PATH, "tmp", "dummy_cluster")
+        os.makedirs(tmp_folder, exist_ok=True)
+        
+        clustered_patients = self.patient_data.dummy_cluster_patients(temp_folder=tmp_folder)
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, "cluster_asignation")))
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, "pat_hpo_matrix.npy")))
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, "pat_hpo_matrix_x.lst")))
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, "pat_hpo_matrix_y.lst")))
+        self.assertEqual(clustered_patients, {0: ['132'], 1: ['599', '647'], 2: ['648']})
+
+        for file in os.listdir(tmp_folder):
+            os.remove(os.path.join(tmp_folder, file))
+
+    def test_process_cluster(self):
+        patients_id = ["599", "647"]
+        options = {"chromosome_col": True, "clusters2show_detailed_phen_data": 3}
+        ont = self.patient_data.get_ontology(Cohort.act_ont)
+        
+        chrs, all_phens, profile_ics, profile_lengths = self.patient_data.process_cluster(patients_id, self.ic_hpos, options, ont, 0)
+        self.assertEqual(chrs, {'15': 1, '22': 1})
+        self.assertEqual(all_phens, [['Intellectual disability'], ['Intellectual disability', 'Turricephaly']])
+        self.assertEqual(profile_ics, [0.4615785999681353, 1.856060288989204])
+        self.assertEqual(profile_lengths, [1, 2])
+
+    def test_get_profile_ic(self):
+        hpos = ['HP:0000717', 'HP:0001252']
+        profile_ic = (self.ic_hpos[hpos[0]] + self.ic_hpos[hpos[1]]) / 2
+        returned = self.patient_data.get_profile_ic(hpos, self.ic_hpos)
+        self.assertEqual(returned, profile_ic)
+
+    def test_get_matrix_similarity(self):
+        pass
+
+    def test_get_similarity_clusters(self):
+        options = {"sim_thr": 0.3}
+        method_name = "resnik"
+        tmp_folder = os.path.join(ROOT_PATH, "tmp", "dummy_cluster")
+        os.makedirs(tmp_folder, exist_ok=True)
+
+        clusters = self.patient_data.get_similarity_clusters(method_name, "hpo", options, temp_folder=tmp_folder, reference_profiles=None)
+        print(clusters)
+
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}.npy")))
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}_x.lst")))
+        self.assertFalse(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}_x.lst")))
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"{method_name}_clusters.txt")))
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'profiles_similarity_{method_name}.txt')))
+
+
+    def test_calc_sim_term2term_similarity_matrix(self):
+        reference_profile = ["HP:0000365", "HP:0000252", "HP:0001249"]
+        ref_profile_id = "648"
+        ont = self.patient_data.get_ontology(Cohort.act_ont)
+        
+        candidate_sim_matrix, candidates, candidates_ids = self.patient_data.calc_sim_term2term_similarity_matrix(reference_profile, ref_profile_id, self.patient_data.profiles.values(), ont)
+        print(candidate_sim_matrix)
+        print(candidates)
+        print(candidates_ids)
+
+    def test_get_term2term_similarity_matrix(self):
+        pass
+
+    def test_get_detailed_similarity(self):
+        pass
+
+    def test_write_detailed_hpo_profile_evaluation(self):
+        pass
+
+    def test_write_profile_pairs(self):
+        pairs = {"A": {"B": 3, "C": 4}, "B": {"C": 5, "D": 9}, "C": {"D": 6}}
+        tmp_folder = os.path.join(ROOT_PATH, "tmp", "dummy_profile")
+        filename = os.path.join(tmp_folder, "profile_pairs.txt")
+        os.makedirs(tmp_folder, exist_ok=True)
+
+        self.patient_data.write_profile_pairs(pairs, filename)
+        self.assertTrue(os.path.exists(filename))
+
+        filee = open(filename)
+        self.assertEqual("A\tB\t3\nA\tC\t4\nB\tC\t5\nB\tD\t9\nC\tD\t6\n", filee.read())
+        filee.close()
+
+        for file in os.listdir(tmp_folder):
+            os.remove(os.path.join(tmp_folder, file))
