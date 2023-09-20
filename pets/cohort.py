@@ -414,7 +414,7 @@ class Cohort():
                     similarity_matrix = np.amax(similarity_matrix) - similarity_matrix
                 elif method_name == 'lin':
                     similarity_matrix = 1 - similarity_matrix
-                clusters = exp_calc.get_hc_clusters(similarity_matrix, dist = 'euclidean', method = 'ward', height = 1.5, item_list = x_names)
+                clusters = exp_calc.get_hc_clusters(similarity_matrix, dist = 'euclidean', method = 'ward', identify_clusters='max_avg', height = 1.5, item_list = x_names)
                 if temp_folder != None:
                     with open(cluster_file, 'w') as f:
                         for clusterID, patientIDs in clusters.items(): f.write(f"{clusterID}\t{','.join(patientIDs)}\n")
