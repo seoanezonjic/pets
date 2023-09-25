@@ -172,7 +172,7 @@ if not opts.get('chromosome_col') == None:
 #----------------------------------
 reference_profiles = None
 if opts.get('reference_profiles') != None: reference_profiles = load_profiles(opts['reference_profiles'], Cohort.get_ontology('hpo'))
-get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, os.path.join(REPORT_FOLDER, 'cluster_report.txt'), EXTERNAL_CODE)
+clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, os.path.join(REPORT_FOLDER, 'cluster_report.txt'), EXTERNAL_CODE)
 
 #----------------------------------
 # GENERAL COHORT ANALYZER REPORT
@@ -202,6 +202,9 @@ for clusterID, info in new_cluster_phenotypes.items():
     phens = ', '.join(info[1])
     freqs = ', '.join([ str(round(a,4)) for a in info[2]])
     container[f"clust_{clusterID}"] = [[info[0], phens, freqs]]
+
+for meth, data in clustering_data.items(): 
+  for item, obj in data.items(): container[f"{meth}_{item}"] = obj
 
 report = Py_report_html(container)
 report.build(open(os.path.join(REPORT_FOLDER, 'cohort_report.txt')).read())

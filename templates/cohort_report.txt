@@ -138,16 +138,23 @@
 	<p> For each patient, their HPO profile similarity coefficient is calculated according to the different methods specified in the analysis and represented in these heatmaps. </p>
 
 	% for clust_method in plotter.hash_vars["clustering_methods"]:
-		<% plot = os.path.join(plotter.hash_vars["temp_folder"], f"{clust_method}_heatmap.png") %>
-		% if os.path.exists(plot):
-			${ plotter.embed_img(plot, 'width="800" height="800"') }
-		% else:
-			<% print('File not found or method not specified.') %>
+		<% sim_id = f"{clust_method}_sim" %>
+		<% link_id = f"{clust_method}_link" %>
+		<% raw_cls_id = f"{clust_method}_raw_cls" %>
+		% if sim_id in plotter.hash_vars:
+			<%
+				clustering = [ i[0] for i in plotter.hash_vars[raw_cls_id]]
+				lut = dict(zip(set(clustering), "rbg"))
+				row_colors = [ lut[i] for i in clustering ]
+			%>
+			${ plotter.matplotlib_main( id = sim_id, raw = True,
+			plotting_function = lambda data, plotter_list: plotter_list["sns"].clustermap(data=data, row_linkage=plotter.hash_vars[link_id], col_linkage=plotter.hash_vars[link_id], row_colors=row_colors ), whole=True)}
 		% endif
 
-		<% plot = os.path.join(plotter.hash_vars["temp_folder"], clust_method + '_sim_boxplot.png') %>
-		% if os.path.exists(plot):
-			${ plotter.embed_img(plot, 'width="800" height="800"') }
+		<% boxplot_sims_id = f"{clust_method}_boxplot_sims" %>
+
+		% if boxplot_sims_id in plotter.hash_vars:
+			${ plotter.matplotlib_main(id= boxplot_sims_id, var_attr=[1], header= True, row_names= False, plotting_function = lambda data, plotter_list: plotter_list["sns"].boxplot(data=data, y='group', x='Sims')) }
 		% endif
 	% endfor
 

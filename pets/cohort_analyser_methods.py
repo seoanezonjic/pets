@@ -153,12 +153,34 @@ def translate_codes(clusters, hpo):
         ])
   return translated_clusters
 
+def get_similarities4boxplot(raw_cls, similarity_matrix):
+    cl= {}
+    for i, item in enumerate(raw_cls): 
+      cl_id = item[0]
+      query = cl.get(cl_id)
+      if query == None:
+        cl[cl_id] = [i]
+      else:
+        query.append(i)
+    cl_similarities = []
+    for c_id, idxs in cl.items():
+      np_ids = np.array(idxs)
+      submatrix = similarity_matrix[np_ids[:,None], np_ids[None,:]]
+      cl_similarities.extend(submatrix.reshape(submatrix.size).tolist())
+    all_similarities = similarity_matrix.reshape(similarity_matrix.size).tolist()
+    sim_table = [['Sims', 'group'] ]
+    sim_table.extend([s , 'all'] for s in all_similarities)
+    sim_table.extend([ [s, 'cls'] for s in cl_similarities] )
+    return sim_table
+
 def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path, code_folder):
   template = open(template_path).read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
+  clustering_data = {}
   for method_name in options['clustering_methods']:
-    clusters = patient_data.get_similarity_clusters(method_name, 'hpo', options, temp_folder = temp_folder, reference_profiles = reference_profiles)
+    clusters, similarity_matrix, linkage, raw_cls = patient_data.get_similarity_clusters(method_name, 'hpo', options, temp_folder = temp_folder, reference_profiles = reference_profiles)
     clusters_codes, clusters_info = parse_clusters_data(clusters, patient_data)
+    clustering_data[method_name] = {'cls': clusters, 'sim': similarity_matrix, 'link': linkage, 'raw_cls': raw_cls, 'boxplot_sims': get_similarities4boxplot(raw_cls, similarity_matrix)}
 
     sim_mat4cluster = {}
     if options['detailed_clusters']:
@@ -184,4 +206,4 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
     report = Py_report_html(container, title='Patient clusters report')
     report.build(template)
     report.write(options['output_file']+ f"_{method_name}_clusters.html")
-    if len(clusters) > 0 and not os.path.exists(os.path.join(temp_folder, method_name + '_sim_boxplot.png')): system_call(code_folder, 'generate_boxpot.R', f"-i {temp_folder} -m {method_name} -o {os.path.join(temp_folder, method_name + '_sim_boxplot')}") 
+    turn clustering_data

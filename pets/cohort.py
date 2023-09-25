@@ -325,7 +325,7 @@ class Cohort():
                 exp_calc.save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
             else:
                 pat_hpo_matrix, hp_id, pat_id = exp_calc.load(matrix_file, x_axis_file, y_axis_file)
-            clustered_patients = exp_calc.get_hc_clusters(pat_hpo_matrix, dist = 'euclidean', method = 'ward', height = [1.5], item_list=pat_id)
+            clustered_patients, _ = exp_calc.get_hc_clusters(pat_hpo_matrix, dist = 'euclidean', method = 'ward', height = [1.5], item_list=pat_id)
             with open(clust_pat_file, 'w') as f:
                 for clusterID, pat_ids in clustered_patients.items(): 
                     f.write(f"{clusterID}\t{','.join(pat_ids)}\n")
@@ -394,6 +394,7 @@ class Cohort():
 
     def get_similarity_clusters(self, method_name, ontology, options, temp_folder = None, reference_profiles = None):
         clusters = {}
+        similarity_matrix = None
         if len(self.profiles) > 1:
             if temp_folder != None: # To save and load results from disk
                 matrix_filename = os.path.join(temp_folder, f"similarity_matrix_{method_name}.npy")
@@ -401,29 +402,38 @@ class Cohort():
                 axis_file_y = None if reference_profiles == None else re.sub('.npy','_y.lst', matrix_filename)
                 profiles_similarity_filename = os.path.join(temp_folder, f'profiles_similarity_{method_name}.txt')
                 cluster_file = os.path.join(temp_folder, f"{method_name}_clusters.txt")
+                linkage_file = os.path.join(temp_folder, f"{method_name}_linkage.npy")
+                raw_cls_file = os.path.join(temp_folder, f"{method_name}_raw_cls.json")
             if temp_folder == None or not os.path.exists(matrix_filename):
-              similarity_matrix, y_names, x_names = self.get_matrix_similarity(method_name, options, 
-                ontology = ontology, reference_profiles=reference_profiles,  
-                profiles_similarity_filename=profiles_similarity_filename, 
-                matrix_filename = matrix_filename)
+                similarity_matrix, y_names, x_names = self.get_matrix_similarity(method_name, options, 
+                    ontology = ontology, reference_profiles=reference_profiles,  
+                    profiles_similarity_filename=profiles_similarity_filename, 
+                    matrix_filename = matrix_filename)
             elif temp_folder != None or os.path.exists(matrix_filename):
                 similarity_matrix, x_names, y_names = exp_calc.load(matrix_filename, x_axis_file=axis_file, y_axis_file=axis_file_y)
             
             if temp_folder == None or not os.path.exists(cluster_file):
                 if method_name == 'resnik':
-                    similarity_matrix = np.amax(similarity_matrix) - similarity_matrix
+                    dist_matrix = np.amax(similarity_matrix) - similarity_matrix
                 elif method_name == 'lin':
-                    similarity_matrix = 1 - similarity_matrix
-                clusters = exp_calc.get_hc_clusters(similarity_matrix, dist = 'euclidean', method = 'ward', identify_clusters='max_avg', height = 1.5, item_list = x_names)
+                    dist_matrix = 1 - similarity_matrix
+                clusters, cls_objects = exp_calc.get_hc_clusters(dist_matrix, dist = 'euclidean', method = 'ward', identify_clusters='max_avg', item_list = x_names)
+                linkage = cls_objects['link']
+                raw_cls = cls_objects['cls']
                 if temp_folder != None:
                     with open(cluster_file, 'w') as f:
                         for clusterID, patientIDs in clusters.items(): f.write(f"{clusterID}\t{','.join(patientIDs)}\n")
+                    np.save(linkage_file, linkage)
+                    with open(raw_cls_file, 'w') as f: f.write(json.dumps(raw_cls))
             elif temp_folder != None or os.path.exists(cluster_file):
                 with open(cluster_file) as f:
                     for l in f: 
                         clusterID, patientIDs = l.rstrip().split("\t")
                         clusters[int(clusterID)] = patientIDs.split(",")
-        return clusters
+                linkage = np.load(linkage_file)
+                raw_cls = None
+                with open(raw_cls_file) as f: raw_cls = json.loads(f.read())
+        return clusters, similarity_matrix, linkage, raw_cls
 
     def calc_sim_term2term_similarity_matrix(self, ref_profile, ref_profile_id, external_profiles, ontology, term_limit = 100, candidate_limit = 100, sim_type = 'lin', bidirectional = True):
         similarities = ontology.compare_profiles(external_profiles = external_profiles, sim_type = sim_type, bidirectional = bidirectional)
