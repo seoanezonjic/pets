@@ -75,8 +75,6 @@ detailed_profile_evaluation_file = os.path.join(output_folder, 'detailed_hpo_pro
 rejected_file = os.path.join(output_folder, 'rejected_records.txt')
 temp_folder = os.path.join(output_folder, 'temp')
 hpo_frequency_file = os.path.join(temp_folder, 'hpo_cohort_frequency.txt')
-coverage_to_plot_file = os.path.join(temp_folder, 'coverage_data.txt')
-sor_coverage_to_plot_file = os.path.join(temp_folder, 'sor_coverage_data.txt')
 ronto_file = os.path.join(temp_folder, 'hpo_freq_colour')
 
 if not os.path.exists(temp_folder): os.mkdir(temp_folder)
