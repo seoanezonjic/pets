@@ -199,7 +199,7 @@ for clusterID, info in new_cluster_phenotypes.items():
 for meth, data in clustering_data.items(): 
   for item, obj in data.items(): container[f"{meth}_{item}"] = obj
 
-if opts['coverage_analysis']:
+if opts.get('chromosome_col') != None and opts['coverage_analysis']:
   coverage_to_plot.insert(0, ['Chr', 'Pos', 'Count'])
   container['cnv_coverage'] = coverage_to_plot # chr, start bin, count
   sor_coverage_to_plot.insert(0, ['Chr', 'Pos', 'Count'])
