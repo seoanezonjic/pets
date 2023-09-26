@@ -206,4 +206,5 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
     report = Py_report_html(container, title='Patient clusters report')
     report.build(template)
     report.write(options['output_file']+ f"_{method_name}_clusters.html")
-    turn clustering_data
+    
+    return clustering_data

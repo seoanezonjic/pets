@@ -25,19 +25,20 @@
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">Cohort genome coverage analysis</h1>
 	<p> Distribution of the genome coverage of all mutations characterized in the cohort. Second figure shows the same results for SORs.</p>
-	<% plot = os.path.join(plotter.hash_vars["temp_folder"],'coverage_plot.pdf') %>
-		% if os.path.exists(plot):
-			${plotter.embed_pdf(os.path.join(plotter.hash_vars["temp_folder"],'coverage_plot.pdf'), 'width="800" height="800"')}
-		% else:
-			"<p> No genomic data was specified for this cohort </p>"
-		% endif
+	
+	% if 'cnv_coverage' in plotter.hash_vars:
+		${ plotter.matplotlib_main(id= 'cnv_coverage', var_attr=[1], header= True, row_names= False, height=1200, 
+		plotting_function = lambda data, plotter_list: 
+			plotter_list["sns"].relplot(data=data, kind='line', x='Pos', y='Count', col='Chr', col_wrap=2,  height=1.5)) 
+		}
+	% endif
 
-	<% plot = os.path.join(plotter.hash_vars["temp_folder"],'sor_coverage_plot.pdf') %>
-		% if os.path.exists(plot):
-			${plotter.embed_pdf(os.path.join(plotter.hash_vars["temp_folder"],'sor_coverage_plot.pdf'), 'width="800" height="800"') }
-		% else:
-			"<p> No genomic data was specified for this cohort </p>"
-		% endif
+	% if 'sor_coverage' in plotter.hash_vars:
+		${ plotter.matplotlib_main(id= 'sor_coverage', var_attr=[1], header= True, row_names= False, height=1200, 
+		plotting_function = lambda data, plotter_list: 
+			plotter_list["sns"].relplot(data=data, kind='line', x='Pos', y='Count', col='Chr', col_wrap=2,  height=1.5)) 
+		}
+	% endif
 
 	<div style="overflow: hidden">
 		<h1 style="text-align: center; background-color:#d6eaf8">Distribution of mutations</h1>
@@ -144,7 +145,7 @@
 		% if sim_id in plotter.hash_vars:
 			<%
 				clustering = [ i[0] for i in plotter.hash_vars[raw_cls_id]]
-				lut = dict(zip(set(clustering), "rbg"))
+				lut = dict(zip(set(clustering), "rbgcmykw"))
 				row_colors = [ lut[i] for i in clustering ]
 			%>
 			${ plotter.matplotlib_main( id = sim_id, raw = True,

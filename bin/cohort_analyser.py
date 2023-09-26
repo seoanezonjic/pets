@@ -159,13 +159,6 @@ if not os.path.exists(ronto_file + '.png'): system_call(EXTERNAL_CODE, 'ronto_pl
 dummy_cluster_chr_data = []
 if not opts.get('chromosome_col') == None:
   dummy_cluster_chr_data = get_cluster_chromosome_data(clust_by_chr, opts['clusters2graph'])
-  if opts['coverage_analysis']:
-    ###1. Process CNVs
-    write_tabulated_data(coverage_to_plot, coverage_to_plot_file)
-    system_call(EXTERNAL_CODE, 'plot_area.R', f"-d {coverage_to_plot_file} -o {temp_folder}/coverage_plot -x V2 -y V3 -f V1 -H -m {CHR_SIZE} -t CNV")
-    ###2. Process SORs
-    write_tabulated_data(sor_coverage_to_plot, sor_coverage_to_plot_file)
-    system_call(EXTERNAL_CODE, 'plot_area.R', f"-d {sor_coverage_to_plot_file} -o {temp_folder}/sor_coverage_plot -x V2 -y V3 -f V1 -H -m {CHR_SIZE} -t SOR")
 
 #----------------------------------
 # CLUSTER COHORT ANALYZER REPORT
@@ -205,6 +198,12 @@ for clusterID, info in new_cluster_phenotypes.items():
 
 for meth, data in clustering_data.items(): 
   for item, obj in data.items(): container[f"{meth}_{item}"] = obj
+
+if opts['coverage_analysis']:
+  coverage_to_plot.insert(0, ['Chr', 'Pos', 'Count'])
+  container['cnv_coverage'] = coverage_to_plot # chr, start bin, count
+  sor_coverage_to_plot.insert(0, ['Chr', 'Pos', 'Count'])
+  container['sor_coverage'] = sor_coverage_to_plot
 
 report = Py_report_html(container)
 report.build(open(os.path.join(REPORT_FOLDER, 'cohort_report.txt')).read())

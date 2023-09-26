@@ -417,7 +417,7 @@ class Cohort():
                     dist_matrix = np.amax(similarity_matrix) - similarity_matrix
                 elif method_name == 'lin':
                     dist_matrix = 1 - similarity_matrix
-                clusters, cls_objects = exp_calc.get_hc_clusters(dist_matrix, dist = 'euclidean', method = 'ward', identify_clusters='max_avg', item_list = x_names)
+                clusters, cls_objects = exp_calc.get_hc_clusters(dist_matrix, dist = 'custom', method = 'ward', identify_clusters='max_avg', item_list = x_names)
                 linkage = cls_objects['link']
                 raw_cls = cls_objects['cls']
                 if temp_folder != None:
