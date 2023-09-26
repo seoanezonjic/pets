@@ -114,14 +114,14 @@ elif opts['ic_stats'] == 'freq':
 elif opts['ic_stats'] == 'onto':
   phenotype_ic = onto_ic
 
-all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_pats = patient_data.process_dummy_clustered_patients(opts, phenotype_ic, temp_folder = temp_folder)
+all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_clusters = patient_data.process_dummy_clustered_patients(opts, phenotype_ic, temp_folder = temp_folder)
 
 summary_stats = get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos)
 
 all_cnvs_length = []
 all_sor_length = []
 if not opts.get('chromosome_col') == None:
-  summary_stats.append(['Number of clusters with mutations accross > 1 chromosomes', multi_chr_pats])
+  summary_stats.append(['Number of clusters with mutations accross > 1 chromosomes', multi_chr_clusters])
   
   patient_data.index_vars()
   all_cnvs_length = patient_data.get_vars_sizes(False)

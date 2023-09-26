@@ -298,7 +298,7 @@ class Cohort():
         all_lengths = []
         top_cluster_phenotypes = []
         cluster_data_by_chromosomes = []
-        multi_chromosome_patients = 0
+        multi_chr_clusters = 0
         processed_clusters = 0
         if len(self.profiles) > 1 :
             for cluster_id, patient_ids in sorted(list(clustered_patients.items()), key=lambda x: len(x[1]), reverse=True):
@@ -309,10 +309,10 @@ class Cohort():
                 all_ics.append(profile_ics)
                 all_lengths.append(profile_lengths)
                 if not options.get('chromosome_col') == None:
-                    if len(chrs) > 1: multi_chromosome_patients += num_of_patients
+                    if len(chrs) > 1: multi_chr_clusters += num_of_patients
                     for chrm, count in chrs.items(): cluster_data_by_chromosomes.append([cluster_id, num_of_patients, chrm, count])
                 processed_clusters += 1
-        return all_ics, all_lengths, cluster_data_by_chromosomes, top_cluster_phenotypes, multi_chromosome_patients
+        return all_ics, all_lengths, cluster_data_by_chromosomes, top_cluster_phenotypes, multi_chr_clusters
 
     def dummy_cluster_patients(self, temp_folder = "./"):
         clust_pat_file = os.path.join(temp_folder, 'cluster_asignation')
