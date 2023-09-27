@@ -43,6 +43,8 @@ class CohortTestSuite(unittest.TestCase):
             id, terms, variants, other_attr = patient
             self.patient_data.add_record([id, terms, variants], other_attr)
 
+        self.patient_data.link2ont(Cohort.act_ont)
+
     def test_load(self):
         self.assertEqual(len(self.patient_data.profiles), 4)
         self.assertEqual(len(self.patient_data.vars), 4)
@@ -476,8 +478,8 @@ class CohortTestSuite(unittest.TestCase):
         returned = self.patient_data.get_profile_ic(hpos, self.ic_hpos)
         self.assertEqual(returned, profile_ic)
 
-    def test_get_matrix_similarity(self):
-        pass
+    def test_get_matrix_similarity(self): #Helper function tested in get_similarity_clusters (its higher order function)
+        self.assertTrue(False, "Helper function tested in get_similarity_clusters")
 
     def test_get_similarity_clusters(self):
         options = {"sim_thr": 0.3}
@@ -496,23 +498,26 @@ class CohortTestSuite(unittest.TestCase):
 
 
     def test_calc_sim_term2term_similarity_matrix(self):
-        reference_profile = ["HP:0000365", "HP:0000252", "HP:0001249"]
-        ref_profile_id = "648"
+        reference_profile = ["HP:0000365", "HP:0001249"]
+        ref_profile_id = "657"
+        ref_profile_dict = {ref_profile_id: reference_profile}
         ont = self.patient_data.get_ontology(Cohort.act_ont)
+        ont.load_profiles(ref_profile_dict)
         
-        candidate_sim_matrix, candidates, candidates_ids = self.patient_data.calc_sim_term2term_similarity_matrix(reference_profile, ref_profile_id, self.patient_data.profiles.values(), ont)
-        print(candidate_sim_matrix)
-        print(candidates)
-        print(candidates_ids)
+        candidate_sim_matrix, candidates, candidates_ids = self.patient_data.calc_sim_term2term_similarity_matrix(reference_profile, ref_profile_id, self.patient_data.profiles, ont)
+        self.assertEqual(candidate_sim_matrix, [['Intellectual disability', 1.0, 1.0, 1.0, 1.0], ['Hearing impairment', 1.0, 0, 0.002925264157569972, 0.0032651226948571363]])
+        self.assertEqual(candidates, [['648', 0.8487148451790173], ['599', 0.6677009703920632], ['647', 0.5015070438334399], ['132', 0.48667053298635815]])
+        self.assertEqual(candidates_ids, ['648', '599', '647', '132'])
 
-    def test_get_term2term_similarity_matrix(self):
-        pass
 
-    def test_get_detailed_similarity(self):
-        pass
+    def test_get_term2term_similarity_matrix(self): #Helper function of calc_sim_term2term_similarity_matrix
+        self.assertTrue(False, "Helper function of calc_sim_term2term_similarity_matrix")
 
-    def test_write_detailed_hpo_profile_evaluation(self):
-        pass
+    def test_get_detailed_similarity(self): #Helper function of get_term2term_similarity_matrix
+        self.assertTrue(False, "Helper function of get_term2term_similarity_matrix")
+
+    def test_write_detailed_hpo_profile_evaluation(self): #TODO: test this function
+        self.assertTrue(False, "Pending to test this function")
 
     def test_write_profile_pairs(self):
         pairs = {"A": {"B": 3, "C": 4}, "B": {"C": 5, "D": 9}, "C": {"D": 6}}
