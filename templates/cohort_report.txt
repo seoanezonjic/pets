@@ -131,15 +131,15 @@
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto; overflow: hidden"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO profile redundancy</h1>
 	<p> For each patient profile size (number of phenotypes, x-axis) it is shown the number of HPO phenotypes that are parent of other terms within the profile (number of parent terms, y-axis). </p>
-	${ plotter.scatter2D(id= 'parents_per_term', header=False, row_names=False, x_label = 'ProfileSize', y_label = 'ParentTerms') }
+	${ plotter.scatter2D(id= 'parents_per_term', header=False, row_names=False, x_label = 'ProfileSize', y_label = 'ParentTerms', alpha=0.6, add_densities=True, config={"dataPointSize":10} )}
 
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto; overflow: hidden"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO ICs distribution</h1>
 	<p> First figure shows the ICs distribution in terms of the HP ontology (x-axis) and for each single HPO term, its frequency in the cohort according to the HP ontology structure (y-axis) and the second figure shows the same distributions considering the profiles analyzed. </p>
-	${ plotter.scatter2D(id= 'hpo_ic_data', header=False, row_names=False, x_label = 'HP Ontology IC', y_label = 'HP Frequency based IC') }
-	${ plotter.scatter2D(id= 'hpo_ic_data_profiles', header=False, row_names=False, x_label = 'HP Ontology Profile IC', y_label = 'HP Frequency based Profile IC') }
+	${ plotter.scatter2D(id= 'hpo_ic_data', header=False, row_names=False, x_label = 'HP Ontology IC', y_label = 'HP Frequency based IC', alpha=0.6, add_densities=True, config={"dataPointSize":10}  )}
+	${ plotter.scatter2D(id= 'hpo_ic_data_profiles', header=False, row_names=False, x_label = 'HP Ontology Profile IC', y_label = 'HP Frequency based Profile IC', alpha=0.6, add_densities=True, config={"dataPointSize":10}  )}
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
