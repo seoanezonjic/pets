@@ -395,6 +395,8 @@ class Cohort():
     def get_similarity_clusters(self, method_name, ontology, options, temp_folder = None, reference_profiles = None):
         clusters = {}
         similarity_matrix = None
+        linkage = None
+        raw_cls = None
         if len(self.profiles) > 1:
             if temp_folder != None: # To save and load results from disk
                 matrix_filename = os.path.join(temp_folder, f"similarity_matrix_{method_name}.npy")
@@ -417,7 +419,7 @@ class Cohort():
                     dist_matrix = np.amax(similarity_matrix) - similarity_matrix
                 elif method_name == 'lin':
                     dist_matrix = 1 - similarity_matrix
-                clusters, cls_objects = exp_calc.get_hc_clusters(dist_matrix, dist = 'custom', method = 'ward', identify_clusters='max_avg', item_list = x_names)
+                clusters, cls_objects = exp_calc.get_hc_clusters(dist_matrix, dist = 'custom', method = 'ward', identify_clusters='max_avg', n_clusters=3, item_list = x_names)
                 linkage = cls_objects['link']
                 raw_cls = cls_objects['cls']
                 if temp_folder != None:
@@ -501,7 +503,7 @@ class Cohort():
 
     def write_detailed_hpo_profile_evaluation(self, suggested_childs, detailed_profile_evaluation_file):
         with open(detailed_profile_evaluation_file, 'w', newline='') as csvfile:
-            csvwriter = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            csvwriter = csv.writer(csvfile, delimiter="\t", quotechar='"', quoting=csv.QUOTE_MINIMAL)
             for pat_id, suggestions in suggested_childs.items():
                 warning = None
                 if len(suggestions) < 4: warning = 'WARNING: Very few phenotypes' 

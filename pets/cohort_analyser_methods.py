@@ -154,23 +154,24 @@ def translate_codes(clusters, hpo):
   return translated_clusters
 
 def get_similarities4boxplot(raw_cls, similarity_matrix):
-    cl= {}
-    for i, item in enumerate(raw_cls): 
-      cl_id = item[0]
-      query = cl.get(cl_id)
-      if query == None:
-        cl[cl_id] = [i]
-      else:
-        query.append(i)
-    cl_similarities = []
-    for c_id, idxs in cl.items():
-      np_ids = np.array(idxs)
-      submatrix = similarity_matrix[np_ids[:,None], np_ids[None,:]]
-      cl_similarities.extend(submatrix.reshape(submatrix.size).tolist())
-    all_similarities = similarity_matrix.reshape(similarity_matrix.size).tolist()
     sim_table = [['Sims', 'group'] ]
-    sim_table.extend([s , 'all'] for s in all_similarities)
-    sim_table.extend([ [s, 'cls'] for s in cl_similarities] )
+    if raw_cls != None:
+      cl= {}
+      for i, item in enumerate(raw_cls): 
+        cl_id = item[0]
+        query = cl.get(cl_id)
+        if query == None:
+          cl[cl_id] = [i]
+        else:
+          query.append(i)
+      cl_similarities = []
+      for c_id, idxs in cl.items():
+        np_ids = np.array(idxs)
+        submatrix = similarity_matrix[np_ids[:,None], np_ids[None,:]]
+        cl_similarities.extend(submatrix.reshape(submatrix.size).tolist())
+      all_similarities = similarity_matrix.reshape(similarity_matrix.size).tolist()
+      sim_table.extend([s , 'all'] for s in all_similarities)
+      sim_table.extend([ [s, 'cls'] for s in cl_similarities] )
     return sim_table
 
 def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path, code_folder):

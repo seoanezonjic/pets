@@ -1,5 +1,16 @@
 <%
 	import os
+	import pylab
+	import matplotlib.pyplot as plt
+
+	def get_color_palette(num):
+		cm = pylab.get_cmap('gist_rainbow')
+		colors = []
+		for i in range(num):
+			color = cm(1.*i/num)  # color will now be an RGBA tuple
+			colors.append(color)
+		return colors
+
 	def add_tip(text, help_text):
 		return f"<div class=\"tooltip\">{text}<span class=\"tooltiptext\">{help_text}</span></div>"
 %>
@@ -142,10 +153,11 @@
 		<% sim_id = f"{clust_method}_sim" %>
 		<% link_id = f"{clust_method}_link" %>
 		<% raw_cls_id = f"{clust_method}_raw_cls" %>
-		% if sim_id in plotter.hash_vars:
+		% if sim_id in plotter.hash_vars and plotter.hash_vars[raw_cls_id] != None:
 			<%
 				clustering = [ i[0] for i in plotter.hash_vars[raw_cls_id]]
-				lut = dict(zip(set(clustering), "rbgcmykw"))
+				uniq_cls = set(clustering)
+				lut = dict(zip(uniq_cls, get_color_palette(len(uniq_cls))))
 				row_colors = [ lut[i] for i in clustering ]
 			%>
 			${ plotter.matplotlib_main( id = sim_id, raw = True,
@@ -153,7 +165,6 @@
 		% endif
 
 		<% boxplot_sims_id = f"{clust_method}_boxplot_sims" %>
-
 		% if boxplot_sims_id in plotter.hash_vars:
 			${ plotter.matplotlib_main(id= boxplot_sims_id, var_attr=[1], header= True, row_names= False, plotting_function = lambda data, plotter_list: plotter_list["sns"].boxplot(data=data, y='group', x='Sims')) }
 		% endif
