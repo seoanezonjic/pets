@@ -1,6 +1,7 @@
 <%
 	import os
 	import pylab
+	import pandas as pd
 	import matplotlib.pyplot as plt
 
 	def get_color_palette(num):
@@ -13,6 +14,16 @@
 
 	def add_tip(text, help_text):
 		return f"<div class=\"tooltip\">{text}<span class=\"tooltiptext\">{help_text}</span></div>"
+
+	chromosome_lengths = plotter.hash_vars["chr_sizes"]
+	def plot_coverage(data, plotter_list):
+		data["Chr"] = pd.Categorical(data["Chr"], chromosome_lengths.keys())
+		sortedd = data.sort_values(by=["Chr", "Pos"])
+		chromosomes_order = sortedd["Chr"].unique()
+		g = plotter_list["sns"].FacetGrid(data=sortedd, col="Chr", hue="Chr", col_wrap=2, height=1.5).map(plotter_list["plt"].plot, 'Pos', 'Count').map(plotter_list["plt"].fill_between, 'Pos', 'Count')
+		for ax, chrm in zip(g.axes.flat, chromosomes_order):
+				ax.axvline(x=chromosome_lengths[chrm], color='r', linestyle=':')
+		return g
 %>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
@@ -39,15 +50,13 @@
 	
 	% if 'cnv_coverage' in plotter.hash_vars:
 		${ plotter.matplotlib_main(id= 'cnv_coverage', var_attr=[1], header= True, row_names= False, height=1200, 
-		plotting_function = lambda data, plotter_list: 
-			plotter_list["sns"].relplot(data=data, kind='line', x='Pos', y='Count', col='Chr', col_wrap=2,  height=1.5)) 
+		plotting_function = plot_coverage) 
 		}
 	% endif
 
 	% if 'sor_coverage' in plotter.hash_vars:
 		${ plotter.matplotlib_main(id= 'sor_coverage', var_attr=[1], header= True, row_names= False, height=1200, 
-		plotting_function = lambda data, plotter_list: 
-			plotter_list["sns"].relplot(data=data, kind='line', x='Pos', y='Count', col='Chr', col_wrap=2,  height=1.5)) 
+		plotting_function = plot_coverage) 
 		}
 	% endif
 

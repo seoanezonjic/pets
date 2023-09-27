@@ -70,6 +70,7 @@ elif opts['genome_assembly'] == 'hg18':
 else:
   raise Exception('Wrong human genome assembly. Please choose between hg19, hg18 or hg38.')
 
+chr_sizes = dict(map(lambda sublist: [sublist[0], int(sublist[1])], [line.strip().split("\t") for line in open(CHR_SIZE).readlines()]))
 output_folder = os.path.dirname(opts['output_file'])
 detailed_profile_evaluation_file = os.path.join(output_folder, 'detailed_hpo_profile_evaluation.csv')
 rejected_file = os.path.join(output_folder, 'rejected_records.txt')
@@ -185,7 +186,8 @@ container = {
   'hpo_ic_data_profiles': [ list(p) for p in zip(list(onto_ic_profile.values()), list(freq_ic_profile.values())) ],
   'parents_per_term': [ list(p) for p in zip(profile_sizes, parental_hpos_per_profile) ],
   'dummy_cluster_chr_data' : dummy_cluster_chr_data,
-  'dummy_ic_data' : format_cluster_ic_data(all_ics, prof_lengths, opts['clusters2graph'])
+  'dummy_ic_data' : format_cluster_ic_data(all_ics, prof_lengths, opts['clusters2graph']),
+  'chr_sizes': chr_sizes
 }
 
 clust_info = []
