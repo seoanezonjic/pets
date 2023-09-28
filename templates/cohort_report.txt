@@ -20,9 +20,10 @@
 		data["Chr"] = pd.Categorical(data["Chr"], chromosome_lengths.keys())
 		sortedd = data.sort_values(by=["Chr", "Pos"])
 		chromosomes_order = sortedd["Chr"].unique()
-		g = plotter_list["sns"].FacetGrid(data=sortedd, col="Chr", hue="Chr", col_wrap=2, height=1.5).map(plotter_list["plt"].plot, 'Pos', 'Count').map(plotter_list["plt"].fill_between, 'Pos', 'Count')
+		plotter_list["sns"].set(font_scale=0.5)
+		g = plotter_list["sns"].FacetGrid(data=sortedd, col="Chr", hue="Chr", col_wrap=2, height=1, aspect =1.2).map(plotter_list["plt"].plot, 'Pos', 'Count').map(plotter_list["plt"].fill_between, 'Pos', 'Count')
 		for ax, chrm in zip(g.axes.flat, chromosomes_order):
-				ax.axvline(x=chromosome_lengths[chrm], color='r', linestyle=':')
+				ax.axvline(x=chromosome_lengths[chrm], color='k', linestyle='-', linewidth=1)
 		return g
 %>
 
@@ -44,49 +45,17 @@
 	}
 </div>
 
-<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
-	<h1 style="text-align: center; background-color:#d6eaf8">Cohort genome coverage analysis</h1>
-	<p> Distribution of the genome coverage of all mutations characterized in the cohort. Second figure shows the same results for SORs.</p>
-	
-	% if 'cnv_coverage' in plotter.hash_vars:
-		${ plotter.static_plot_main(id= 'cnv_coverage', var_attr=[1], header= True, row_names= False, height=1200, 
-		plotting_function = plot_coverage) 
-		}
-	% endif
-
-	% if 'sor_coverage' in plotter.hash_vars:
-		${ plotter.static_plot_main(id= 'sor_coverage', var_attr=[1], header= True, row_names= False, height=1200, 
-		plotting_function = plot_coverage) 
-		}
-	% endif
-
-	<div style="overflow: hidden">
-		<h1 style="text-align: center; background-color:#d6eaf8">Distribution of mutations</h1>
-		<p> Distribution of all mutations along the genome (Length) and the number of patients that have at least one of them (Count). Second figure shows the same for SORs. </p>
-			% if len(plotter.hash_vars["all_cnvs_length"]) > 0:
-				${plotter.density(id= "all_cnvs_length", header= False, title= 'CNV', row_names= False, x_label= 'Length', y_label= 'Count', width= "600px", height= "600px", responsive= False)}
-			% else:
-				"<p> No genomic data was specified for this cohort </p>"
-			% endif
-
-			% if len(plotter.hash_vars["all_sor_length"]) > 0:
-				${plotter.density(id= "all_sor_length", header= False, title= 'SOR', row_names= False, x_label= 'Length', y_label= 'Count', width= "600px", height= "600px", responsive= False)}
-			% else:
-				"<p> No genomic data was specified for this cohort </p>"
-			% endif
-	</div>
-</div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO annotations distribution</h1>
 	<p> Analysis of the HPO terms within the HPO ontology and the cohort of patients. Left: distribution of terms within the ontology and the cohort. Right: percentage of terms distribution within the ontology and the cohort.</p>
 	<div style="overflow: hidden">
 		% if plotter.hash_vars.get("ontology_levels"):
-			${plotter.barplot(id= "ontology_levels", header= True, x_label= 'Number of HPO terms', title= 'HPO annotations distribution', width= "800px", height= "800px", responsive= False, transpose= True, 
+			${plotter.barplot(id= "ontology_levels", header= True, x_label= 'Number of HPO terms', title= 'HPO annotations distribution', width= "600px", height= "600px", responsive= False, transpose= True, 
 					config = { 'graphOrientation': 'vertical'}) }
 		% endif
 		% if plotter.hash_vars.get("distribution_percentage"):
-			${plotter.line(id= "distribution_percentage", header= True, x_label= 'Percentage of terms', title= 'HPO percentage distribution', width= "800px", height= "800px", responsive= False, transpose= True, 
+			${plotter.line(id= "distribution_percentage", header= True, x_label= 'Percentage of terms', title= 'HPO percentage distribution', width= "600px", height= "600px", responsive= False, transpose= True, 
 					config = { 'graphOrientation' : 'vertical' }) }
 		% endif
 	</div>
@@ -96,54 +65,98 @@
 	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;">
 		<% plot = os.path.join(plotter.hash_vars["temp_folder"],'hpo_freq_colour.png') %>
 			% if os.path.exists(plot):
-				${plotter.embed_img(plot, 'width="800" height="800"') }
+				${plotter.embed_img(plot, 'width="600" height="600"') }
 			% else:
-				"<p> Invalid file specified. </p>"
+				<p> Invalid file specified. </p>
 			% endif
 	</div>
 </div>
 
-<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
-	<h1 style="text-align: center; background-color:#d6eaf8">Clustering patients by HPO profile</h1>
-	<p> All patients are clustered using their HPO profiles. First figure shows the information coefficient distribution for the top clusters. Second figure shows which chromosomes are affected in the patients for each top cluster. </p>
-	% if len(plotter.hash_vars['dummy_cluster_chr_data']) > 0:
-		${ plotter.heatmap(id='dummy_cluster_chr_data', header=True, row_names=True, x_label = 'patient count')}
-	% else:
-		"<p> Genomic data was not specified </p>"
-	% endif
-	${ plotter.boxplot(id = 'dummy_ic_data', header = True, row_names = True, fields= [0,2], x_label = 'Profile size',
-			config = {
-				'graphOrientation' : 'vertical',
-				'smpTitle' : 'Cluster size/id'
-			}
-		) 
-	}
-	${ plotter.boxplot(id = 'dummy_ic_data', header = True, row_names = True, fields= [0,1], x_label = 'Information coefficient',
-			config = {
-				'graphOrientation' : 'vertical',
-				'smpTitle' : 'Cluster size/id'
-			}
-		) 
-	}
-</div>
-
-
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto; overflow: hidden"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO profile redundancy</h1>
 	<p> For each patient profile size (number of phenotypes, x-axis) it is shown the number of HPO phenotypes that are parent of other terms within the profile (number of parent terms, y-axis). </p>
-	${ plotter.scatter2D(id= 'parents_per_term', header=False, row_names=False, x_label = 'ProfileSize', y_label = 'ParentTerms', alpha=0.6, add_densities=True, config={"dataPointSize":10} )}
+
+	${ plotter.scatter2D(id= 'parents_per_term', header=False, row_names=False, title = 'HP term redundancy in patient profiles', x_label = 'ProfileSize', y_label = 'ParentTerms', alpha=0.6, add_densities=True, config={"dataPointSize":8} )}
 
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto; overflow: hidden"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO ICs distribution</h1>
 	<p> First figure shows the ICs distribution in terms of the HP ontology (x-axis) and for each single HPO term, its frequency in the cohort according to the HP ontology structure (y-axis) and the second figure shows the same distributions considering the profiles analyzed. </p>
-	${ plotter.scatter2D(id= 'hpo_ic_data', header=False, row_names=False, x_label = 'HP Ontology IC', y_label = 'HP Frequency based IC', alpha=0.6, add_densities=True, config={"dataPointSize":10}  )}
-	${ plotter.scatter2D(id= 'hpo_ic_data_profiles', header=False, row_names=False, x_label = 'HP Ontology Profile IC', y_label = 'HP Frequency based Profile IC', alpha=0.6, add_densities=True, config={"dataPointSize":10}  )}
+
+	${ plotter.scatter2D(id= 'hpo_ic_data', header=False, row_names=False, title='HP term IC distribution', x_label = 'HP Ontology IC', y_label = 'HP Frequency based IC', alpha=0.6, add_densities=True, config={"dataPointSize":8, "setMaxX": 4.5, "setMaxY":4.5, "setMinX": 0, "setMinY": 0}  )}
+	${ plotter.scatter2D(id= 'hpo_ic_data_profiles', header=False, row_names=False, title='HP patient profile IC distribution', x_label = 'HP Ontology Profile IC', y_label = 'HP Frequency based Profile IC', alpha=0.6, add_densities=True, config={"dataPointSize":8, "setMaxX": 4.5, "setMaxY":4.5, "setMinX": 0, "setMinY": 0}  )}
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
-	<h1 style="text-align: center; background-color:#d6eaf8">HPO frequency by cluster</h1>
+	<h1 style="text-align: center; background-color:#d6eaf8">Cohort genome coverage analysis</h1>
+	<p> Distribution of the genome coverage of all mutations characterized in the cohort. Second figure shows the same results for SORs.</p>
+	
+	% if 'cnv_coverage' in plotter.hash_vars:
+		${ plotter.static_plot_main(id= 'cnv_coverage', var_attr=[1], header= True, row_names= False, height=1600, dpi=600, 
+		plotting_function = plot_coverage) 
+		}
+	% endif
+
+	% if 'sor_coverage' in plotter.hash_vars:
+		${ plotter.static_plot_main(id= 'sor_coverage', var_attr=[1], header= True, row_names= False, height=1600, dpi=600,
+		plotting_function = plot_coverage) 
+		}
+	% endif
+
+	<div style="overflow: hidden">
+		<h1 style="text-align: center; background-color:#d6eaf8">Distribution of mutations</h1>
+		<p> Distribution of all mutations along the genome (Length) and the number of patients that have at least one of them (Count). Second figure shows the same for SORs. </p>
+			% if len(plotter.hash_vars["all_cnvs_length"]) > 0:
+				${plotter.density(id= "all_cnvs_length", header= False, title= 'CNV', row_names= False, x_label= 'Length', y_label= 'Count', width= "600px", height= "400px", responsive= False)}
+			% else:
+				<p> No genomic data was specified for this cohort </p>
+			% endif
+
+			% if len(plotter.hash_vars["all_sor_length"]) > 0:
+				${plotter.density(id= "all_sor_length", header= False, title= 'SOR', row_names= False, x_label= 'Length', y_label= 'Count', width= "600px", height= "400px", responsive= False)}
+			% else:
+				<p> No genomic data was specified for this cohort </p>
+			% endif
+	</div>
+</div>
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">Clustering patients by HPO profile without using ontology data</h1>
+
+	<p> All patients are clustered using their HPO profiles but building a simple binary matrix that indicates which patient has a HPO term. First figure shows the information coefficient distribution for the top clusters. Second figure shows which chromosomes are affected in the patients for each top cluster. </p>
+
+	<div style="overflow: hidden">
+		% if len(plotter.hash_vars['dummy_cluster_chr_data']) > 0:
+			${ plotter.heatmap(id='dummy_cluster_chr_data', header=True, row_names=True, title='Affected chromosomes in patient top clusters', x_label = 'patient count', height="400px", width="400px")}
+		% else:
+			<p> Genomic data was not specified </p>
+		% endif
+		% if len(plotter.hash_vars['dummy_ic_data']) > 1:
+			${ plotter.boxplot(id = 'dummy_ic_data', header = True, row_names = True, fields= [0,2], title='Patient profile size distribution in top clusters', x_label = 'Profile size', height="400px", width="400px", 
+					config = {
+						'graphOrientation' : 'vertical',
+						'smpTitle' : 'Cluster size/id'
+					}
+				) 
+			}
+			${ plotter.boxplot(id = 'dummy_ic_data', header = True, row_names = True, fields= [0,1], title='Patient IC distribution in top clusters', x_label = 'Information coefficient', height="400px", width="400px",
+					config = {
+						'graphOrientation' : 'vertical',
+						'smpTitle' : 'Cluster size/id'
+					}
+				) 
+			}
+		% else:
+			<p> This clustering has not been performed </p>
+		% endif
+	</div>
+</div>
+
+
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h2 style="text-align: center; background-color:#d6eaf8">HPO frequency in top clusters</h2>
+
 	% for n in range(plotter.hash_vars["new_cluster_phenotypes"]):
 		${ plotter.table(id= f"clust_{n}", header= True, border= 2, row_names= False, text= True, 
 			cell_align= "center" ,
@@ -152,10 +165,11 @@
 			# data.unshift(["HPO information in cluster #{n}\tPhenotypes\tFrequency"])
 		}
 	% endfor
+
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
-	<h1 style="text-align: center; background-color:#d6eaf8">Patient profiles heatmaps</h1>
+	<h1 style="text-align: center; background-color:#d6eaf8">Patient clustering by semantic similarity in HPO</h1>
 	<p> For each patient, their HPO profile similarity coefficient is calculated according to the different methods specified in the analysis and represented in these heatmaps. </p>
 
 	% for clust_method in plotter.hash_vars["clustering_methods"]:
