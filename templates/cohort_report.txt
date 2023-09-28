@@ -49,13 +49,13 @@
 	<p> Distribution of the genome coverage of all mutations characterized in the cohort. Second figure shows the same results for SORs.</p>
 	
 	% if 'cnv_coverage' in plotter.hash_vars:
-		${ plotter.matplotlib_main(id= 'cnv_coverage', var_attr=[1], header= True, row_names= False, height=1200, 
+		${ plotter.static_plot_main(id= 'cnv_coverage', var_attr=[1], header= True, row_names= False, height=1200, 
 		plotting_function = plot_coverage) 
 		}
 	% endif
 
 	% if 'sor_coverage' in plotter.hash_vars:
-		${ plotter.matplotlib_main(id= 'sor_coverage', var_attr=[1], header= True, row_names= False, height=1200, 
+		${ plotter.static_plot_main(id= 'sor_coverage', var_attr=[1], header= True, row_names= False, height=1200, 
 		plotting_function = plot_coverage) 
 		}
 	% endif
@@ -169,13 +169,13 @@
 				lut = dict(zip(uniq_cls, get_color_palette(len(uniq_cls))))
 				row_colors = [ lut[i] for i in clustering ]
 			%>
-			${ plotter.matplotlib_main( id = sim_id, raw = True,
+			${ plotter.static_plot_main( id = sim_id, raw = True,
 			plotting_function = lambda data, plotter_list: plotter_list["sns"].clustermap(data=data, row_linkage=plotter.hash_vars[link_id], col_linkage=plotter.hash_vars[link_id], row_colors=row_colors ), whole=True)}
 		% endif
 
 		<% boxplot_sims_id = f"{clust_method}_boxplot_sims" %>
 		% if boxplot_sims_id in plotter.hash_vars:
-			${ plotter.matplotlib_main(id= boxplot_sims_id, var_attr=[1], header= True, row_names= False, plotting_function = lambda data, plotter_list: plotter_list["sns"].boxplot(data=data, y='group', x='Sims')) }
+			${ plotter.static_plot_main(id= boxplot_sims_id, var_attr=[1], header= True, row_names= False, plotting_function = lambda data, plotter_list: plotter_list["sns"].boxplot(data=data, y='group', x='Sims')) }
 		% endif
 	% endfor
 
