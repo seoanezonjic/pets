@@ -171,6 +171,10 @@ clustering_data = get_semantic_similarity_clustering(opts, patient_data, referen
 #----------------------------------
 new_cluster_phenotypes = get_top_dummy_clusters_stats(top_clust_phen)
 
+colors, sizes, radius_values, arc_values = prepare_rontoplot_data(hpo_stats, Cohort.ont['hpo'], "HP:0000118")
+rontoplot_table_format = [["colors", "sizes", "radius_values", "arc_values"]]
+rontoplot_table_format = rontoplot_table_format + [[colors[i], sizes[i], radius_values[i], arc_values[i]] for i in range(len(colors))]
+
 container = {
   'temp_folder' : temp_folder,
   # 'top_clust_phen' : len(top_clust_phen),
@@ -187,7 +191,8 @@ container = {
   'parents_per_term': [ list(p) for p in zip(profile_sizes, parental_hpos_per_profile) ],
   'dummy_cluster_chr_data' : dummy_cluster_chr_data,
   'dummy_ic_data' : format_cluster_ic_data(all_ics, prof_lengths, opts['clusters2graph']),
-  'chr_sizes': chr_sizes
+  'chr_sizes': chr_sizes,
+  'rontoplot_table_format': rontoplot_table_format
 }
 
 clust_info = []

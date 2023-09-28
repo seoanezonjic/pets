@@ -9,6 +9,70 @@ from py_report_html import Py_report_html
 from pets.cohort import Cohort
 from pets.parsers.cohort_parser import Cohort_Parser
 
+def prepare_rontoplot_data(hpo_stats, ontology, root_node):
+  level_terms = ontology.get_ontology_levels()
+
+  hpo_stats_dict_untraslated = dict(hpo_stats)
+  hpo_stats_dict = {ontology.translate_name(hpo): value for hpo, value in hpo_stats_dict_untraslated.items()}
+
+  hps_to_filter_out = set()
+  del level_terms[1] 
+  for term in level_terms[2]:
+    if term != root_node:
+      hps_to_filter_out.add(term)
+      hps_to_filter_out.update(ontology.get_descendants(term))
+  
+  cleaned_level_terms = {}
+  for level, terms in level_terms.items():
+    cleaned_level_terms[level - 2] = [term for term in terms if term not in hps_to_filter_out]
+  
+  level_number_of_terms = {level: len(terms) for level, terms in cleaned_level_terms.items()}
+  level_linspace = {level: np.linspace(0, 2*np.pi, n_terms) for level, n_terms in level_number_of_terms.items()}
+  level_current_index = {level: 0 for level in level_linspace.keys()}
+
+  
+  visited_terms = set(root_node)
+  terms_to_visit = [] + [term for term in ontology.get_direct_descendants(root_node) if term not in hps_to_filter_out]
+  colors = [] + ["grey"]
+  sizes = [] + [1]
+  radius_values = [] + [0]
+  arc_values = [] + [0]
+  if hpo_stats_dict.get(root_node) != None:
+    colors.append("blue")
+    sizes.append(1 + hpo_stats_dict[root_node])
+    radius_values.append(0.3)
+    arc_values.append(0)
+
+  while len(terms_to_visit) > 0:
+    term = terms_to_visit.pop(0)
+    if term in visited_terms: continue
+    visited_terms.add(term)
+    
+    childs = ontology.get_direct_descendants(term)
+    if childs != None and len(childs) > 0: 
+      terms_to_visit = [term for term in childs if term not in hps_to_filter_out] + terms_to_visit
+
+    hp_level = ontology.get_term_level(term) - 2
+    current_level_idx = level_current_index[hp_level]
+    current_level_arc_array = level_linspace[hp_level]
+    arc_hp_ont = float(current_level_arc_array[current_level_idx])
+    
+    colors.append("grey")
+    sizes.append(1)
+    radius_values.append(hp_level)
+    arc_values.append(arc_hp_ont)
+
+    if hpo_stats_dict.get(term) != None:
+      colors.append("blue")
+      sizes.append(1 + hpo_stats_dict[term])
+      radius_values.append(hp_level + 0.3)
+      arc_values.append(arc_hp_ont)
+
+    level_current_index[hp_level] += 1
+
+  return [colors, sizes, radius_values, arc_values]
+
+
 
 def system_call(code_folder, script, args_string):
   cmd = f"{os.path.join(code_folder, script)} {args_string}"

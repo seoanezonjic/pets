@@ -25,6 +25,16 @@
 		for ax, chrm in zip(g.axes.flat, chromosomes_order):
 				ax.axvline(x=chromosome_lengths[chrm], color='k', linestyle='-', linewidth=1)
 		return g
+
+	def draw_rontoplot(data, plotter_list):
+		fig = plotter_list['plt'].figure(figsize=(10,10))
+		ax = fig.add_subplot(projection='polar')
+		ax.grid(False)
+		ax.scatter(data["arc_values"], data["radius_values"], s=data["sizes"], c=data["colors"], alpha=0.75)
+		#ax.tick_params(axis='y', colors='white')
+		#ax.set_yticklabels([])
+		ax.set_theta_zero_location('N')
+		ax.set_theta_direction(-1)
 %>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
@@ -66,6 +76,7 @@
 		<% plot = os.path.join(plotter.hash_vars["temp_folder"],'hpo_freq_colour.png') %>
 			% if os.path.exists(plot):
 				${plotter.embed_img(plot, 'width="600" height="600"') }
+				${plotter.static_plot_main(id="rontoplot_table_format",header=True, row_names=False, var_attr=[0], height=600, width=600, plotting_function = draw_rontoplot)}
 			% else:
 				<p> Invalid file specified. </p>
 			% endif
