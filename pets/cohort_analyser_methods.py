@@ -1,6 +1,7 @@
 import os, sys
 import numpy as np
 import re
+import pylab
 from collections import defaultdict
 
 from py_exp_calc import exp_calc
@@ -8,67 +9,55 @@ from py_report_html import Py_report_html
 from pets.cohort import Cohort
 from pets.parsers.cohort_parser import Cohort_Parser
 
-def prepare_rontoplot_data(hpo_stats, ontology, root_node):
+def get_color_palette(num):
+  cm = pylab.get_cmap('gist_rainbow')
+  colors = []
+  for i in range(num):
+    color = cm(1.*i/num)  # color will now be an RGBA tuple
+    colors.append(color)
+  return colors
+
+def get_arc_degree_and_radius_values(term, ontology, level_linspace, level_current_index):
+  hp_level = ontology.get_term_level(term) - 2
+  current_level_idx = level_current_index[hp_level]
+  current_level_arc_array = level_linspace[hp_level]
+  arc_hp_ont = float(current_level_arc_array[current_level_idx])
+  
+  level_current_index[hp_level] += 1
+  return arc_hp_ont, hp_level
+
+def append_values_to_arrays(arrays, values):
+  for idx, value in enumerate(values):
+    arrays[idx].append(value)
+
+def prepare_rontoplot_data(hpo_stats_dict, ontology, root_node, reference_node):
   level_terms = ontology.get_ontology_levels()
-
-  hpo_stats_dict_untraslated = dict(hpo_stats)
-  hpo_stats_dict = {ontology.translate_name(hpo): value for hpo, value in hpo_stats_dict_untraslated.items()}
-
   hps_to_filter_out = set()
   del level_terms[1] 
   for term in level_terms[2]:
-    if term != root_node:
-      hps_to_filter_out.add(term)
-      hps_to_filter_out.update(ontology.get_descendants(term))
-  
-  cleaned_level_terms = {}
-  for level, terms in level_terms.items():
-    cleaned_level_terms[level - 2] = [term for term in terms if term not in hps_to_filter_out]
-  
-  level_number_of_terms = {level: len(terms) for level, terms in cleaned_level_terms.items()}
-  level_linspace = {level: np.linspace(0, 2*np.pi, n_terms) for level, n_terms in level_number_of_terms.items()}
+    if term != root_node: hps_to_filter_out.update(ontology.get_descendants(term)+[term])
+
+  cleaned_level_terms = {(level - 2): [term for term in terms if term not in hps_to_filter_out] for level, terms in level_terms.items()}
+  level_linspace = {level: np.linspace(0, 2*np.pi, len(terms)) for level, terms in cleaned_level_terms.items()}
   level_current_index = {level: 0 for level in level_linspace.keys()}
-
-  
   visited_terms = set(root_node)
-  terms_to_visit = [] + [term for term in ontology.get_direct_descendants(root_node) if term not in hps_to_filter_out]
-  colors = [] + ["grey"]
-  sizes = [] + [1]
-  radius_values = [] + [0]
-  arc_values = [] + [0]
-  if hpo_stats_dict.get(root_node) != None:
-    colors.append("blue")
-    sizes.append(1 + hpo_stats_dict[root_node])
-    radius_values.append(0.3)
-    arc_values.append(0)
-
+  terms_to_visit = [term for term in ontology.get_direct_descendants(root_node) if term not in hps_to_filter_out]
+  
+  color_palette = get_color_palette(len([ term for term in ontology.get_direct_descendants(reference_node) if term not in hps_to_filter_out]))
+  top_parental_colors = {term: color_palette.pop() for term in ontology.get_direct_descendants(reference_node) if term not in hps_to_filter_out}
+  grey = (128.0/256, 128.0/256 , 128.0/256, 1.0)
+  colors, sizes, radius_values, arc_values = [grey], [1], [0], [0]
   while len(terms_to_visit) > 0:
     term = terms_to_visit.pop(0)
     if term in visited_terms: continue
-    visited_terms.add(term)
-    
+    visited_terms.add(term)    
     childs = ontology.get_direct_descendants(term)
-    if childs != None and len(childs) > 0: 
-      terms_to_visit = [term for term in childs if term not in hps_to_filter_out] + terms_to_visit
+    if childs != None and len(childs) > 0: terms_to_visit = [term for term in childs if term not in hps_to_filter_out] + terms_to_visit
 
-    hp_level = ontology.get_term_level(term) - 2
-    current_level_idx = level_current_index[hp_level]
-    current_level_arc_array = level_linspace[hp_level]
-    arc_hp_ont = float(current_level_arc_array[current_level_idx])
-    
-    colors.append("grey")
-    sizes.append(1)
-    radius_values.append(hp_level)
-    arc_values.append(arc_hp_ont)
-
-    if hpo_stats_dict.get(term) != None:
-      colors.append("blue")
-      sizes.append(1 + hpo_stats_dict[term])
-      radius_values.append(hp_level + 0.3)
-      arc_values.append(arc_hp_ont)
-
-    level_current_index[hp_level] += 1
-
+    arc_hp_ont, hp_level = get_arc_degree_and_radius_values(term, ontology, level_linspace, level_current_index)
+    if term in top_parental_colors.keys(): current_color = top_parental_colors[term]
+    append_values_to_arrays([colors, sizes, radius_values, arc_values], [grey, 1, hp_level, arc_hp_ont])
+    if hpo_stats_dict.get(term) != None: append_values_to_arrays([colors, sizes, radius_values, arc_values], [current_color, 1 + hpo_stats_dict[term], hp_level + 0.3, arc_hp_ont])
   return [colors, sizes, radius_values, arc_values]
 
 def get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos):

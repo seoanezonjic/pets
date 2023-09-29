@@ -3,6 +3,8 @@
 	import pylab
 	import pandas as pd
 	import matplotlib.pyplot as plt
+	import warnings
+	warnings.simplefilter(action='ignore', category=FutureWarning)
 
 	def get_color_palette(num):
 		cm = pylab.get_cmap('gist_rainbow')
@@ -26,15 +28,34 @@
 				ax.axvline(x=chromosome_lengths[chrm], color='k', linestyle='-', linewidth=1)
 		return g
 
+	plotter.hash_vars["rontoplot_df"] = pd.DataFrame(plotter.hash_vars["rontoplot_table_format"][1:], columns=plotter.hash_vars["rontoplot_table_format"][0])
 	def draw_rontoplot(data, plotter_list):
-		fig = plotter_list['plt'].figure(figsize=(10,10))
+		fig = plotter_list['plt'].figure(figsize=(12,12))
 		ax = fig.add_subplot(projection='polar')
-		ax.grid(False)
-		ax.scatter(data["arc_values"], data["radius_values"], s=data["sizes"], c=data["colors"], alpha=0.75)
-		#ax.tick_params(axis='y', colors='white')
-		#ax.set_yticklabels([])
+		#color_legend = {"grey": "ontology", "blue": "cohort"}
+		#labels = [color_legend[value] for value in data["colors"]]
+		color_legend = {(128.0/256, 128.0/256 , 128.0/256, 1.0): "Ontology", (1.0, 0.0, 0.984441602728048, 1.0): 'Abnormality of the genitourinary system', (0.7811167945439048, 0.0, 1.0, 1.0): 'Abnormality of head or neck', (0.546675191815857, 0.0, 1.0, 1.0): 'Abnormality of the eye', (0.31223358908780924, 0.0, 1.0, 1.0): 'Abnormality of the ear', (0.07779198635976144, 0.0, 1.0, 1.0): 'Abnormality of the nervous system', (0.0, 0.15664961636828623, 1.0, 1.0): 'Abnormality of the breast', (0.0, 0.39109121909633393, 1.0, 1.0): 'Abnormality of the endocrine system', (0.0, 0.6468456947996586, 1.0, 1.0): 'Abnormality of prenatal development or birth', (0.0, 0.8812872975277063, 1.0, 1.0): 'Growth abnormality', (0.0, 1.0, 0.8855154965211895, 1.0): 'Abnormality of the integument', (0.0, 1.0, 0.6535947712418304, 1.0): 'Abnormality of the voice', (0.0, 1.0, 0.4216740459624709, 1.0): 'Abnormality of the cardiovascular system', (0.0, 1.0, 0.18975332068311204, 1.0): 'Abnormality of blood and blood-forming tissues', (0.04239533651298355, 1.0, 0.0, 1.0): 'Abnormality of metabolism/homeostasis', (0.27556968733439324, 1.0, 0.0, 1.0): 'Abnormality of the respiratory system', (0.5299417064122947, 1.0, 0.0, 1.0): 'Neoplasm', (0.7631160572337046, 1.0, 0.0, 1.0): 'Abnormality of the immune system', (0.9962904080551138, 1.0, 0.0, 1.0): 'Abnormality of the digestive system', (1.0, 0.7705352411234765, 0.0, 1.0): 'Constitutional symptom', (1.0, 0.5373608903020667, 0.0, 1.0): 'Abnormal cellular phenotype', (1.0, 0.30418653948065716, 0.0, 1.0): 'Abnormality of the musculoskeletal system', (1.0, 0.0710121886592475, 0.0, 1.0): 'Abnormality of limbs', (1.0, 0.0, 0.16, 1.0): 'Abnormality of the thoracic cavity'}
+		
+		for color in data["colors"].unique():
+			d = data[data["colors"] == color]
+			scatter = ax.scatter(d["arc_values"], d["radius_values"], s=d["sizes"], color=color, label=color_legend[color])
+		#scatter = ax.scatter(data["arc_values"], data["radius_values"], s=data["sizes"], c=data["colors"], alpha=0.75, label=labels)
+		
+		# Legend for colors
+		legend1 = ax.legend(loc="upper right", fontsize="7")
+		ax.add_artist(legend1)
+		handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
+		legend2 = ax.legend(handles, labels, loc="lower right", title="Frequency", fontsize="7")
+		
+		# Other customizations
+		ax.set_facecolor("white")
 		ax.set_theta_zero_location('N')
 		ax.set_theta_direction(-1)
+		ax.tick_params(axis='y', colors='white')
+		ax.grid(False)
+		ax.set_xticklabels([])
+		ax.set_yticklabels([])
+
 %>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
@@ -73,7 +94,7 @@
 
 	<p> HPOs frequency distribution. Colour based on the HPO frequency.</p>
 	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;">
-		${plotter.static_plot_main(id="rontoplot_table_format",header=True, row_names=False, var_attr=[0], height=600, width=600, plotting_function = draw_rontoplot)}
+		${plotter.static_plot_main(id="rontoplot_df", raw=True, header=True, row_names=False, var_attr=[0], height=800, width=800, plotting_function = draw_rontoplot)}
 	</div>
 </div>
 
