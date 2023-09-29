@@ -1,6 +1,5 @@
 import os, sys
 import numpy as np
-import time
 import re
 from collections import defaultdict
 
@@ -71,16 +70,6 @@ def prepare_rontoplot_data(hpo_stats, ontology, root_node):
     level_current_index[hp_level] += 1
 
   return [colors, sizes, radius_values, arc_values]
-
-
-
-def system_call(code_folder, script, args_string):
-  cmd = f"{os.path.join(code_folder, script)} {args_string}"
-  print(f"==> {cmd}")
-  start = time.time()
-  os.system(cmd)
-  print(f"Execution time: {time.time() - start}")
-
 
 def get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos):
   stats = [
@@ -238,7 +227,7 @@ def get_similarities4boxplot(raw_cls, similarity_matrix):
       sim_table.extend([ [s, 'cls'] for s in cl_similarities] )
     return sim_table
 
-def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path, code_folder):
+def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path):
   template = open(template_path).read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
   clustering_data = {}

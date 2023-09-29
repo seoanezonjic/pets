@@ -73,13 +73,7 @@
 
 	<p> HPOs frequency distribution. Colour based on the HPO frequency.</p>
 	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;">
-		<% plot = os.path.join(plotter.hash_vars["temp_folder"],'hpo_freq_colour.png') %>
-			% if os.path.exists(plot):
-				${plotter.embed_img(plot, 'width="600" height="600"') }
-				${plotter.static_plot_main(id="rontoplot_table_format",header=True, row_names=False, var_attr=[0], height=600, width=600, plotting_function = draw_rontoplot)}
-			% else:
-				<p> Invalid file specified. </p>
-			% endif
+		${plotter.static_plot_main(id="rontoplot_table_format",header=True, row_names=False, var_attr=[0], height=600, width=600, plotting_function = draw_rontoplot)}
 	</div>
 </div>
 

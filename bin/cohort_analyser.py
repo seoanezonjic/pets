@@ -69,14 +69,13 @@ elif opts['genome_assembly'] == 'hg18':
   CHR_SIZE = os.path.join(EXTERNAL_DATA, 'chromosome_sizes_hg18.txt')
 else:
   raise Exception('Wrong human genome assembly. Please choose between hg19, hg18 or hg38.')
-
 chr_sizes = dict(map(lambda sublist: [sublist[0], int(sublist[1])], [line.strip().split("\t") for line in open(CHR_SIZE).readlines()]))
+
 output_folder = os.path.dirname(opts['output_file'])
 detailed_profile_evaluation_file = os.path.join(output_folder, 'detailed_hpo_profile_evaluation.csv')
 rejected_file = os.path.join(output_folder, 'rejected_records.txt')
 temp_folder = os.path.join(output_folder, 'temp')
 hpo_frequency_file = os.path.join(temp_folder, 'hpo_cohort_frequency.txt')
-ronto_file = os.path.join(temp_folder, 'hpo_freq_colour')
 
 if not os.path.exists(temp_folder): os.mkdir(temp_folder)
 
@@ -150,11 +149,6 @@ if not opts.get('chromosome_col') == None:
 
     all_sor_length = get_sor_length_distribution(raw_sor_coverage)  
 
-#--------------------------------------------
-# Write files and generate plots for report 
-#--------------------------------------------
-if not os.path.exists(ronto_file + '.png'): system_call(EXTERNAL_CODE, 'ronto_plotter.R', f"-i {hpo_frequency_file} -o {ronto_file} --root_node {opts['root_node']} -O {re.sub('.json','.obo', hpo_file)}") ###Cohort frequency calculation
-
 dummy_cluster_chr_data = []
 if not opts.get('chromosome_col') == None:
   dummy_cluster_chr_data = get_cluster_chromosome_data(clust_by_chr, opts['clusters2graph'])
@@ -164,7 +158,7 @@ if not opts.get('chromosome_col') == None:
 #----------------------------------
 reference_profiles = None
 if opts.get('reference_profiles') != None: reference_profiles = load_profiles(opts['reference_profiles'], Cohort.get_ontology('hpo'))
-clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, os.path.join(REPORT_FOLDER, 'cluster_report.txt'), EXTERNAL_CODE)
+clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, os.path.join(REPORT_FOLDER, 'cluster_report.txt'))
 
 #----------------------------------
 # GENERAL COHORT ANALYZER REPORT
