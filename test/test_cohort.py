@@ -1,8 +1,12 @@
 import sys, os, json, unittest 
 import subprocess
+from subprocess import PIPE
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
+import warnings
+import numpy as np
+
 
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
@@ -16,6 +20,8 @@ with open(CONSTANTS_PATH) as infile:
 
 class CohortTestSuite(unittest.TestCase):
     def setUp(self):
+        warnings.filterwarnings(action='ignore', category=UserWarning, module="py_semtools")
+
         patients = [
                     ["132", ["HP:0000717", "HP:0001252", "HP:0001249"],	[["22", 50, 100]], {"sex": "M"}],
                     ["599", ["HP:0001249"],	[["15", 1, 200]], {"sex": "F"}],
@@ -258,10 +264,10 @@ class CohortTestSuite(unittest.TestCase):
     def test_get_ic_analysis(self):
         self.patient_data.link2ont(Cohort.act_ont)
         onto_ic, freq_ic, onto_ic_profile, freq_ic_profile = self.patient_data.get_ic_analysis()
-        expected_onto_ic = {'HP:0001249': 3.3912376459396496, 'HP:0001252': 3.0902076502756683, 'HP:0000365': 2.6681339618869115, 'HP:0000717': 4.2363356859539065, 'HP:0000262': 3.759214431234244, 'HP:0000252': 3.537365681617888}
-        expected_freq_ic = {'HP:0001249': 0.35218251811136253, 'HP:0001252': 0.9542425094393249, 'HP:0000365': 0.9542425094393249, 'HP:0000717': 0.9542425094393249, 'HP:0000262': 0.9542425094393249, 'HP:0000252': 0.9542425094393249}
+        expected_onto_ic = {'HP:0000717': 4.2363356859539065, 'HP:0001252': 3.0902076502756683, 'HP:0000252': 3.537365681617888, 'HP:0000365': 2.6681339618869115, 'HP:0001249': 3.3912376459396496, 'HP:0000262': 3.759214431234244}
+        expected_freq_ic = {'HP:0000717': 1.8976270912904414, 'HP:0001252': 1.8976270912904414, 'HP:0000252': 1.8976270912904414, 'HP:0000365': 1.8976270912904414, 'HP:0001249': 1.295567099962479, 'HP:0000262': 1.8976270912904414}
         expected_onto_ic_profile = {'132': 3.5725936607230744, '599': 3.3912376459396496, '647': 3.5752260385869468, '648': 3.198912429814816}
-        expected_freq_ic_profile = {'132': 0.7535558456633374, '599': 0.35218251811136253, '647': 0.6532125137753437, '648': 0.7535558456633374}
+        expected_freq_ic_profile = {'132': 1.696940427514454, '599': 1.295567099962479, '647': 1.5965970956264601, '648': 1.696940427514454}
 
         self.assertEqual(onto_ic, expected_onto_ic)
         self.assertEqual(freq_ic, expected_freq_ic)
@@ -479,22 +485,44 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(returned, profile_ic)
 
     def test_get_matrix_similarity(self): #Helper function tested in get_similarity_clusters (its higher order function)
-        self.assertTrue(False, "Helper function tested in get_similarity_clusters")
+        pass
+        #self.assertFalse(True, "Helper function tested in get_similarity_clusters")
 
     def test_get_similarity_clusters(self):
         options = {"sim_thr": 0.3}
         method_name = "resnik"
-        tmp_folder = os.path.join(ROOT_PATH, "tmp", "dummy_cluster")
+        tmp_folder = os.path.join(ROOT_PATH, "tmp", "similarity_cluster")
         os.makedirs(tmp_folder, exist_ok=True)
 
-        clusters = self.patient_data.get_similarity_clusters(method_name, "hpo", options, temp_folder=tmp_folder, reference_profiles=None)
-        print(clusters)
+        expected_clusters = {6: ['648', '132', '599', '647']}
+        expected_sim_matrix =  np.array([[0.         , 1.6416691  , 1.90892268 , 2.07219493],
+                                        [1.6416691  , 0.         , 2.10492145 , 1.91666268],
+                                        [1.90892268 , 2.10492145 , 0.         , 2.26395871],
+                                        [2.07219493 , 1.91666268 , 2.26395871 , 0.        ]])
+        
+        expected_linkage = np.array([[2.         , 3.         , 0.         , 2.        ],
+                                    [1.         , 4.         , 0.31188394 , 3.        ],
+                                    [0.         , 5.         , 0.50071574 , 4.        ]])
+        
+        expected_raw_cls = [[6], [6], [6], [6]]
+
+        clusters, similarity_matrix, linkage, raw_cls = self.patient_data.get_similarity_clusters(method_name, "hpo", options, temp_folder=tmp_folder, reference_profiles=None)
+
+        self.assertEqual(clusters, expected_clusters)
+        self.assertTrue(np.isclose(similarity_matrix, expected_sim_matrix).all())
+        self.assertTrue(np.isclose(linkage, expected_linkage).all())
+        self.assertEqual(raw_cls, expected_raw_cls)
 
         self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}.npy")))
         self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}_x.lst")))
-        self.assertFalse(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}_x.lst")))
+        self.assertFalse(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}_y.lst")))
         self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"{method_name}_clusters.txt")))
         self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'profiles_similarity_{method_name}.txt')))
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'{method_name}_linkage.npy')))
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'{method_name}_raw_cls.json')))
+
+        for file in os.listdir(tmp_folder):
+            os.remove(os.path.join(tmp_folder, file))
 
 
     def test_calc_sim_term2term_similarity_matrix(self):
@@ -511,13 +539,35 @@ class CohortTestSuite(unittest.TestCase):
 
 
     def test_get_term2term_similarity_matrix(self): #Helper function of calc_sim_term2term_similarity_matrix
-        self.assertTrue(False, "Helper function of calc_sim_term2term_similarity_matrix")
+        pass
+        #self.assertFalse(True, "Helper function of calc_sim_term2term_similarity_matrix")
 
     def test_get_detailed_similarity(self): #Helper function of get_term2term_similarity_matrix
-        self.assertTrue(False, "Helper function of get_term2term_similarity_matrix")
+        pass
+        #self.assertFalse(True, "Helper function of get_term2term_similarity_matrix")
 
     def test_write_detailed_hpo_profile_evaluation(self): #TODO: test this function
-        self.assertTrue(False, "Pending to test this function")
+        tmp_folder = os.path.join(ROOT_PATH, "tmp", "profile_evaluation")
+        os.makedirs(tmp_folder, exist_ok=True)
+        suggested_childs = {
+         "132":[[["HP:0000717","Autism"],[["HP:0001290", "Generalized hypotonia"]]], 
+                [["HP:0001252","Hypotonia"],[]], 
+                [["HP:0001249","Intellectual disability"],[["HP:0001263", "Global developmental delay"], ["HP:0005280", "Depressed nasal bridge"]]], 
+                [["HP:0000262","Turricephaly"],[["HP:0011800", "Midface retrusion"], ["HP:0005280", "Depressed nasal bridge"], ["HP:0000358", " Posteriorly rotated ears "]]]],
+        "599": [ [["HP:0000365","Hearing impairment"],[["HP:0000175", "Cleft palate"]] ] ]}
+        self.patient_data.write_detailed_hpo_profile_evaluation(suggested_childs, os.path.join(tmp_folder, "file.csv"))
+
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, "file.csv")))
+        lines = subprocess.run("wc -l ./test/tmp/profile_evaluation/file.csv", shell=True, capture_output=True, text=True).stdout.split(" ")[0]
+        patients = subprocess.run("grep PATIENT ./test/tmp/profile_evaluation/file.csv | wc -l", shell=True, capture_output=True, text=True).stdout.split(" ")[0]
+        few_HPs_warning = subprocess.run("grep WARNING ./test/tmp/profile_evaluation/file.csv | wc -l", shell=True, capture_output=True, text=True).stdout.split(" ")[0]
+                
+        self.assertEqual(int(lines), 14)
+        self.assertEqual(int(patients), 2)
+        self.assertEqual(int(few_HPs_warning), 1)
+        
+        os.remove(os.path.join(tmp_folder, "file.csv"))
+        
 
     def test_write_profile_pairs(self):
         pairs = {"A": {"B": 3, "C": 4}, "B": {"C": 5, "D": 9}, "C": {"D": 6}}

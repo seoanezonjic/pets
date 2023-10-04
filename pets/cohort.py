@@ -5,6 +5,7 @@ import numpy as np
 from collections import defaultdict
 import csv
 from py_exp_calc import exp_calc
+from py_exp_calc.exp_calc import intersection
 from py_semtools.ontology import Ontology
 from pets.genomic_features import Genomic_Feature
 
@@ -79,7 +80,7 @@ class Cohort():
         for id, regs in self.vars.items():
             if regs.len() > 0: ids_with_vars.append(id)
 
-        full_ids = self.intersection(ids_with_vars, ids_with_terms)
+        full_ids = intersection(ids_with_vars, ids_with_terms)
 
         self.profiles = dict( filter( 
             lambda id_prof_pair: id_prof_pair[0] in full_ids, 
@@ -505,7 +506,7 @@ class Cohort():
         with open(detailed_profile_evaluation_file, 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile, delimiter="\t", quotechar='"', quoting=csv.QUOTE_MINIMAL)
             for pat_id, suggestions in suggested_childs.items():
-                warning = None
+                warning = ""
                 if len(suggestions) < 4: warning = 'WARNING: Very few phenotypes' 
                 csvwriter.writerow([f"PATIENT {pat_id}", f"{warning}"])
                 csvwriter.writerow(["CURRENT PHENOTYPES", "PUTATIVE MORE SPECIFIC PHENOTYPES"])
@@ -529,7 +530,3 @@ class Cohort():
             for pairsA, pairsB_and_values in similarity_pairs.items():
                 for pairsB, values in pairsB_and_values.items():
                     f.write(f"{pairsA}\t{pairsB}\t{values}\n")
-
-    #Supplementary functions
-    def intersection(self, arr1, arr2):
-        return [item for item in arr1 if item in arr2] 
