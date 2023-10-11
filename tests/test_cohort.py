@@ -11,7 +11,7 @@ import numpy as np
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
 PATIENTS_FILE = os.path.abspath(os.path.join(DATA_TEST_PATH, '100_test_dataset_with_sex.txt'))
-CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'pets', 'constants.py'))
+CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'src', 'pets', 'constants.py'))
 
 with open(CONSTANTS_PATH) as infile:
     exec(infile.read())

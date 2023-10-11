@@ -1,44 +1,21 @@
-# Always prefer setuptools over distutils
-from setuptools import setup, find_packages
+"""
+    Setup file for pets.
+    Use setup.cfg to configure your project.
 
-# To use a consistent encoding
-from codecs import open
-from os import path
+    This file was generated with PyScaffold 4.5.
+    PyScaffold helps you to put up the scaffold of your new Python project.
+    Learn more under: https://pyscaffold.org/
+"""
+from setuptools import setup
 
-# The directory containing this file
-HERE = path.abspath(path.dirname(__file__))
-
-# Get the long description from the README file
-with open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
-
-# This call to setup() does all the work
-setup(
-    name="PETS",
-    version="0.1.0",
-    description="Library to manage phenotype and genome data from patients with genetic disorders",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://PETS.readthedocs.io/",
-    author="Pedro Seoane",
-    author_email="example@email.com",
-    license="MIT",
-    classifiers=[
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Operating System :: OS Independent"
-    ],
-    packages=["pets"],
-    include_package_data=True,
-    #scripts=['bin/netanalyzer.py', 'bin/ranker.py', 'bin/randomize_clustering.py', 'bin/randomize_network.py', 'bin/text2binary_matrix.py', 'bin/integrate_kernels.py'],
-    #install_requires=["NetworkX", "numpy", "scipy", "statsmodels", "graphviz", "mako", "matplotlib", "cdlib"]
-
-)
+if __name__ == "__main__":
+    try:
+        setup(use_scm_version={"version_scheme": "no-guess-dev"})
+    except:  # noqa
+        print(
+            "\n\nAn error occurred while building the project, "
+            "please ensure you have the most updated version of setuptools, "
+            "setuptools_scm and wheel with:\n"
+            "   pip install -U setuptools setuptools_scm wheel\n\n"
+        )
+        raise
