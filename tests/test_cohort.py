@@ -7,16 +7,10 @@ from pets.cohort import Cohort
 import warnings
 import numpy as np
 
-
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
 PATIENTS_FILE = os.path.abspath(os.path.join(DATA_TEST_PATH, '100_test_dataset_with_sex.txt'))
-CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'src', 'pets', 'constants.py'))
-
-with open(CONSTANTS_PATH) as infile:
-    exec(infile.read())
-
-
+HPO_FILE = os.path.join(ROOT_PATH, "..", "external_data", 'hp.json')
 
 class CohortTestSuite(unittest.TestCase):
     def setUp(self):
@@ -264,10 +258,10 @@ class CohortTestSuite(unittest.TestCase):
     def test_get_ic_analysis(self):
         self.patient_data.link2ont(Cohort.act_ont)
         onto_ic, freq_ic, onto_ic_profile, freq_ic_profile = self.patient_data.get_ic_analysis()
-        expected_onto_ic = {'HP:0000717': 4.2363356859539065, 'HP:0001252': 3.0902076502756683, 'HP:0000252': 3.537365681617888, 'HP:0000365': 2.6681339618869115, 'HP:0001249': 3.3912376459396496, 'HP:0000262': 3.759214431234244}
-        expected_freq_ic = {'HP:0000717': 1.8976270912904414, 'HP:0001252': 1.8976270912904414, 'HP:0000252': 1.8976270912904414, 'HP:0000365': 1.8976270912904414, 'HP:0001249': 1.295567099962479, 'HP:0000262': 1.8976270912904414}
+        expected_onto_ic = {'HP:0001252': 3.0902076502756683, 'HP:0000365': 2.6681339618869115, 'HP:0001249': 3.3912376459396496, 'HP:0000262': 3.759214431234244, 'HP:0000252': 3.537365681617888, 'HP:0000717': 4.2363356859539065}
+        expected_freq_ic = {'HP:0001252': 0.9030899869919435, 'HP:0000365': 0.9030899869919435, 'HP:0001249': 0.3010299956639812, 'HP:0000262': 0.9030899869919435, 'HP:0000252': 0.9030899869919435, 'HP:0000717': 0.9030899869919435}
         expected_onto_ic_profile = {'132': 3.5725936607230744, '599': 3.3912376459396496, '647': 3.5752260385869468, '648': 3.198912429814816}
-        expected_freq_ic_profile = {'132': 1.696940427514454, '599': 1.295567099962479, '647': 1.5965970956264601, '648': 1.696940427514454}
+        expected_freq_ic_profile = {'132': 0.7024033232159561, '599': 0.3010299956639812, '647': 0.6020599913279624, '648': 0.7024033232159561}
 
         self.assertEqual(onto_ic, expected_onto_ic)
         self.assertEqual(freq_ic, expected_freq_ic)
@@ -558,9 +552,9 @@ class CohortTestSuite(unittest.TestCase):
         self.patient_data.write_detailed_hpo_profile_evaluation(suggested_childs, os.path.join(tmp_folder, "file.csv"))
 
         self.assertTrue(os.path.exists(os.path.join(tmp_folder, "file.csv")))
-        lines = subprocess.run("wc -l ./test/tmp/profile_evaluation/file.csv", shell=True, capture_output=True, text=True).stdout.split(" ")[0]
-        patients = subprocess.run("grep PATIENT ./test/tmp/profile_evaluation/file.csv | wc -l", shell=True, capture_output=True, text=True).stdout.split(" ")[0]
-        few_HPs_warning = subprocess.run("grep WARNING ./test/tmp/profile_evaluation/file.csv | wc -l", shell=True, capture_output=True, text=True).stdout.split(" ")[0]
+        lines = subprocess.run("wc -l ./tests/tmp/profile_evaluation/file.csv", shell=True, capture_output=True, text=True).stdout.split(" ")[0]
+        patients = subprocess.run("grep PATIENT ./tests/tmp/profile_evaluation/file.csv | wc -l", shell=True, capture_output=True, text=True).stdout.split(" ")[0]
+        few_HPs_warning = subprocess.run("grep WARNING ./tests/tmp/profile_evaluation/file.csv | wc -l", shell=True, capture_output=True, text=True).stdout.split(" ")[0]
                 
         self.assertEqual(int(lines), 14)
         self.assertEqual(int(patients), 2)

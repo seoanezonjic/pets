@@ -1,0 +1,6 @@
+# patient_id	chr	start	end	mean_ratio	inheritance	pathogenicity	contribution	phenotypes	sex
+132	22	50	100	-1	Unknown	Unknown	Unknown	Autism|Muscular hypotonia|Intellectual disability|Neurodevelopmental abnormality	F
+599	15	1	200	-0.67	Unknown	Unknown	Unknown	Intellectual disability|Neurodevelopmental abnormality	F
+647	22	500	1000	0.51	Unknown	Unknown	Unknown	Mental retardation|Turricephaly	F
+648	22	52	102	0.42	Unknown	Unknown	Unknown	Hearing impairment|Microcephaly|Intellectual disability	F
+648	22	10000	20000	-0.8	Unknown	Unknown	Unknown	Hearing impairment|Microcephaly|Intellectual disability	M

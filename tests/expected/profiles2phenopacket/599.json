@@ -1,0 +1,30 @@
+{
+    "metaData": {
+        "createdBy": "PETS",
+        "resources": [
+            {
+                "id": "hp",
+                "name": "human phenotype ontology",
+                "namespacePrefix": "HP",
+                "url": "http://purl.obolibrary.org/obo/hp.owl",
+                "iriPrefix": "http://purl.obolibrary.org/obo/HP_"
+            }
+        ]
+    },
+    "subject": {
+        "id": "599",
+        "sex": "F"
+    },
+    "phenotypicFeatures": [
+        {
+            "type": {
+                "id": "HP:0001249",
+                "label": "Intellectual disability"
+            },
+            "classOfOnset": {
+                "id": "HP:0003577",
+                "label": "Congenital onset"
+            }
+        }
+    ]
+}

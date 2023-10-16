@@ -7,10 +7,8 @@ from pets.cohort import Cohort
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
 PATIENTS_FILE = os.path.abspath(os.path.join(DATA_TEST_PATH, 'cohort_toy_dataset.txt'))
-CONSTANTS_PATH = os.path.abspath(os.path.join(ROOT_PATH, '..', 'src', 'pets', 'constants.py'))
 
-with open(CONSTANTS_PATH) as infile:
-    exec(infile.read())
+HPO_FILE = os.path.join(ROOT_PATH, "..", "external_data", 'hp.json')
 
 
 
