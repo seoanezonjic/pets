@@ -1,5 +1,7 @@
 import sys, os, json, unittest 
 import subprocess
+from importlib.resources import files
+
 from subprocess import PIPE
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.cohort_parser import Cohort_Parser
@@ -11,11 +13,11 @@ import pytest
 from io import StringIO
 import json
 
+HPO_FILE = str(files('pets.external_data').joinpath('hp.json'))
+GENCODE = str(files('pets.external_data').joinpath('gencode.v43.basic.annotation.gtf.gz'))
+
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
-HPO_FILE = os.path.join(ROOT_PATH, "..", "external_data", 'hp.json')
-GENCODE = os.path.join(ROOT_PATH, "..", "external_data", 'gencode.v43.basic.annotation.gtf.gz')
-
 SCRIPT_DATA_TEST_PATH = os.path.join(ROOT_PATH, 'input_data')
 EXPECTED_PATH = os.path.join(ROOT_PATH, 'expected')
 RETURNED_PATH = os.path.join(ROOT_PATH, 'returned')

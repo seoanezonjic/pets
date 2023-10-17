@@ -3,6 +3,7 @@ import sys
 import os
 import re
 import inspect
+from importlib.resources import files
 
 import numpy as np
 from py_report_html import Py_report_html
@@ -17,13 +18,10 @@ from pets.parsers.coord_parser import Coord_Parser
 from py_exp_calc.exp_calc import invert_hash
 from py_semtools.ontology import Ontology
 
-
-ROOT_PATH=os.path.dirname(__file__)
-REPORT_FOLDER = os.path.abspath(os.path.join(ROOT_PATH, '..', '..', 'templates'))
-EXTERNAL_DATA = os.path.abspath(os.path.join(ROOT_PATH, '..', '..', 'external_data'))
-HPO_FILE = os.path.join(EXTERNAL_DATA, 'hp.json')
-MONDO_FILE = os.path.join(EXTERNAL_DATA, 'mondo.obo')
-IC_FILE = os.path.join(EXTERNAL_DATA, 'uniq_hpo_with_CI.txt')
+# https://setuptools.pypa.io/en/latest/userguide/datafiles.html
+HPO_FILE = str(files('pets.external_data').joinpath('hp.json'))
+MONDO_FILE = str(files('pets.external_data').joinpath('mondo.obo'))
+IC_FILE = str(files('pets.external_data').joinpath('uniq_hpo_with_CI.txt'))
 
 ## TYPES
 def tolist(string): return string.split(',')
@@ -152,7 +150,7 @@ def main_get_sorted_profs(opts):
     candidate_sim_matrix, candidates, candidates_ids = patient_data.get_term2term_similarity_matrix(ref_profile, similarities["ref"], clean_profiles, hpo, options["matrix_limits"][0], options["matrix_limits"][-1])
     candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
 
-    template = open(os.path.join(REPORT_FOLDER, 'similarity_matrix.txt')).read()
+    template = open(str(files('pets.templates').joinpath('similarity_matrix.txt'))).read()
     container = { "similarity_matrix": candidate_sim_matrix }
     report = Py_report_html(container, 'Similarity matrix')
     report.build(template)
@@ -308,11 +306,11 @@ def cohort_analyzer(args=None):
 def main_cohort_analyzer(options):
     opts = vars(options)
     if opts['genome_assembly'] == 'hg19' or opts['genome_assembly'] == 'hg37':
-      CHR_SIZE = os.path.join(EXTERNAL_DATA, 'chromosome_sizes_hg19.txt')
+      CHR_SIZE = str(files('pets.external_data').joinpath('chromosome_sizes_hg19.txt'))
     elif opts['genome_assembly'] == 'hg38':
-      CHR_SIZE = os.path.join(EXTERNAL_DATA, 'chromosome_sizes_hg38.txt')
+      CHR_SIZE = str(files('pets.external_data').joinpath('chromosome_sizes_hg38.txt'))
     elif opts['genome_assembly'] == 'hg18':
-      CHR_SIZE = os.path.join(EXTERNAL_DATA, 'chromosome_sizes_hg18.txt')
+      CHR_SIZE = str(files('pets.external_data').joinpath('chromosome_sizes_hg18.txt'))
     else:
       raise Exception('Wrong human genome assembly. Please choose between hg19, hg18 or hg38.')
     chr_sizes = dict(map(lambda sublist: [sublist[0], int(sublist[1])], [line.strip().split("\t") for line in open(CHR_SIZE).readlines()]))
@@ -404,7 +402,8 @@ def main_cohort_analyzer(options):
     #----------------------------------
     reference_profiles = None
     if opts.get('reference_profiles') != None: reference_profiles = load_profiles(opts['reference_profiles'], Cohort.get_ontology('hpo'))
-    clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, os.path.join(REPORT_FOLDER, 'cluster_report.txt'))
+    template = str(files('pets.templates').joinpath('cluster_report.txt'))
+    clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, template)
 
     #----------------------------------
     # GENERAL COHORT ANALYZER REPORT
@@ -452,7 +451,7 @@ def main_cohort_analyzer(options):
       container['sor_coverage'] = sor_coverage_to_plot
 
     report = Py_report_html(container)
-    report.build(open(os.path.join(REPORT_FOLDER, 'cohort_report.txt')).read())
+    report.build(open(str(files('pets.templates').joinpath('cohort_report.txt'))).read())
     report.write(opts["output_file"] + '.html')
 
 def evidence_profiler(args=None):
@@ -505,8 +504,7 @@ def main_evidence_profiler(opts):
             similarities = hpo.compare_profiles(external_profiles= evidence_profiles, sim_type= "lin", bidirectional= False)
             if len(similarities) > 0: evidences_similarity[pair] = similarities
 
-
-    template = open(os.path.join(REPORT_FOLDER, 'evidence_profile.txt')).read()
+    template = open(str(files('pets.templates').joinpath('evidence_profile.txt'))).read()
     os.makedirs(options["output_folder"], exist_ok=True)
     for profile_id, reference_prof in profiles.items():
         all_candidates = []

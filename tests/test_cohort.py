@@ -1,4 +1,5 @@
 import sys, os, json, unittest 
+from importlib.resources import files
 import subprocess
 from subprocess import PIPE
 from pets.genomic_features import Genomic_Feature
@@ -7,10 +8,12 @@ from pets.cohort import Cohort
 import warnings
 import numpy as np
 
+HPO_FILE = str(files('pets.external_data').joinpath('hp.json'))
+
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
 PATIENTS_FILE = os.path.abspath(os.path.join(DATA_TEST_PATH, '100_test_dataset_with_sex.txt'))
-HPO_FILE = os.path.join(ROOT_PATH, "..", "external_data", 'hp.json')
+
 
 class CohortTestSuite(unittest.TestCase):
     def setUp(self):

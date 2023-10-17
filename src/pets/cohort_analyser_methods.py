@@ -216,8 +216,8 @@ def get_similarities4boxplot(raw_cls, similarity_matrix):
       sim_table.extend([ [s, 'cls'] for s in cl_similarities] )
     return sim_table
 
-def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path):
-  template = open(template_path).read()
+def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path_obj):
+  template = template_path_obj.read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
   clustering_data = {}
   for method_name in options['clustering_methods']:

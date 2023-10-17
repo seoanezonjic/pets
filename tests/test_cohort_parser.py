@@ -1,4 +1,6 @@
 import sys, os, json, unittest 
+from importlib.resources import files
+
 import subprocess
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.cohort_parser import Cohort_Parser
@@ -8,7 +10,7 @@ ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
 PATIENTS_FILE = os.path.abspath(os.path.join(DATA_TEST_PATH, 'cohort_toy_dataset.txt'))
 
-HPO_FILE = os.path.join(ROOT_PATH, "..", "external_data", 'hp.json')
+HPO_FILE = files('pets.external_data').joinpath('hp.json')
 
 
 
