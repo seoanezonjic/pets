@@ -5,10 +5,9 @@ from subprocess import PIPE
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
+from pets import HPO_FILE
 import warnings
 import numpy as np
-
-HPO_FILE = str(files('pets.external_data').joinpath('hp.json'))
 
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')
@@ -501,14 +500,15 @@ class CohortTestSuite(unittest.TestCase):
                                     [1.         , 4.         , 0.31188394 , 3.        ],
                                     [0.         , 5.         , 0.50071574 , 4.        ]])
         
-        expected_raw_cls = [[6], [6], [6], [6]]
+        expected_raw_cls = np.array([[6], [6], [6], [6]])
 
+        #Testing for the first time (no files in tmp_folder, so values have to be calculated)
         clusters, similarity_matrix, linkage, raw_cls = self.patient_data.get_similarity_clusters(method_name, "hpo", options, temp_folder=tmp_folder, reference_profiles=None)
 
         self.assertEqual(clusters, expected_clusters)
         self.assertTrue(np.isclose(similarity_matrix, expected_sim_matrix).all())
         self.assertTrue(np.isclose(linkage, expected_linkage).all())
-        self.assertEqual(raw_cls, expected_raw_cls)
+        self.assertTrue((raw_cls == expected_raw_cls).all())
 
         self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}.npy")))
         self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}_x.lst")))
@@ -516,10 +516,18 @@ class CohortTestSuite(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"{method_name}_clusters.txt")))
         self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'profiles_similarity_{method_name}.txt')))
         self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'{method_name}_linkage.npy')))
-        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'{method_name}_raw_cls.json')))
+        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'{method_name}_raw_cls.npy')))
+
+        #Testing for the second time (files in tmp_folder, so values will be loaded from files instead of being calculated)
+        clusters, similarity_matrix, linkage, raw_cls = self.patient_data.get_similarity_clusters(method_name, "hpo", options, temp_folder=tmp_folder, reference_profiles=None)
+        self.assertEqual(clusters, expected_clusters)
+        self.assertTrue(np.isclose(similarity_matrix, expected_sim_matrix).all())
+        self.assertTrue(np.isclose(linkage, expected_linkage).all())
+        self.assertTrue((raw_cls == expected_raw_cls).all())
 
         for file in os.listdir(tmp_folder):
             os.remove(os.path.join(tmp_folder, file))
+
 
 
     def test_calc_sim_term2term_similarity_matrix(self):
