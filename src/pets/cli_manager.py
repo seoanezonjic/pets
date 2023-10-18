@@ -22,6 +22,8 @@ from py_semtools.ontology import Ontology
 HPO_FILE = str(files('pets.external_data').joinpath('hp.json'))
 MONDO_FILE = str(files('pets.external_data').joinpath('mondo.obo'))
 IC_FILE = str(files('pets.external_data').joinpath('uniq_hpo_with_CI.txt'))
+GENCODE = str(files('pets.external_data').joinpath('gencode.v43.basic.annotation.gtf.gz'))
+
 
 ## TYPES
 def tolist(string): return string.split(',')
@@ -54,9 +56,11 @@ def add_parser_commom_options(parser):
     parser.add_argument("-X", "--excluded_hpo", dest="excluded_hpo", default= None,
                         help="File with excluded HPO terms")
 
-#############################################
 
-#CLI Scripts and main functions
+
+###############################################
+#CLI Scripts
+###############################################
 
 def get_gen_features(args=None):
     if args == None: args = sys.argv[1:]
@@ -81,23 +85,6 @@ def get_gen_features(args=None):
                         help="Column name if header is true, otherwise 0-based position of the column with the end mutation coordinate")
     opts =  parser.parse_args(args)
     main_get_gen_features(opts)
-
-def main_get_gen_features(opts):
-    options = vars(opts)
-    regions = Coord_Parser.load(options)
-    Genomic_Feature.add_reference(
-        Reference_parser.load(
-            options["reference_file"], 
-            feature_type= options["feature_type"]
-        )
-    )
-    gene_features = regions.get_features(attr_type= options["feature_name"])
-
-    with open(options["output_file"], 'w') as f:
-        for id, feat_ids in gene_features.items():
-            for ft_id in feat_ids:
-                f.write(f"{id}\t{ft_id}\n")
-
 
 def get_sorted_profs(args=None):
     if args == None: args = sys.argv[1:]
@@ -126,39 +113,6 @@ def get_sorted_profs(args=None):
                         help="Column name if header is true, otherwise 0-based position of the column with the end mutation coordinate")
     opts =  parser.parse_args(args)
     main_get_sorted_profs(opts)
-
-def main_get_sorted_profs(opts):
-    options = vars(opts)
-    hpo_file = os.environ.get('hpo_file') if os.environ.get('hpo_file') else HPO_FILE
-    Cohort.load_ontology("hpo", hpo_file)
-    Cohort.act_ont = "hpo"
-    hpo = Cohort.get_ontology(Cohort.act_ont)
-    patient_data, _, _ = Cohort_Parser.load(options)
-    patient_data.check(hard=True)
-
-    clean_profiles = patient_data.profiles
-
-    if options.get("ref_prof"):
-      ref_profile = hpo.clean_profile_hard(options["ref_prof"])
-    else:
-      ref_profile = patient_data.get_general_profile(options["term_freq"])
-
-    hpo.load_profiles({"ref": ref_profile}, reset_stored= True)
-
-    similarities = hpo.compare_profiles(external_profiles= clean_profiles, sim_type= "lin", bidirectional= False)
-
-    candidate_sim_matrix, candidates, candidates_ids = patient_data.get_term2term_similarity_matrix(ref_profile, similarities["ref"], clean_profiles, hpo, options["matrix_limits"][0], options["matrix_limits"][-1])
-    candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
-
-    template = open(str(files('pets.templates').joinpath('similarity_matrix.txt'))).read()
-    container = { "similarity_matrix": candidate_sim_matrix }
-    report = Py_report_html(container, 'Similarity matrix')
-    report.build(template)
-    report.write(options["output_file"])
-
-    with open(options["output_file"].replace('.html','') +'.txt', 'w') as f:
-      for candidate, value in similarities["ref"].items():
-        f.write("\t".join([str(candidate), str(value)])+"\n")
 
 def paco_translator(args=None):
     if args == None: args = sys.argv[1:]
@@ -196,26 +150,6 @@ def paco_translator(args=None):
     opts =  parser.parse_args(args)
     main_paco_translator(opts)
 
-def main_paco_translator(opts):
-    options = vars(opts)
-    hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
-    Cohort.load_ontology("hpo", hpo_file, options.get("excluded_hpo"))
-    Cohort.act_ont = "hpo"
-
-    patient_data, rejected_hpos, rejected_patients = Cohort_Parser.load(options)
-
-    if options.get("clean_PACO"):
-        removed_terms, removed_profiles = patient_data.check(hard=True)
-        if options.get("removed_path") and removed_profiles != None and len(removed_profiles) > 0:
-            rejected_file = os.path.basename(options["input_file"]).split(".")[0] +'_excluded_patients'
-            file = os.path.join(options["removed_path"], rejected_file)
-            with open(file, 'w') as f:
-                for profile in removed_profiles:
-                    f.write(profile+'\n')
-
-    if options.get("n_phens"): rejected_patients_by_phen = patient_data.filter_by_term_number(options["n_phens"])
-    patient_data.save(options["output_file"], options["save_mode"], options["translate"])
-
 def profiles2phenopacket(args=None):
     if args == None: args = sys.argv[1:]
     parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
@@ -239,22 +173,6 @@ def profiles2phenopacket(args=None):
                         help="Column name if header is true, otherwise 0-based position of the column with the end mutation coordinate")
     opts =  parser.parse_args(args)
     main_profiles2phenopacket(opts)
-
-def main_profiles2phenopacket(opts):
-    options = vars(opts)
-    hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
-    Cohort.load_ontology("hpo", hpo_file, options.get("excluded_hpo"))
-    Cohort.act_ont = "hpo"
-
-    patient_data, rejected_hpos_L, rejected_patients_L = Cohort_Parser.load(options)
-    rejected_hpos_C, rejected_patients_C = patient_data.check(hard=True)
-    patient_data.link2ont(Cohort.act_ont)
-
-    vcf_index = None
-    if options.get("vcf_index"): vcf_index = load_index(options["vcf_index"])
-    patient_data.export_phenopackets(options["output_folder"], options["genome_assembly"], vcf_index= vcf_index)
-
-
 
 def cohort_analyzer(args=None):
     if args == None: args = sys.argv[1:]
@@ -301,6 +219,126 @@ def cohort_analyzer(args=None):
                         help="Column name if header is true, otherwise 0-based position of the column with the end mutation coordinate")
     opts =  parser.parse_args(args)
     main_cohort_analyzer(opts)
+
+def evidence_profiler(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    add_parser_commom_options(parser)
+
+    parser.add_argument("-p", "--profiles_file", dest="profiles_file", default= None,
+                        help="Path to profiles file. One profile per line and HP terms must be comma separated")
+
+    parser.add_argument("-e", "--evidence_file", dest="evidence_file", default= None,
+                        help="Path to evidence file. The file must have a column with the evidence id and a second column with the profile with HP terms comma separated")
+
+    parser.add_argument("-g", "--genomic_coordinates_file", dest="coordinates_file", default= None,
+                        help="Path to file with genomic coordinates for each genomic element in evidence file. One genomic element per line with format id, chr and start position.")
+
+    parser.add_argument("-E", "--evidence_folder", dest="evidences", default= None,
+                        help="Path to evidence folder.")
+
+    parser.add_argument("-o", "--output_folder", dest="output_folder", default= "evidence_reports",
+                        help="Folder to save reports from profiles")
+
+    parser.add_argument("-V", "--variant_data", dest="variant_data", default= None,
+                        help="Folder to tables of patient variants")
+
+    parser.add_argument("-P", "--pathogenic_scores", dest="pathogenic_scores", default= None, # TODO: Generalize to a folder with a table per patient
+                        help="File with genome features an their pathogenic scores")
+    opts =  parser.parse_args(args)
+    main_evidence_profiler(opts)
+
+###########################################################
+# Main functions
+###########################################################
+
+def main_get_gen_features(opts):
+    options = vars(opts)
+    regions = Coord_Parser.load(options)
+    reference = options["reference_file"] if options.get("reference_file") else GENCODE
+    Genomic_Feature.add_reference(
+        Reference_parser.load(
+            reference, 
+            feature_type= options["feature_type"]
+        )
+    )
+    gene_features = regions.get_features(attr_type= options["feature_name"])
+
+    with open(options["output_file"], 'w') as f:
+        for id, feat_ids in gene_features.items():
+            for ft_id in feat_ids:
+                f.write(f"{id}\t{ft_id}\n")
+
+
+def main_get_sorted_profs(opts):
+    options = vars(opts)
+    hpo_file = os.environ.get('hpo_file') if os.environ.get('hpo_file') else HPO_FILE
+    Cohort.load_ontology("hpo", hpo_file)
+    Cohort.act_ont = "hpo"
+    hpo = Cohort.get_ontology(Cohort.act_ont)
+    patient_data, _, _ = Cohort_Parser.load(options)
+    patient_data.check(hard=True)
+
+    clean_profiles = patient_data.profiles
+
+    if options.get("ref_prof"):
+      ref_profile = hpo.clean_profile_hard(options["ref_prof"])
+    else:
+      ref_profile = patient_data.get_general_profile(options["term_freq"])
+
+    hpo.load_profiles({"ref": ref_profile}, reset_stored= True)
+
+    similarities = hpo.compare_profiles(external_profiles= clean_profiles, sim_type= "lin", bidirectional= False)
+
+    candidate_sim_matrix, candidates, candidates_ids = patient_data.get_term2term_similarity_matrix(ref_profile, similarities["ref"], clean_profiles, hpo, options["matrix_limits"][0], options["matrix_limits"][-1])
+    candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
+
+    template = open(str(files('pets.templates').joinpath('similarity_matrix.txt'))).read()
+    container = { "similarity_matrix": candidate_sim_matrix }
+    report = Py_report_html(container, 'Similarity matrix')
+    report.build(template)
+    report.write(options["output_file"])
+
+    with open(options["output_file"].replace('.html','') +'.txt', 'w') as f:
+      for candidate, value in similarities["ref"].items():
+        f.write("\t".join([str(candidate), str(value)])+"\n")
+
+
+
+def main_paco_translator(opts):
+    options = vars(opts)
+    hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
+    Cohort.load_ontology("hpo", hpo_file, options.get("excluded_hpo"))
+    Cohort.act_ont = "hpo"
+
+    patient_data, rejected_hpos, rejected_patients = Cohort_Parser.load(options)
+
+    if options.get("clean_PACO"):
+        removed_terms, removed_profiles = patient_data.check(hard=True)
+        if options.get("removed_path") and removed_profiles != None and len(removed_profiles) > 0:
+            rejected_file = os.path.basename(options["input_file"]).split(".")[0] +'_excluded_patients'
+            file = os.path.join(options["removed_path"], rejected_file)
+            with open(file, 'w') as f:
+                for profile in removed_profiles:
+                    f.write(profile+'\n')
+
+    if options.get("n_phens"): rejected_patients_by_phen = patient_data.filter_by_term_number(options["n_phens"])
+    patient_data.save(options["output_file"], options["save_mode"], options["translate"])
+
+
+def main_profiles2phenopacket(opts):
+    options = vars(opts)
+    hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
+    Cohort.load_ontology("hpo", hpo_file, options.get("excluded_hpo"))
+    Cohort.act_ont = "hpo"
+
+    patient_data, rejected_hpos_L, rejected_patients_L = Cohort_Parser.load(options)
+    rejected_hpos_C, rejected_patients_C = patient_data.check(hard=True)
+    patient_data.link2ont(Cohort.act_ont)
+
+    vcf_index = None
+    if options.get("vcf_index"): vcf_index = load_index(options["vcf_index"])
+    patient_data.export_phenopackets(options["output_folder"], options["genome_assembly"], vcf_index= vcf_index)
 
 
 def main_cohort_analyzer(options):
@@ -454,33 +492,6 @@ def main_cohort_analyzer(options):
     report.build(open(str(files('pets.templates').joinpath('cohort_report.txt'))).read())
     report.write(opts["output_file"] + '.html')
 
-def evidence_profiler(args=None):
-    if args == None: args = sys.argv[1:]
-    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
-    add_parser_commom_options(parser)
-
-    parser.add_argument("-p", "--profiles_file", dest="profiles_file", default= None,
-                        help="Path to profiles file. One profile per line and HP terms must be comma separated")
-
-    parser.add_argument("-e", "--evidence_file", dest="evidence_file", default= None,
-                        help="Path to evidence file. The file must have a column with the evidence id and a second column with the profile with HP terms comma separated")
-
-    parser.add_argument("-g", "--genomic_coordinates_file", dest="coordinates_file", default= None,
-                        help="Path to file with genomic coordinates for each genomic element in evidence file. One genomic element per line with format id, chr and start position.")
-
-    parser.add_argument("-E", "--evidence_folder", dest="evidences", default= None,
-                        help="Path to evidence folder.")
-
-    parser.add_argument("-o", "--output_folder", dest="output_folder", default= "evidence_reports",
-                        help="Folder to save reports from profiles")
-
-    parser.add_argument("-V", "--variant_data", dest="variant_data", default= None,
-                        help="Folder to tables of patient variants")
-
-    parser.add_argument("-P", "--pathogenic_scores", dest="pathogenic_scores", default= None, # TODO: Generalize to a folder with a table per patient
-                        help="File with genome features an their pathogenic scores")
-    opts =  parser.parse_args(args)
-    main_evidence_profiler(opts)
 
 def main_evidence_profiler(opts):
     options = vars(opts)
