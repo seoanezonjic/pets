@@ -1,21 +1,11 @@
-import os, sys
 import numpy as np
-import re
-import pylab
 from collections import defaultdict
 
+import pylab
 from py_exp_calc import exp_calc
 from py_report_html import Py_report_html
 from pets.cohort import Cohort
 from pets.parsers.cohort_parser import Cohort_Parser
-
-def get_color_palette(num):
-  cm = pylab.get_cmap('gist_rainbow')
-  colors = []
-  for i in range(num):
-    color = cm(1.*i/num)  # color will now be an RGBA tuple
-    colors.append(color)
-  return colors
 
 def get_arc_degree_and_radius_values(term, ontology, level_linspace, level_current_index):
   hp_level = ontology.get_term_level(term) - 2
@@ -43,7 +33,7 @@ def prepare_rontoplot_data(hpo_stats_dict, ontology, root_node, reference_node):
   visited_terms = set(root_node)
   terms_to_visit = [term for term in ontology.get_direct_descendants(root_node) if term not in hps_to_filter_out]
   
-  color_palette = get_color_palette(len([ term for term in ontology.get_direct_descendants(reference_node) if term not in hps_to_filter_out]))
+  color_palette = Py_report_html.get_color_palette(len([ term for term in ontology.get_direct_descendants(reference_node) if term not in hps_to_filter_out]))
   top_parental_colors = {term: color_palette.pop() for term in ontology.get_direct_descendants(reference_node) if term not in hps_to_filter_out}
   grey = (128.0/256, 128.0/256 , 128.0/256, 1.0)
   colors, sizes, radius_values, arc_values = [grey], [1], [0], [0]
@@ -197,12 +187,12 @@ def translate_codes(clusters, hpo):
 
 def get_similarities4boxplot(raw_cls, similarity_matrix):
     sim_table = [['Sims', 'group'] ]
-    if raw_cls != None:
+    if raw_cls is not None:
       cl= {}
       for i, item in enumerate(raw_cls): 
         cl_id = item[0]
         query = cl.get(cl_id)
-        if query == None:
+        if query is None:
           cl[cl_id] = [i]
         else:
           query.append(i)
@@ -217,7 +207,7 @@ def get_similarities4boxplot(raw_cls, similarity_matrix):
     return sim_table
 
 def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path_obj):
-  template = template_path_obj.read()
+  template = open(template_path_obj).read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
   clustering_data = {}
   for method_name in options['clustering_methods']:

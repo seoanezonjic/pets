@@ -6,14 +6,6 @@
 	import warnings
 	warnings.simplefilter(action='ignore', category=FutureWarning)
 
-	def get_color_palette(num):
-		cm = pylab.get_cmap('gist_rainbow')
-		colors = []
-		for i in range(num):
-			color = cm(1.*i/num)  # color will now be an RGBA tuple
-			colors.append(color)
-		return colors
-
 	def add_tip(text, help_text):
 		return f"<div class=\"tooltip\">{text}<span class=\"tooltiptext\">{help_text}</span></div>"
 
@@ -202,11 +194,11 @@
 		<% sim_id = f"{clust_method}_sim" %>
 		<% link_id = f"{clust_method}_link" %>
 		<% raw_cls_id = f"{clust_method}_raw_cls" %>
-		% if sim_id in plotter.hash_vars and plotter.hash_vars[raw_cls_id] != None:
+		% if sim_id in plotter.hash_vars and plotter.hash_vars[raw_cls_id] is not None:
 			<%
 				clustering = [ i[0] for i in plotter.hash_vars[raw_cls_id]]
 				uniq_cls = set(clustering)
-				lut = dict(zip(uniq_cls, get_color_palette(len(uniq_cls))))
+				lut = dict(zip(uniq_cls, plotter.get_color_palette(len(uniq_cls))))
 				row_colors = [ lut[i] for i in clustering ]
 			%>
 			${ plotter.static_plot_main( id = sim_id, raw = True,
