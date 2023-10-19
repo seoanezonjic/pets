@@ -39,7 +39,7 @@ def test_evidence_profiler():
 def test_cohort_analyzer():
     os.makedirs(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer')}", exist_ok=True)
     list_of_args = ["-i", f"{os.path.join(SCRIPT_DATA_TEST_PATH, 'paco_translator', 'cohort_toy_dataset.txt')}",
-                    "-o", f"{os.path.join(RETURNED_PATH, 'cohort_analyzer', 'cohort_analyzer.html')}", 
+                    "-o", f"{os.path.join(RETURNED_PATH, 'cohort_analyzer', 'cohort_analyzer')}", 
                     "-c", "chr", "-d", "patient_id", "-s", "start", "-e", "end", "-p", "phenotypes", "-S", "|",
                     "-t", "freq", "-D", "-m", "lin", "-a", "-n"]
     
