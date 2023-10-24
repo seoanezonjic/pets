@@ -240,4 +240,4 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
     report.build(template)
     report.write(options['output_file']+ f"_{method_name}_clusters.html")
     
-    return clustering_data
+  return clustering_data
