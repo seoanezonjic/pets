@@ -26,7 +26,9 @@ GENCODE = str(files('pets.external_data').joinpath('gencode.v43.basic.annotation
 
 
 ## TYPES
-def tolist(string): return string.split(',')
+def tolist(string): 
+  if string == "": return []
+  return string.split(',')
 
 ##############################################
 #Add parser common options
