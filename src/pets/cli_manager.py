@@ -4,6 +4,8 @@ import os
 import re
 import inspect
 from importlib.resources import files
+import urllib.parse
+import requests
 
 import numpy as np
 from py_report_html import Py_report_html
@@ -63,6 +65,17 @@ def add_parser_commom_options(parser):
 ###############################################
 #CLI Scripts
 ###############################################
+def monarch_entities(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    parser.add_argument('-d', '--input_id', dest='input_id', 
+                        help='Entity id to search with Monarch API')
+    parser.add_argument('-o', '--output', dest='output', 
+                        help='Output file')
+    parser.add_argument('-r', '--relation', dest='relation', 
+                        help='Describes which relation must be searched, It has been defines as "input_entity_type-desired_ouput_entity_type where type could be disease, phenotype')
+    opts =  parser.parse_args(args)
+    main_monarch_entities(opts)
 
 def get_gen_features(args=None):
     if args == None: args = sys.argv[1:]
@@ -253,6 +266,32 @@ def evidence_profiler(args=None):
 ###########################################################
 # Main functions
 ###########################################################
+def main_monarch_entities(opts):
+    base_url='api-v3.monarchinitiative.org/v3/api'
+    limit = 500
+    if(opts.relation == 'phenotype-disease'):
+        api_url = f"{base_url}/entity/{opts.input_id}/biolink:DiseaseToPhenotypicFeatureAssociation"
+
+    query = 'https://' + urllib.parse.quote(api_url)+ f'?limit={limit}'
+    total = 1
+    recovered = 0
+    with open(opts.output, 'w') as f:
+        while total > recovered:
+            if recovered == 0:
+                offset = 0
+            else:
+                offset = recovered - 1
+            final_query = query + f"&offset={offset}"
+            response = requests.get(final_query)
+            data = response.json()
+            total = data['total']
+            items = data['items']
+            recovered += len(items)
+            for it in items:
+                entity = it['subject']
+                original_entity = it['original_subject']
+                f.write(f"{entity}\t{original_entity}\n")    
+
 
 def main_get_gen_features(opts):
     options = vars(opts)
