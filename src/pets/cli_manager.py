@@ -68,12 +68,17 @@ def add_parser_commom_options(parser):
 def monarch_entities(args=None):
     if args == None: args = sys.argv[1:]
     parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    parser.add_argument('-i', '--input_file', dest='input_file', 
+                        help='Input file with one entity id per line')
     parser.add_argument('-d', '--input_id', dest='input_id', 
                         help='Entity id to search with Monarch API')
     parser.add_argument('-o', '--output', dest='output', 
                         help='Output file')
     parser.add_argument('-r', '--relation', dest='relation', 
-                        help='Describes which relation must be searched, It has been defines as "input_entity_type-desired_ouput_entity_type where type could be disease, phenotype')
+                        help='Describes which relation must be searched, It has been defines as "input_entity_type-desired_ouput_entity_type where type could be disease, phenotype, gene')
+    parser.add_argument("-a","--add_entity2output", dest="add_entity2output", default= False, action="store_true",
+                        help="Add queried entity as first column in output file")
+
     opts =  parser.parse_args(args)
     main_monarch_entities(opts)
 
@@ -267,31 +272,52 @@ def evidence_profiler(args=None):
 # Main functions
 ###########################################################
 def main_monarch_entities(opts):
+    entities = []
+    if opts.input_id != None:
+        entities.append(opts.input_id)
+    else:
+        with open(opts.input_file) as f:
+            for line in f: entities.append(line.rstrip())
+
     base_url='api-v3.monarchinitiative.org/v3/api'
     limit = 500
-    if(opts.relation == 'phenotype-disease'):
-        api_url = f"{base_url}/entity/{opts.input_id}/biolink:DiseaseToPhenotypicFeatureAssociation"
+    with open(opts.output, 'w') as f:
+        for entity in entities:
+            data = get_monarch_data(entity, opts.relation, base_url, limit)
+            for d in data:
+                if opts.add_entity2output: d = [entity] + d
+                f.write("\t".join(d) + "\n")    
 
+def get_monarch_data(entity, relation, base_url, limit):
+    retrieved_data = []
+    if(relation == 'phenotype-disease'):
+        api_url = f"{base_url}/entity/{entity}/biolink:DiseaseToPhenotypicFeatureAssociation"
+    elif(relation == 'disease-gene'):
+        api_url = f"{base_url}/entity/{entity}/biolink:CausalGeneToDiseaseAssociation"
     query = 'https://' + urllib.parse.quote(api_url)+ f'?limit={limit}'
     total = 1
     recovered = 0
-    with open(opts.output, 'w') as f:
-        while total > recovered:
-            if recovered == 0:
-                offset = 0
-            else:
-                offset = recovered - 1
-            final_query = query + f"&offset={offset}"
-            response = requests.get(final_query)
-            data = response.json()
-            total = data['total']
-            items = data['items']
-            recovered += len(items)
-            for it in items:
-                entity = it['subject']
+    while total > recovered:
+        if recovered == 0:
+            offset = 0
+        else:
+            offset = recovered - 1
+        final_query = query + f"&offset={offset}"
+        response = requests.get(final_query)
+        data = response.json()
+        total = data['total']
+        items = data['items']
+        recovered += len(items)
+        for it in items:
+            entity = it['subject']
+            if(relation == 'phenotype-disease'):
                 original_entity = it['original_subject']
-                f.write(f"{entity}\t{original_entity}\n")    
-
+                fields = [entity, original_entity]
+            elif(relation == 'disease-gene'):
+                gene_name = it['subject_label']
+                fields = [entity, gene_name]
+            retrieved_data.append(fields)
+    return retrieved_data
 
 def main_get_gen_features(opts):
     options = vars(opts)
