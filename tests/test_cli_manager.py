@@ -6,7 +6,7 @@ from subprocess import PIPE
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
-from pets import get_gen_features, get_sorted_profs, paco_translator, profiles2phenopacket, cohort_analyzer, evidence_profiler, HPO_FILE, GENCODE
+from pets import get_gen_features, get_sorted_profs, paco_translator, profiles2phenopacket, cohort_analyzer, evidence_profiler, diseasome_generator, MONDO_FILE, HPO_FILE, GENCODE
 import warnings
 import numpy as np
 import pytest
@@ -163,5 +163,34 @@ def test_get_gen_features():
 
     os.remove(f"{os.path.join(RETURNED_PATH, 'get_gen_features', 'patients_ensemble.txt')}")
     os.remove(f"{os.path.join(RETURNED_PATH, 'get_gen_features', 'patients_geneName.txt')}")
+
+def test_diseasome_generator():
+    os.makedirs(f"{os.path.join(RETURNED_PATH, 'diseasome_generator')}", exist_ok=True)
+    disorder_classes = files('pets.external_data').joinpath('disorder_classes')
+    diseases_input = os.path.join(SCRIPT_DATA_TEST_PATH, 'diseasome_generator', 'diseases')
+    diseasome_input = os.path.join(SCRIPT_DATA_TEST_PATH, 'diseasome_generator', 'diseasome')
+
+    # Generate diseasome
+    list_of_args = ["-i", str(diseases_input), "-C", str(disorder_classes), "-O", str(MONDO_FILE), "-o", f"{os.path.join(RETURNED_PATH, 'diseasome_generator','diseasome')}", "-g"]
+    diseasome_generator(list_of_args)
+    f1 = open(f"{os.path.join(EXPECTED_PATH, 'diseasome_generator', 'diseasome')}", "r")
+    f2 = open(f"{os.path.join(RETURNED_PATH, 'diseasome_generator', 'diseasome')}", "r")
+    expected = sorted(strng2table(f1.read()), key = lambda x : x[0])
+    returned = sorted(strng2table(f2.read()), key = lambda x : x[0])
+    assert expected == returned
+    f1.close()
+    f2.close()
+
+    # Analyze diseasome
+    list_of_args = ["-D", str(diseasome_input),"-O", str(MONDO_FILE), "-o", f"{os.path.join(RETURNED_PATH, 'diseasome_generator','diseasome')}", "-A"]
+    diseasome_generator(list_of_args)
+    f1 = open(f"{os.path.join(EXPECTED_PATH, 'diseasome_generator', 'diseasome_analysis')}", "r")
+    f2 = open(f"{os.path.join(RETURNED_PATH, 'diseasome_generator', 'diseasome_analysis')}", "r")
+    expected = sorted(sorted(strng2table(f1.read()), key = lambda x : x[0]), key = lambda x : x[1])
+    returned = sorted(sorted(strng2table(f2.read()), key = lambda x : x[0]), key = lambda x : x[1])
+    assert expected == returned
+    f1.close()
+    f2.close()
+
 
 

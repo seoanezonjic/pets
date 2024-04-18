@@ -19,6 +19,8 @@ from pets.parsers.reference_parser import Reference_parser
 from pets.parsers.coord_parser import Coord_Parser
 from py_exp_calc.exp_calc import invert_hash
 from py_semtools.ontology import Ontology
+from NetAnalyzer import NetAnalyzer
+import pandas as pd
 
 # https://setuptools.pypa.io/en/latest/userguide/datafiles.html
 HPO_FILE = str(files('pets.external_data').joinpath('hp.json'))
@@ -267,6 +269,179 @@ def evidence_profiler(args=None):
                         help="File with genome features an their pathogenic scores")
     opts =  parser.parse_args(args)
     main_evidence_profiler(opts)
+
+def diseasome_generator(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    add_parser_commom_options(parser)
+
+
+    parser.add_argument("-i", "--input_file", dest="input_file", default= None,
+                    help="Input file with the ontology term and genes")
+
+    parser.add_argument("-C", "--disorder_class", dest="disorder_class", default= None,
+                    help="Input file with the ontology terms and its respective text")
+
+    parser.add_argument("-O", "--ontology", dest="ontology", default= None, 
+                    help="Path to the ontology file")
+
+    parser.add_argument("-g", "--generate", dest = "generate", default=False, action="store_true",
+        help = "To generate a new diseasome")
+
+    parser.add_argument("-A", "--analyze", dest= "analyze", default=False, action="store_true",
+        help = "Analyze the diseasome given some descriptive stats")
+
+    parser.add_argument("-D", "--diseasome", dest="diseasome", default=None,
+        help = "a path for a file conatining a diseasome following the next TABULATED format: MONDO_disease_term, disorder_class")
+
+    parser.add_argument("-o", "--output_file", dest="output_file", default= None, 
+                    help="Path to the output file to write results")
+
+    opts = parser.parse_args(args)
+    main_diseasome_generator(opts)
+
+def main_diseasome_generator(opts):
+    options = vars(opts)
+    if options["ontology"]:
+        ontology_file = options["ontology"]
+    else:
+        ontology_file = MONDO_FILE
+    ontology = Ontology(file= options["ontology"], load_file = True)
+    
+    if options["disorder_class"]:
+        disorder_class_file = options["disorder_class"]
+    else:
+        disorder_class_file = str(files('pets.external_data').joinpath('disorder_classes'))
+    disorder_class = {}
+    with open(disorder_class_file, "r") as f:
+        for line in f:
+            disorder_term, disorder_txt = line.strip().split("\t")
+            query = disorder_class.get(disorder_term)
+            if query is None:
+                disorder_class[disorder_term] = [disorder_txt]
+            else:
+                disorder_class[disorder_term].append(disorder_txt)
+
+    diseasome = None
+    if options["diseasome"]:
+        diseasome = load_index(options["diseasome"])
+
+    if options["generate"] and not diseasome:
+        diseases = []
+        if options["input_file"]:
+            with open(options["input_file"], "r") as f:
+                for line in f:
+                    diseases.append(line.strip())
+        diseases = list(set(diseases)) 
+        disease2disclass = get_dis2dclass(diseases, disorder_class, ontology)
+        dependency_map = get_dependency_map(set(disorder_class.keys()), ontology)
+        diseasome = clean_dis2dclass(disease2disclass, ontology, dependency_map, disorder_class)
+    
+        with open(options["output_file"], "w") as f:
+            for disease in diseases:
+                if diseasome.get(disease):
+                        f.write(f"{disease}\t{diseasome[disease]}\n")
+
+    if options["analyze"]:
+        tripartite = generate_tripartite_diseasome(list(diseasome.items()), ontology, ["disease","group","parentals"])
+        tripartite.compute_autorelations = False
+        projection = tripartite.get_association_values(("group", "parentals"), "disease", "counts")
+        projection = pd.DataFrame(projection, columns=["disgroup","parental","counts"])
+        select_top = lambda group: group.nlargest(20, 'counts')
+        # Group by 'disgroup' and apply the function to select the top values within each group
+        best_picks = projection.groupby("disgroup").apply(select_top)
+        best_picks = best_picks.values.tolist()
+        with open(options["output_file"]+"_analysis", "w") as f:
+            for line in best_picks:
+                line = [line[0],ontology.translate_id(line[1]),str(line[2])]
+                f.write("\t".join(line)+"\n")
+
+def generate_tripartite_diseasome(adj_list, ontology, layers=["disease","group","parentals"]):
+    # Create network
+    net = NetAnalyzer(layers)
+    for disease, group in adj_list:
+        net.add_node(disease,"disease")
+        net.add_node(group,"group")
+        parentals = ontology.get_ancestors(disease)
+        for parental in parentals:
+            net.add_node(parental, "parentals")
+            net.add_edge(disease, parental)
+        net.add_edge(disease, group)
+    return net
+
+def get_dis2dclass(diseases, disorder_class, ontology):
+    dis_class = set(disorder_class.keys())
+    disease2disclass = {}
+    for disease in diseases:
+        parents = ontology.get_ancestors(disease)
+        parents = set(parents) & dis_class
+        disease2disclass[disease] = list(parents)
+    return disease2disclass
+
+def clean_dis2dclass(disease2disclass, ontology, dependency_map, disorder_class):
+    dis_class = set(disorder_class.keys())
+    term2ic = get_term2ic(dis_class, ontology)
+    for disease, parents in disease2disclass.items():
+        # intersect
+        #if "MONDO:0021147" in parents or "MONDO:0005071" in parents: continue
+        # Syndromics terms: "MONDO:0002254" Multiple
+        # direct classify: "MONDO:0045024" Cancer
+        # exclusive clasify: "MONDO:0005071" System nervious
+
+        # syndromic indicator
+        nmax = 3
+        if "MONDO:0002254" in parents: # syndromic
+            parents = parents - {"MONDO:0002254"}
+            nmax = 2
+        # Direct or not classifier
+        if "MONDO:0045024" in parents: # One way terms (e.g. cancer)
+            parents = ["MONDO:0045024"]
+        else:
+            parents = just_child_dependencies(parents, dependency_map)
+        # Exlusive term
+        if "MONDO:0005071" in parents:
+                nmax = 1
+
+        number_classes = len(parents)
+        if number_classes == 0:
+            disclass = "unclasiffied"
+        elif number_classes > nmax:
+            disclass = "multiple"
+        else:
+            max_term = ""
+            max_ic = 0
+            for parent in parents:
+                ic = term2ic[parent]
+                if ic > max_ic:
+                    max_ic = ic
+                    max_term = parent 
+            disclass = disorder_class[max_term][0]
+        disease2disclass[disease] = disclass
+    return disease2disclass
+
+def just_child_dependencies(terms, dependency_map):
+    filtered_terms = terms
+    for term in terms:
+        if dependency_map.get(term):
+                terms2remove = dependency_map[term]
+                filtered_terms = filtered_terms - terms2remove
+        continue
+    return filtered_terms
+
+def get_dependency_map(terms, ontology):
+    term2dep = {}
+    for term in terms:
+        parentals = ontology.get_ancestors(term)
+        dependencies = set(parentals) & terms
+        if dependencies:
+                term2dep[term] = dependencies
+    return term2dep
+
+def get_term2ic(terms, ontology):
+    term2ic = {}
+    for term in terms:
+        term2ic[term] = ontology.get_IC(term)
+    return  term2ic 
 
 ###########################################################
 # Main functions
