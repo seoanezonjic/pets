@@ -1,0 +1,95 @@
+cancer_or_benign_tumor	disease	1
+cancer_or_benign_tumor	human disease	1
+cancer_or_benign_tumor	hereditary disease	1
+cancer_or_benign_tumor	syndromic disease	1
+cancer_or_benign_tumor	immune deficiency disease	1
+cancer_or_benign_tumor	neoplastic syndrome	1
+cancer_or_benign_tumor	type IV hypersensitivity disease	1
+cancer_or_benign_tumor	lymphoproliferative syndrome	1
+cancer_or_benign_tumor	immune system disorder	1
+cancer_or_benign_tumor	autoimmune lymphoproliferative syndrome	1
+cancer_or_benign_tumor	neoplastic disease or syndrome	1
+cancer_or_benign_tumor	cancer or benign tumor	1
+cancer_or_benign_tumor	inborn error of immunity	1
+cancer_or_benign_tumor	autoimmune disease	1
+cancer_or_benign_tumor	primary immunodeficiency due to a defect in adaptive immunity	1
+cancer_or_benign_tumor	hypersensitivity reaction disease	1
+multiple	disease	2
+multiple	human disease	2
+multiple	hereditary disease	2
+multiple	syndromic disease	2
+multiple	neuromuscular disease	2
+multiple	nervous system disorder	2
+multiple	autosomal genetic disease	2
+multiple	autosomal recessive disease	2
+multiple	inherited neurodegenerative disorder	2
+multiple	metabolic disease	2
+multiple	central nervous system disorder	2
+multiple	neurodegenerative disease	2
+multiple	hereditary peripheral neuropathy	2
+multiple	peripheral neuropathy	2
+multiple	inborn errors of metabolism	2
+multiple	leukodystrophy	2
+multiple	peripheral nervous system disorder	2
+multiple	brain disorder	2
+multiple	integumentary system disorder	1
+multiple	disorder of development or morphogenesis	1
+otorhinolaryngologic_disease	disease	1
+otorhinolaryngologic_disease	human disease	1
+otorhinolaryngologic_disease	hereditary disease	1
+otorhinolaryngologic_disease	nervous system disorder	1
+otorhinolaryngologic_disease	nonsyndromic genetic hearing loss	1
+otorhinolaryngologic_disease	autosomal genetic disease	1
+otorhinolaryngologic_disease	perceptual disorders	1
+otorhinolaryngologic_disease	autosomal recessive disease	1
+otorhinolaryngologic_disease	hearing loss, autosomal recessive	1
+otorhinolaryngologic_disease	hearing loss disorder	1
+otorhinolaryngologic_disease	auditory system disorder	1
+otorhinolaryngologic_disease	prelingual non-syndromic genetic hearing loss	1
+otorhinolaryngologic_disease	inherited auditory system disease	1
+otorhinolaryngologic_disease	postlingual non-syndromic genetic hearing loss	1
+otorhinolaryngologic_disease	hearing disorder	1
+otorhinolaryngologic_disease	psychiatric disorder	1
+skeletal_muscle_disorder	disease	2
+skeletal_muscle_disorder	human disease	2
+skeletal_muscle_disorder	distal myopathy	2
+skeletal_muscle_disorder	musculoskeletal system disorder	2
+skeletal_muscle_disorder	eyelids malposition disorder	2
+skeletal_muscle_disorder	skeletal muscle disorder	2
+skeletal_muscle_disorder	disorder of visual system	2
+skeletal_muscle_disorder	nervous system disorder	2
+skeletal_muscle_disorder	hereditary skeletal muscle disorder	2
+skeletal_muscle_disorder	eye disorder	2
+skeletal_muscle_disorder	muscle tissue disorder	2
+skeletal_muscle_disorder	disorder of orbital region	2
+skeletal_muscle_disorder	eyelid disorder	2
+skeletal_muscle_disorder	progressive muscular dystrophy	2
+skeletal_muscle_disorder	muscular dystrophy	2
+skeletal_muscle_disorder	neuromuscular disease	2
+skeletal_muscle_disorder	oculopharyngodistal myopathy	2
+skeletal_muscle_disorder	eye adnexa disorder	2
+skeletal_muscle_disorder	hereditary disease	2
+skeletal_muscle_disorder	myopathy	2
+skin_disorder	disease	3
+skin_disorder	human disease	3
+skin_disorder	hereditary disease	3
+skin_disorder	epidermal disease	3
+skin_disorder	keratosis	3
+skin_disorder	keratinization disease	3
+skin_disorder	integumentary system disorder	3
+skin_disorder	skin disorder	3
+skin_disorder	hereditary skin disorder	3
+skin_disorder	disorder of development or morphogenesis	3
+skin_disorder	palmoplantar keratosis	2
+skin_disorder	focal palmoplantar keratoderma	2
+skin_disorder	hereditary palmoplantar keratoderma	2
+skin_disorder	hyperpigmentation of the skin	1
+skin_disorder	skin appendage disorder	1
+skin_disorder	hereditary epidermal appendage anomaly	1
+skin_disorder	syndromic disease	1
+skin_disorder	epidermal appendage anomaly	1
+skin_disorder	ectodermal dysplasia syndrome	1
+skin_disorder	skin pigmentation disorder	1
+unclasiffied	disease	1
+unclasiffied	human disease	1
+unclasiffied	hereditary disease	1
