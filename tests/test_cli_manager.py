@@ -6,7 +6,7 @@ from subprocess import PIPE
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
-from pets import get_gen_features, get_sorted_profs, paco_translator, profiles2phenopacket, cohort_analyzer, evidence_profiler, diseasome_generator, MONDO_FILE, HPO_FILE, GENCODE
+from pets import get_gen_features, get_sorted_profs, paco_translator, profiles2phenopacket, cohort_analyzer, evidence_profiler, diseasome_generator, collapse_terms, filter_omim, MONDO_FILE, HPO_FILE, GENCODE
 import warnings
 import numpy as np
 import pytest
@@ -193,4 +193,54 @@ def test_diseasome_generator():
     f2.close()
 
 
+def test_collapse_terms():
+    os.makedirs(f"{os.path.join(RETURNED_PATH, 'collapse_terms')}", exist_ok=True)
+    terms2collapse = os.path.join(SCRIPT_DATA_TEST_PATH, 'collapse_terms', 'terms2collapse')
+    terms2txt = os.path.join(SCRIPT_DATA_TEST_PATH, 'collapse_terms', 'terms2txt')
 
+    # collapse terms, no uniq parent no just leaves.
+    list_of_args = ["-i", str(terms2collapse), "-n", str(terms2txt),"-o", f"{os.path.join(RETURNED_PATH, 'collapse_terms','collapsed_terms')}", "-t", "0.8"]
+    collapse_terms(list_of_args)
+    f1 = open(f"{os.path.join(EXPECTED_PATH, 'collapse_terms', 'collapsed_terms')}", "r")
+    f2 = open(f"{os.path.join(RETURNED_PATH, 'collapse_terms', 'collapsed_terms')}", "r")
+    expected = sorted(strng2table(f1.read()),key = lambda x: x[0])
+    returned = sorted(strng2table(f2.read()),key = lambda x: x[0])
+    assert expected == returned
+    f1.close()
+    f2.close()
+
+    # TODO: A good example is needed 
+    # # collapse terms, uniq parent, no just leaves.
+    # list_of_args = ["-i", str(terms2collapse), "-n", str(terms2txt),"-o", f"{os.path.join(RETURNED_PATH, 'collapse_terms','collapsed_terms_uniq_parents')}", "-t", "0.8", "-u"]
+    # collapse_terms(list_of_args)
+    # f1 = open(f"{os.path.join(EXPECTED_PATH, 'collapse_terms', 'collapsed_terms_uniq_parents')}", "r")
+    # f2 = open(f"{os.path.join(RETURNED_PATH, 'collapse_terms', 'collapsed_terms_uniq_parents')}", "r")
+    # expected = sorted(strng2table(f1.read()),key = lambda x: x[0])
+    # returned = sorted(strng2table(f2.read()),key = lambda x: x[0])
+    # assert expected == returned
+    # f1.close()
+    # f2.close()
+
+    # collapse terms, uniq parent, no just leaves.
+    list_of_args = ["-i", str(terms2collapse), "-n", str(terms2txt),"-o", f"{os.path.join(RETURNED_PATH, 'collapse_terms','collapsed_terms_just_leaves')}", "-t", "0.8", "-l"]
+    collapse_terms(list_of_args)
+    f1 = open(f"{os.path.join(EXPECTED_PATH, 'collapse_terms', 'collapsed_terms_just_leaves')}", "r")
+    f2 = open(f"{os.path.join(RETURNED_PATH, 'collapse_terms', 'collapsed_terms_just_leaves')}", "r")
+    expected = sorted(strng2table(f1.read()),key = lambda x: x[0])
+    returned = sorted(strng2table(f2.read()),key = lambda x: x[0])
+    assert expected == returned
+    f1.close()
+    f2.close()
+
+def test_filter_omim():
+    os.makedirs(f"{os.path.join(RETURNED_PATH, 'filter_omim')}", exist_ok=True)
+    morbid_file = os.path.join(SCRIPT_DATA_TEST_PATH, 'filter_omim', 'morbidmap.txt')
+    list_of_args = ["-i", str(morbid_file),"-o", f"{os.path.join(RETURNED_PATH, 'filter_omim','filtered_morbid_file')}"]
+    filter_omim(list_of_args)
+    f1 = open(f"{os.path.join(EXPECTED_PATH, 'filter_omim', 'filtered_morbid_file')}", "r")
+    f2 = open(f"{os.path.join(RETURNED_PATH, 'filter_omim', 'filtered_morbid_file')}", "r")
+    expected = strng2table(f1.read())
+    returned = strng2table(f2.read())
+    assert expected == returned
+    f1.close()
+    f2.close()

@@ -13,12 +13,13 @@ import pets
 from pets.cohort_analyser_methods import *
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
-from pets.io import load_hpo_ci_values, write_tabulated_data, load_profiles, load_variants, load_evidences, load_index, parse_morbid_omim
+from pets.io import load_hpo_ci_values, write_tabulated_data, load_profiles, load_variants, load_evidences, load_index, parse_morbid_omim, list2dic
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.reference_parser import Reference_parser
 from pets.parsers.coord_parser import Coord_Parser
-from py_exp_calc.exp_calc import invert_hash
+from py_exp_calc.exp_calc import invert_hash, uniq
 from py_semtools.ontology import Ontology
+from py_semtools.sim_handler import similitude_network
 from NetAnalyzer import NetAnalyzer
 import pandas as pd
 from py_cmdtabs.cmdtabs import CmdTabs
@@ -279,22 +280,16 @@ def diseasome_generator(args=None):
 
     parser.add_argument("-i", "--input_file", dest="input_file", default= None,
                     help="Input file with the ontology term and genes")
-
     parser.add_argument("-C", "--disorder_class", dest="disorder_class", default= None,
                     help="Input file with the ontology terms and its respective text")
-
     parser.add_argument("-O", "--ontology", dest="ontology", default= None, 
                     help="Path to the ontology file")
-
     parser.add_argument("-g", "--generate", dest = "generate", default=False, action="store_true",
         help = "To generate a new diseasome")
-
     parser.add_argument("-A", "--analyze", dest= "analyze", default=False, action="store_true",
         help = "Analyze the diseasome given some descriptive stats")
-
     parser.add_argument("-D", "--diseasome", dest="diseasome", default=None,
         help = "a path for a file conatining a diseasome following the next TABULATED format: MONDO_disease_term, disorder_class")
-
     parser.add_argument("-o", "--output_file", dest="output_file", default= None, 
                     help="Path to the output file to write results")
 
@@ -302,10 +297,12 @@ def diseasome_generator(args=None):
     main_diseasome_generator(opts)
 
 def filter_omim(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    add_parser_commom_options(parser)
 
     parser.add_argument("-i", "--input_file", dest="input_file", default= None,
                     help="Input file with the ontology term and genes")
-
     parser.add_argument("-o", "--output_file", dest="output_file", default= None, 
                     help="Path to the output file to write results")
 
@@ -313,39 +310,30 @@ def filter_omim(args=None):
     main_filter_omim(opts)
 
 def collapse_terms(args=None):
-    parser = argparse.ArgumentParser(description=f'Usage: {os.path.basename(__file__)} [options]')
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    add_parser_commom_options(parser)
 
     parser.add_argument("-i", "--input_file", dest="input_file", default= None,
                     help="Input file with the ontology terms")
-
     parser.add_argument("-n", "--terms2text", dest="terms2text", default= None,
                     help="Input file with the ontology terms and its respective text")
-
-    parser.add_argument("--with_annotation", dest="with_annotations", default= False, action ="store_true",
-                    help="If your input files cotains annotations in a tabulated format of two columns: term | annotation")
-
     parser.add_argument("-O", "--ontology", dest="ontology", default= None, 
                     help="Path to the ontology file")
-
     parser.add_argument("-o", "--output_file", dest="output_file", default= None, 
                     help="Path to the output file to write results")
-
     parser.add_argument("-r", "--remove_chars", dest="rm_char", default="", 
                     help="Chars to be excluded from comparissons.")
-
-    parser.add_argument("-t", "--threshold", dest="threshold", default=0.00, type=float,
+    parser.add_argument("-t", "--threshold", dest="threshold", default=0.70, type=float,
                     help="Threshold to consider a pair of terms similar")
-
     parser.add_argument("-u","--uniq_parent", dest="uniq_parent", default= False, action = "store_true",
                     help="Just add the uniq most representative parent")
+    parser.add_argument("-l","--just_leaves", dest="just_leaves", default=False, action = "store_true",
+        help= "When just leaves want to be added on the collapse terms")
 
-    opts = parser.parse_args()
+    opts = parser.parse_args(args)
 
     main_collapse_terms(opts)
-
-
-
-
 
 ###########################################################
 # Main functions
@@ -353,56 +341,57 @@ def collapse_terms(args=None):
 
 def main_collapse_terms(opts):
     options = vars(opts)
-    ontology = Ontology(file= options.get("ontology"), load_file = True)
-    if options["with_annotations"]:
-        terms_to_annot = load_pairs_file(options["input_file"])
+    ontology_file = options["ontology"] if options["ontology"] else MONDO_FILE
+    ontology = Ontology(file= ontology_file, load_file = True) 
+
+    input_file = CmdTabs.load_input_data(options["input_file"])
+    terms_to_annot = None
+    if len(input_file[0]) > 1:
+        terms_to_annot =  list2dic(input_file)
         terms = list(set(terms_to_annot.keys()))
     else:
-        terms = load_file(options.get("input_file")) 
+        terms = list(set([term[0] for term in input_file]))
 
-    # TODO: If a txt 2 tal file, then, we use the names on the ontology.
     if options["terms2text"]:
-        term_to_txt = load_pairs_file(options.get("terms2text"))
-        term_to_txt = {key: value[0] for key, value in term_to_txt.items()}
+        term_to_txt = load_index(options.get("terms2text"))
+        #term_to_txt = {key: value[0] for key, value in term_to_txt.items()}
     else: 
         term_to_txt = {term: ontology.translate_id(term) for term in terms}
-
-    # Selecting just when we got the txt associated
-    terms = [term for term in terms if term in term_to_txt.keys()]
-
     txt_to_term = {value: key for key, value in term_to_txt.items()}
-    # Optional?
-    #leaf_terms = filter_out_non_leafs_nodes(list(set(terms)), ontology)
-    leaf_terms = list(set(terms))
 
-    # Neccesary
-    parent_to_childs_terms = get_parent_and_childs_nodes_dict(leaf_terms, ontology)
+    terms2collapse = [term for term in terms if term in term_to_txt.keys()] # selecting just terms with txt
+    terms2collapse = list(set(terms2collapse))
+    terms2collapse = filter_out_non_leafs_nodes(list(set(terms)), ontology) if options["just_leaves"] else terms2collapse
+
+    parent_to_childs_terms = get_parent_and_childs_nodes_dict(terms2collapse, ontology)
     parent_to_childs_txt = {parent: [term_to_txt[child] for child in childs] for parent, childs in parent_to_childs_terms.items()}
-    similarities = get_txt_to_txt_similarities(parent_to_childs_txt)
-    terms_to_collapse = get_thresholded_childs_to_parents_dict(similarities, threshold = options.get("threshold"), ontology=ontology, txt_to_term = txt_to_term, uniq_parent = options["uniq_parent"])
+    similarities = get_txt_to_txt_similarities(parent_to_childs_txt, rm_char=options["rm_char"])
+    terms_to_parents_collapsed = get_thresholded_childs_to_parents_dict(similarities, threshold = options.get("threshold"),
+     ontology=ontology, rm_char = options["rm_char"], txt_to_term = txt_to_term, uniq_parent = options["uniq_parent"])
 
     with open(options["output_file"], "w") as f:
         # Wath out: This is implying that all term which are not leafs would be added!
         for term in terms:
             term_id = ""
-            if terms_to_collapse.get(term) is not None:
-                parents = terms_to_collapse[term]
+            if terms_to_parents_collapsed.get(term) is not None:
+                parents = terms_to_parents_collapsed[term]
             else:
                 parents = [term]
             for parent in parents:
-                if options["with_annotations"]:
-                    for annot in terms_to_annot[term]:
-                        f.write(f"{parent}\t{term}\t{annot}\n")
+                if terms_to_annot:
+                    annotations = "\t".join(terms_to_annot[term])
+                    f.write(f"{term}\t{annotations}\t{parent}\n")
                 else:
-                    f.write(f"{parent}\t{term}\n")
+                    f.write(f"{term}\t{parent}\n")
 
 def main_filter_omim(opts):
     options = vars(opts)
     parsed_morbid = parse_morbid_omim(options["input_file"])
     with open(options["output_file"], "w") as f:
-        for row in parsed_morbid:
-            f.write("\t".join(row)+"\n")
-
+        for omim_code, annots in parsed_morbid.items():
+            genes = ",".join(uniq(annots[1]))
+            omim_txt = annots[0]
+            f.write("\t".join([omim_code, omim_txt, genes])+"\n")
 
 def main_monarch_entities(opts):
     entities = []
@@ -455,10 +444,7 @@ def get_monarch_data(entity, relation, base_url, limit):
 def main_diseasome_generator(opts):
     # Loading and parsing inputs
     options = vars(opts)
-    if options["ontology"]:
-        ontology_file = options["ontology"]
-    else:
-        ontology_file = MONDO_FILE
+    ontology_file = options["ontology"] if options["ontology"] else MONDO_FILE
     ontology = Ontology(file= options["ontology"], load_file = True, extra_dicts=[['xref', {'select_regex': "OMIM:[0-9]*", 'store_tag': 'tag', 'multiterm': False}]])
     ontology.dicts['tag']["byTerm"] = {value: key for key, value in ontology.dicts['tag']["byValue"].items()}
 
@@ -478,9 +464,7 @@ def main_diseasome_generator(opts):
     if options["generate"] and not diseasome:
         diseases =  CmdTabs.load_input_data(options["input_file"])
         disease_annotation = {}
-        if len(diseases[0]) > 1:
-            for disease, *annotations in diseases:
-                disease_annotation[disease] = annotations
+        if len(diseases[0]) > 1: disease_annotation = list2dic(diseases)
         omim_diseases = list(set([disease[0] for disease in diseases])) 
         mondo_diseases = [ontology.dicts['tag']["byValue"][omim] for omim in omim_diseases if ontology.dicts['tag']["byValue"].get(omim)]
 
@@ -977,26 +961,6 @@ def get_term2ic(terms, ontology):
 # collapse functions
 #####################
 
-def load_pairs_file(filename):
-    dict_disease_to_hp = {}
-    with open(filename, "r") as f:
-        for line in f:
-            mondo, hpo = line.strip().split("\t")
-            query = dict_disease_to_hp.get(mondo)
-            if query is None:
-                dict_disease_to_hp[mondo] = [hpo]
-            else:
-                dict_disease_to_hp[mondo].append(hpo)
-    return dict_disease_to_hp
-
-def load_file(filename):
-    terms = []
-    with open(filename, "r") as f:
-        for line in f:
-            term = line.strip()
-            terms.append(term)
-    return terms
-
 def filter_out_non_leafs_nodes(mondo_terms, ontology):
     filtered = []
     for term in mondo_terms:
@@ -1015,18 +979,18 @@ def get_parent_and_childs_nodes_dict(mondo_terms, ontology):
                 parent_to_childs_dict[parent] = [term]
             else:
                 parent_to_childs_dict[parent].append(term)
-    
+
     parent_to_childs_dict = {parent: childs for parent, childs in parent_to_childs_dict.items() if len(childs) > 1}
     return parent_to_childs_dict
 
-def get_txt_to_txt_similarities(parent_to_childs_txt):
+def get_txt_to_txt_similarities(parent_to_childs_txt, rm_char = ""):
     similarities = {}
     for parent, txts in parent_to_childs_txt.items():
-        if len(txts) > 1: similarities[parent] = similitude_network(txts, charsToRemove = options.get("rm_char"))
+        if len(txts) > 1: similarities[parent] = similitude_network(txts, charsToRemove = rm_char)
     return similarities
 
-def get_thresholded_childs_to_parents_dict(similarities, threshold, ontology, txt_to_term = None, uniq_parent = False):
-    terms_to_collapse = {}
+def get_thresholded_childs_to_parents_dict(similarities, threshold, ontology, rm_char = "", txt_to_term = None, uniq_parent = False):
+    terms_to_parents_collapsed = {}
 
     for parent, childs in similarities.items():
         for child1, other_childs in childs.items():
@@ -1038,26 +1002,26 @@ def get_thresholded_childs_to_parents_dict(similarities, threshold, ontology, tx
                         child1_term = txt_to_term[child1]
                         child2_term = txt_to_term[child2]
 
-                    if terms_to_collapse.get(child1_term) == None: 
-                        terms_to_collapse[child1_term] = [parent]
+                    if terms_to_parents_collapsed.get(child1_term) == None: 
+                        terms_to_parents_collapsed[child1_term] = [parent]
                     else:
-                        terms_to_collapse[child1_term].append(parent)
+                        terms_to_parents_collapsed[child1_term].append(parent)
                 
-                    if terms_to_collapse.get(child2_term) == None: 
-                        terms_to_collapse[child2_term] = [parent]
+                    if terms_to_parents_collapsed.get(child2_term) == None: 
+                        terms_to_parents_collapsed[child2_term] = [parent]
                     else:
-                        terms_to_collapse[child2_term].append(parent)
+                        terms_to_parents_collapsed[child2_term].append(parent)
     if uniq_parent: 
-        terms_to_collapse = get_collapsed_with_unique_parents(ontology, terms_to_collapse, txt_to_term, term_to_txt)
+        terms_to_parents_collapsed = get_collapsed_with_unique_parents(ontology, terms_to_parents_collapsed, rm_char)
     else:
-        terms_to_collapse = { child: list(set(parents)) for child, parents in terms_to_collapse.items() }
+        terms_to_parents_collapsed = { child: list(set(parents)) for child, parents in terms_to_parents_collapsed.items() }
 
-    return terms_to_collapse
+    return terms_to_parents_collapsed
 
 
-def get_collapsed_with_unique_parents(ontology, terms_to_collapse):
+def get_collapsed_with_unique_parents(ontology, terms_to_parents_collapsed, rm_char = ""):
     collapsed_with_unique_parents = {}
-    for child, parents in terms_to_collapse.items():
+    for child, parents in terms_to_parents_collapsed.items():
         parents = list(set(parents))
         parents_depth = [ontology.term_paths[parent]["largest_path"] for parent in parents]
         max_depth_indexes = [i for i, x in enumerate(parents_depth) if x == max(parents_depth)]
@@ -1067,6 +1031,6 @@ def get_collapsed_with_unique_parents(ontology, terms_to_collapse):
             deepest_parents = [parents[i] for i in max_depth_indexes]
             translated_child = ontology.translate_id(child)
             translated_parents = [ontology.translate_id(parent) for parent in deepest_parents]
-            similarities = similitude_network([translated_child] + translated_parents, charsToRemove = options.get("rm_char"))
+            similarities = similitude_network([translated_child] + translated_parents, charsToRemove = rm_char)
             collapsed_with_unique_parents[child] = [ontology.translate_name(max(similarities[translated_child].items(), key=lambda x: x[1])[0])]
     return collapsed_with_unique_parents

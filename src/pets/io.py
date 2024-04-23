@@ -1,15 +1,22 @@
 import os, sys, glob, gzip
 from pets.genomic_features import Genomic_Feature
+import re
+
+def list2dic(table):
+  table_dic = {}
+  for key, *values in table:
+    table_dic[key] = values
+  return table_dic
 
 def parse_morbid_omim(file):
     # OMIM txt, OMIM code, Genes
-    parsed_morbid = []
+    parsed_morbid_index = {}
     with open(file, "r") as f:
         for line in f:
             line = line.strip().split("\t")
             if line[0][0] == "#" or not re.findall("\(3\)",line[0]) or re.findall("\[|\?|\{", line[0]): continue
             omim = line[0]
-            genes = line[1].split(",")[0].strip()
+            gene = line[1].split(",")[0].strip()
             omim = omim.split(',')
             omim_code = omim[-1]
             omim_code = re.findall("[0-9]{6}",omim_code)
@@ -17,8 +24,11 @@ def parse_morbid_omim(file):
             omim_code = "OMIM:" + omim_code[0]
             if len(omim.pop()) > 3: omim = omim[0:3]
             omim_txt = ",".join(omim)
-            parsed_morbid.append([omim_code, omim_txt, genes])
-    return parsed_morbid
+            if parsed_morbid_index.get(omim_code):
+              parsed_morbid_index[omim_code][1].append(gene)
+            else:
+              parsed_morbid_index[omim_code] = [omim_txt, [gene]]
+    return parsed_morbid_index
 
 def load_index(path_index, multivalue = False):
     index = {}

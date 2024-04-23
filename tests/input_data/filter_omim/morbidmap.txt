@@ -1,0 +1,21 @@
+# Copyright (c) 1966-2024 Johns Hopkins University. Use of this file adheres to the terms specified at https://omim.org/help/agreement
+# Generated: 2024-04-07
+# See end of file for additional documentation on specific fields
+# Phenotype	Gene/Locus And Other Related Symbols	MIM Number	Cyto Location
+17,20-lyase deficiency, isolated, 202110 (3)	CYP17A1, CYP17, P450C17	609300	10q24.32
+17,20-lyase deficiency, isolated, 202110 (3)	TOY_GENE_OFICIAL1, TOY_GENE, INVENTED_GENE	609300	10q24.32
+17-alpha-hydroxylase/17,20-lyase deficiency, 202110 (3)	CYP17A1, CYP17, P450C17	609300	10q24.32
+2,4-dienoyl-CoA reductase deficiency, 616034 (3)	NADK2, C5orf33, DECRD	615787	5p13.2
+2-methylbutyrylglycinuria, 610006 (3)	ACADSB, SBCAD	600301	10q26.13
+3-M syndrome 1, 273750 (3)	CUL7, 3M1	609577	6p21.1
+3-M syndrome 2, 612921 (3)	OBSL1, KIAA0657, 3M2	610991	2q35
+3-M syndrome 3, 614205 (3)	CCDC8, 3M3	614145	19q13.32
+3-Methylcrotonyl-CoA carboxylase 1 deficiency, 210200 (3)	MCCC1, MCCA	609010	3q27.1
+3-Methylcrotonyl-CoA carboxylase 2 deficiency, 210210 (3)	MCCC2, MCCB	609014	5q13.2
+3-hydroxyacyl-CoA dehydrogenase deficiency, 231530 (3)	HADHSC, SCHAD, HHF4	601609	4q25
+3-hydroxyisobutryl-CoA hydrolase deficiency, 250620 (3)	HIBCH	610690	2q32.2
+3-methylglutaconic aciduria with deafness, encephalopathy, and Leigh-like syndrome, 614739 (3)	SERAC1, MEGDEL	614725	6q25.3
+3-methylglutaconic aciduria, type I, 250950 (3)	AUH	600529	9q22.31
+3-methylglutaconic aciduria, type III, 258501 (3)	OPA3, MGA3	606580	19q13.32
+3-methylglutaconic aciduria, type IX, 617698 (2)	TIMM50, TIM50, MGCA9	607381	19q13.2
+?3-methylglutaconic aciduria, type V, 610198 (3)	DNAJC19, TIM14	608977	3q26.33
