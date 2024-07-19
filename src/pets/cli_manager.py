@@ -710,8 +710,8 @@ def main_cohort_analyzer(options):
       'dummy_cluster_chr_data' : dummy_cluster_chr_data,
       'dummy_ic_data' : format_cluster_ic_data(all_ics, prof_lengths, opts['clusters2graph']),
       'chr_sizes': chr_sizes,
-      'term_freq_table': dict(Cohort.ont['hpo'].get_profiles_terms_frequency(translate = False)), #TODO: check, it is giving all the frequencies equal
-      #'term_freq_table': {Cohort.ont['hpo'].translate_name(hpo): value for hpo, value in (dict(hpo_stats)).items()}, 
+      #'term_freq_table': dict(Cohort.ont['hpo'].get_profiles_terms_frequency(translate = False)), #TODO: check, it is giving all the frequencies equal
+      'term_freq_table': {Cohort.ont['hpo'].translate_name(hpo): value for hpo, value in (dict(hpo_stats)).items()}, 
       'ontology': Cohort.ont['hpo']
     }
 
