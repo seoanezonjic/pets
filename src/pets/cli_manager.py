@@ -693,8 +693,6 @@ def main_cohort_analyzer(options):
     #----------------------------------
     new_cluster_phenotypes = get_top_dummy_clusters_stats(top_clust_phen)
 
-    hpo_stats_dict = {Cohort.ont['hpo'].translate_name(hpo): value for hpo, value in (dict(hpo_stats)).items()}
-
     container = {
       'temp_folder' : temp_folder,
       # 'top_clust_phen' : len(top_clust_phen),
@@ -712,7 +710,8 @@ def main_cohort_analyzer(options):
       'dummy_cluster_chr_data' : dummy_cluster_chr_data,
       'dummy_ic_data' : format_cluster_ic_data(all_ics, prof_lengths, opts['clusters2graph']),
       'chr_sizes': chr_sizes,
-      'hpo_stats_dict': hpo_stats_dict,
+      'term_freq_table': dict(Cohort.ont['hpo'].get_profiles_terms_frequency(translate = False)), #TODO: check, it is giving all the frequencies equal
+      #'term_freq_table': {Cohort.ont['hpo'].translate_name(hpo): value for hpo, value in (dict(hpo_stats)).items()}, 
       'ontology': Cohort.ont['hpo']
     }
 

@@ -57,8 +57,7 @@
 
 	<p> HPOs frequency distribution. Colour based on the HPO frequency.</p>
 	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;">
-		${plotter.draw_pontoplot(term_frequencies="hpo_stats_dict", ontology="ontology", root_node="HP:0000118", reference_node="HP:0000118",
-									raw=True, header=True, row_names=False, var_attr=[0], height=800, width=800)}
+		${plotter.ontoplot(id="term_freq_table", ontology="ontology", root_node="HP:0000118", reference_node="HP:0000118", height=800, width=800)}
 	</div>
 </div>
 
