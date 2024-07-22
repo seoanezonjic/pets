@@ -219,7 +219,7 @@ def cohort_analyzer(args=None):
       help="How may patient clusters are plotted in cluster plots. Default 30")
     parser.add_argument("-i", "--input_file", dest="input_file", default= None,
       help="Input file with patient data")
-    parser.add_argument("-m", "--clustering_methods", dest="clustering_methods", default=['resnik', 'jiang_conrath', 'lin'], type=tolist,
+    parser.add_argument("-m", "--clustering_methods", dest="clustering_methods", default=['lin'], type=tolist,
       help="Clustering methods")
     parser.add_argument("-o", "--output_file", dest="output_file", default= None,
       help="Output file with patient data")
