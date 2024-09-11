@@ -63,6 +63,9 @@ def add_parser_commom_options(parser):
 
     parser.add_argument("-X", "--excluded_hpo", dest="excluded_hpo", default= None,
                         help="File with excluded HPO terms")
+    
+    parser.add_argument("--hard_check", dest="hard_check", default= True, action="store_false",
+                        help="Set to disable hard check cleaning. Default true")    
 
 
 
@@ -522,7 +525,7 @@ def main_get_sorted_profs(opts):
     Cohort.act_ont = "hpo"
     hpo = Cohort.get_ontology(Cohort.act_ont)
     patient_data, _, _ = Cohort_Parser.load(options)
-    patient_data.check(hard=True)
+    patient_data.check(hard=options["hard_check"])
 
     clean_profiles = patient_data.profiles
 
@@ -559,7 +562,7 @@ def main_paco_translator(opts):
     patient_data, rejected_hpos, rejected_patients = Cohort_Parser.load(options)
 
     if options.get("clean_PACO"):
-        removed_terms, removed_profiles = patient_data.check(hard=True)
+        removed_terms, removed_profiles = patient_data.check(hard=options["hard_check"])
         if options.get("removed_path") and removed_profiles != None and len(removed_profiles) > 0:
             rejected_file = os.path.basename(options["input_file"]).split(".")[0] +'_excluded_patients'
             file = os.path.join(options["removed_path"], rejected_file)
@@ -578,7 +581,7 @@ def main_profiles2phenopacket(opts):
     Cohort.act_ont = "hpo"
 
     patient_data, rejected_hpos_L, rejected_patients_L = Cohort_Parser.load(options)
-    rejected_hpos_C, rejected_patients_C = patient_data.check(hard=True)
+    rejected_hpos_C, rejected_patients_C = patient_data.check(hard=options["hard_check"])
     patient_data.link2ont(Cohort.act_ont)
 
     vcf_index = None
@@ -617,7 +620,7 @@ def main_cohort_analyzer(options):
     patient_data.link2ont(Cohort.act_ont) # TODO: check if method load should call to this and use the semtools checking methods (take care to only remove invalid terms)
 
     profile_sizes, parental_hpos_per_profile = patient_data.get_profile_redundancy()
-    patient_data.check(hard=True)
+    patient_data.check(hard=options["hard_check"])
     hpo_stats = patient_data.get_profiles_terms_frequency() # hpo NAME, freq
     for stat in hpo_stats: stat[1] = stat[1]*100
     with open(hpo_frequency_file, 'w') as f:
