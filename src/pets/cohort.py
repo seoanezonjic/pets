@@ -146,13 +146,9 @@ class Cohort():
             else:
                 self.profiles[id] = terms
 
-        self.profiles = dict(filter(
-            lambda id_record_pair: id_record_pair[0] not in rejected_recs, 
-            self.profiles.items()))
-        
-        self.vars = dict(filter(
-            lambda id_record_pair: id_record_pair[0] not in rejected_recs,
-            self.vars.items()))
+        for rr in rejected_recs:
+            self.profiles.pop(rr)
+            if self.vars: self.vars.pop(rr)
 
         return list(set(rejected_terms)), rejected_recs
 
