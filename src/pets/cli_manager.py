@@ -620,7 +620,7 @@ def main_cohort_analyzer(options):
     patient_data.link2ont(Cohort.act_ont) # TODO: check if method load should call to this and use the semtools checking methods (take care to only remove invalid terms)
 
     profile_sizes, parental_hpos_per_profile = patient_data.get_profile_redundancy()
-    patient_data.check(hard=options["hard_check"])
+    patient_data.check(hard=opts["hard_check"])
     hpo_stats = patient_data.get_profiles_terms_frequency() # hpo NAME, freq
     for stat in hpo_stats: stat[1] = stat[1]*100
     with open(hpo_frequency_file, 'w') as f:
