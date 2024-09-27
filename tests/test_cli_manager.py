@@ -34,7 +34,9 @@ def test_evidence_profiler():
                     "-o", f"{os.path.join(RETURNED_PATH, 'evidence_profiler', 'evidence_reports')}",
                     "-V", f"{os.path.join(SCRIPT_DATA_TEST_PATH, 'evidence_profiler', 'raw_data', 'variants')}"]
     evidence_profiler(list_of_args)
-    assert os.path.exists(f"{os.path.join(RETURNED_PATH, 'evidence_profiler', 'evidence_reports')}")
+    assert os.path.exists(f"{os.path.join(RETURNED_PATH, 'evidence_profiler', 'evidence_reports', 'pat_174.html')}")
+
+    shutil.rmtree(f"{os.path.join(RETURNED_PATH, 'evidence_profiler')}")
 
 def test_cohort_analyzer():
     os.makedirs(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer')}", exist_ok=True)

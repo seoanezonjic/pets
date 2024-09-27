@@ -536,9 +536,9 @@ def main_get_sorted_profs(opts):
 
     hpo.load_profiles({"ref": ref_profile}, reset_stored= True)
 
-    similarities = hpo.compare_profiles(external_profiles= clean_profiles, sim_type= "lin", bidirectional= False)
-
-    candidate_sim_matrix, candidates, candidates_ids = patient_data.get_term2term_similarity_matrix(ref_profile, similarities["ref"], clean_profiles, hpo, options["matrix_limits"][0], options["matrix_limits"][-1])
+    candidate_sim_matrix, _, candidates_ids, similarities = hpo.calc_sim_term2term_similarity_matrix(ref_profile, "ref", clean_profiles, 
+          term_limit = options["matrix_limits"][0], candidate_limit = options["matrix_limits"][-1], sim_type = 'lin', bidirectional = False)
+    
     candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
 
     template = open(str(files('pets.templates').joinpath('similarity_matrix.txt'))).read()
@@ -769,13 +769,13 @@ def main_evidence_profiler(opts):
         for pair, ev_profiles_similarity in evidences_similarity.items():
             entity = pair.split('_')[0]
             similarities = ev_profiles_similarity[profile_id]
-            candidate_sim_matrix, candidates, candidates_ids = cohort.get_term2term_similarity_matrix(reference_prof, similarities, evidences[pair]["prof"], hpo, 40, 40)
+            candidate_sim_matrix, candidates, candidates_ids = hpo.get_term2term_similarity_matrix(reference_prof, similarities, evidences[pair]["prof"], 40, 40)
             coords = get_evidence_coordinates(entity, genomic_coordinates, candidates_ids)
             candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
             if len(pathogenic_scores) > 0: # priorize by pathogenic scores
-                candidate_sim_matrix_patho, candidates_patho, candidates_ids_patho = cohort.get_term2term_similarity_matrix(
+                candidate_sim_matrix_patho, candidates_patho, candidates_ids_patho = hpo.get_term2term_similarity_matrix(
                     reference_prof, similarities, 
-                    evidences[pair]["prof"], hpo, 40, 40, 
+                    evidences[pair]["prof"], 40, 40, 
                     other_scores = pathogenic_scores, id2label = evidences[pair]["id2lab"])
                 if len(candidate_sim_matrix_patho) > 0:
                     candidate_sim_matrix_patho.insert(0, ['HP'] + candidates_ids_patho)	

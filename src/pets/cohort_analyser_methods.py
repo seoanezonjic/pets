@@ -180,7 +180,7 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
         cluster_profiles = cluster_cohort.profiles
         ref_profile = cluster_cohort.get_general_profile()
         hpo.load_profiles({'ref': ref_profile}, reset_stored = True)    
-        candidate_sim_matrix, candidates, candidates_ids = cluster_cohort.calc_sim_term2term_similarity_matrix(ref_profile, 'ref', cluster_profiles, hpo, 
+        candidate_sim_matrix, _, candidates_ids, _ = hpo.calc_sim_term2term_similarity_matrix(ref_profile, 'ref', cluster_profiles, 
           term_limit = 100, candidate_limit = 100, sim_type = 'lin', bidirectional = False)
         candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
         sim_mat4cluster[clID] = candidate_sim_matrix
