@@ -537,12 +537,15 @@ def main_get_sorted_profs(opts):
     hpo.load_profiles({"ref": ref_profile}, reset_stored= True)
 
     candidate_sim_matrix, _, candidates_ids, similarities = hpo.calc_sim_term2term_similarity_matrix(ref_profile, "ref", clean_profiles, 
-          term_limit = options["matrix_limits"][0], candidate_limit = options["matrix_limits"][-1], sim_type = 'lin', bidirectional = False)
+          term_limit = options["matrix_limits"][0], candidate_limit = options["matrix_limits"][-1], sim_type = 'lin', bidirectional = False,
+          string_format = True, header_id = "HP")
     
-    candidate_sim_matrix.insert(0, ['HP'] + candidates_ids)
-
+    negative_matrix, _ = hpo.get_negative_terms_matrix(ref_profile, clean_profiles, candidate_ids = candidates_ids, 
+            term_limit = options["matrix_limits"][0], candidate_limit = options["matrix_limits"][-1],
+            string_format = True, header_id = "HP")
+    
     template = open(str(files('pets.templates').joinpath('similarity_matrix.txt'))).read()
-    container = { "similarity_matrix": candidate_sim_matrix }
+    container = { "similarity_matrix": candidate_sim_matrix, "negative_matrix": negative_matrix}
     report = Py_report_html(container, 'Similarity matrix')
     report.build(template)
     report.write(options["output_file"])
