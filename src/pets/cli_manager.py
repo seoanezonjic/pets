@@ -551,9 +551,8 @@ def main_get_sorted_profs(opts):
     report.write(options["output_file"])
 
     with open(options["output_file"].replace('.html','') +'.txt', 'w') as f:
-      for candidate, value in similarities["ref"].items():
+      for candidate, value in sorted(similarities["ref"].items(), key=lambda pair: pair[1], reverse=True):
         f.write("\t".join([str(candidate), str(value)])+"\n")
-
 
 
 def main_paco_translator(opts):
