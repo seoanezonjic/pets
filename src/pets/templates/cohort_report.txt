@@ -44,14 +44,7 @@
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO annotations distribution</h1>
 	<p> Analysis of the HPO terms within the HPO ontology and the cohort of patients. Left: distribution of terms within the ontology and the cohort. Right: percentage of terms distribution within the ontology and the cohort.</p>
 	<div style="overflow: hidden">
-		% if plotter.hash_vars.get("ontology_levels"):
-			${plotter.barplot(id= "ontology_levels", header= True, x_label= 'Number of HPO terms', title= 'HPO annotations distribution', width= "600px", height= "600px", responsive= False, transpose= True, 
-					config = { 'graphOrientation': 'vertical'}) }
-		% endif
-		% if plotter.hash_vars.get("distribution_percentage"):
-			${plotter.line(id= "distribution_percentage", header= True, x_label= 'Percentage of terms', title= 'HPO percentage distribution', width= "600px", height= "600px", responsive= False, transpose= True, 
-					config = { 'graphOrientation' : 'vertical' }) }
-		% endif
+		${plotter.ontodist(ontology="ontology", dist_type=['count', 'perc'], height=800, width=800)}
 	</div>
 
 

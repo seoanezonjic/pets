@@ -631,7 +631,6 @@ def main_cohort_analyzer(options):
 
     suggested_childs, fraction_terms_specific_childs = patient_data.compute_term_list_and_childs(file = detailed_profile_evaluation_file)
 
-    ontology_levels, distribution_percentage = patient_data.get_profile_ontology_distribution_tables()
     onto_ic, freq_ic, onto_ic_profile, freq_ic_profile = patient_data.get_ic_analysis()
 
     if opts['ic_stats'] == 'freq_internal': # TODO: Make semtools to load ci external values
@@ -707,8 +706,6 @@ def main_cohort_analyzer(options):
       'all_cnvs_length' : [ [l] for l in all_cnvs_length ],
       'all_sor_length' : [ [l] for l in all_sor_length ],
       'new_cluster_phenotypes' : len(new_cluster_phenotypes),
-      'ontology_levels' : ontology_levels,
-      'distribution_percentage' : distribution_percentage,
       'hpo_ic_data': [ list(p) for p in zip(list(onto_ic.values()),list(freq_ic.values())) ],
       'hpo_ic_data_profiles': [ list(p) for p in zip(list(onto_ic_profile.values()), list(freq_ic_profile.values())) ],
       'parents_per_term': [ list(p) for p in zip(profile_sizes, parental_hpos_per_profile) ],

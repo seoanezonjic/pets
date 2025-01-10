@@ -171,13 +171,6 @@ class Cohort():
         if file != None: self.write_detailed_hpo_profile_evaluation(suggested_childs, file)
         return suggested_childs, term_with_childs_ratio
 
-    def get_profile_ontology_distribution_tables(self):
-        ont = Cohort.ont[Cohort.act_ont]
-        ontology_levels, distribution_percentage = ont.get_profile_ontology_distribution_tables()
-        ontology_levels.insert(0, ["level", "ontology", "cohort"])
-        distribution_percentage.insert(0, ["level", "ontology", "weighted cohort", "uniq terms cohort"])
-        return ontology_levels, distribution_percentage
-
     def get_ic_analysis(self):
         ont = Cohort.ont[Cohort.act_ont]
         onto_ic, freq_ic = ont.get_observed_ics_by_onto_and_freq() # IC for TERMS
