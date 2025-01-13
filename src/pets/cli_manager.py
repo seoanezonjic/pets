@@ -13,7 +13,7 @@ import pets
 from pets.cohort_analyser_methods import *
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
-from pets.io import load_hpo_ci_values, write_tabulated_data, load_profiles, load_variants, load_evidences, load_index, parse_morbid_omim, list2dic
+from pets.io import write_tabulated_data, load_profiles, load_variants, load_evidences, load_index, parse_morbid_omim, list2dic
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.reference_parser import Reference_parser
 from pets.parsers.coord_parser import Coord_Parser
@@ -614,6 +614,7 @@ def main_cohort_analyzer(options):
     hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
     Cohort.load_ontology("hpo", hpo_file, opts.get("excluded_hpo"))
     Cohort.act_ont = "hpo"
+    hpo = Cohort.ont['hpo']
 
     opts['check'] = True
     patient_data, rejected_hpos, rejected_patients = Cohort_Parser.load(opts)
@@ -621,33 +622,21 @@ def main_cohort_analyzer(options):
 
     patient_data.link2ont(Cohort.act_ont) # TODO: check if method load should call to this and use the semtools checking methods (take care to only remove invalid terms)
 
-    profile_sizes, parental_hpos_per_profile = patient_data.get_profile_redundancy()
+    patient_data.get_profile_redundancy() # GEt term redundancy BEFORE cleaning
     patient_data.check(hard=opts["hard_check"])
-    hpo_stats = patient_data.get_profiles_terms_frequency() # hpo NAME, freq
-    for stat in hpo_stats: stat[1] = stat[1]*100
+    
+    hpo.get_profiles_terms_frequency() # hpo CODE, freq
     with open(hpo_frequency_file, 'w') as f:
-      for hpo_code, freq in patient_data.get_profiles_terms_frequency(translate= False): # hpo CODE, freq
-        f.write(f"{hpo_code}\t{freq}\n")
+      for hpo_code, freq in hpo.dicts['term_stats'].items(): f.write(f"{hpo_code}\t{freq}\n")
 
     suggested_childs, fraction_terms_specific_childs = patient_data.compute_term_list_and_childs(file = detailed_profile_evaluation_file)
 
-    onto_ic, freq_ic, onto_ic_profile, freq_ic_profile = patient_data.get_ic_analysis()
-
-    if opts['ic_stats'] == 'freq_internal': # TODO: Make semtools to load ci external values
-      ic_file = os.environ['ic_file'] if os.environ.get('ic_file') else IC_FILE
-      freq_ic = load_hpo_ci_values(ic_file)
-      phenotype_ic = freq_ic
-      freq_ic_profile = {}
-      for pat_id, phenotypes in patient_data.each_profile():
-        freq_ic_profile[pat_id] = patient_data.get_profile_ic(phenotypes, phenotype_ic)
-    elif opts['ic_stats'] == 'freq':
-      phenotype_ic = freq_ic
-    elif opts['ic_stats'] == 'onto':
-      phenotype_ic = onto_ic
+    phenotype_ic = patient_data.get_ic_analysis(freq_type = opts['ic_stats'], 
+        ic_file = os.environ['ic_file'] if os.environ.get('ic_file') else IC_FILE)
 
     all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_clusters = patient_data.process_dummy_clustered_patients(opts, phenotype_ic, temp_folder = temp_folder)
 
-    summary_stats = get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos)
+    summary_stats = get_summary_stats(patient_data, rejected_patients, hpo.ics['resnik_observed'], fraction_terms_specific_childs, rejected_hpos)
 
     all_cnvs_length = []
     all_sor_length = []
@@ -702,18 +691,13 @@ def main_cohort_analyzer(options):
       # 'top_clust_phen' : len(top_clust_phen),
       'summary_stats' : summary_stats,
       'clustering_methods' : opts['clustering_methods'],
-      'hpo_stats' : hpo_stats,
       'all_cnvs_length' : [ [l] for l in all_cnvs_length ],
       'all_sor_length' : [ [l] for l in all_sor_length ],
       'new_cluster_phenotypes' : len(new_cluster_phenotypes),
-      'hpo_ic_data': [ list(p) for p in zip(list(onto_ic.values()),list(freq_ic.values())) ],
-      'hpo_ic_data_profiles': [ list(p) for p in zip(list(onto_ic_profile.values()), list(freq_ic_profile.values())) ],
-      'parents_per_term': [ list(p) for p in zip(profile_sizes, parental_hpos_per_profile) ],
       'dummy_cluster_chr_data' : dummy_cluster_chr_data,
       'dummy_ic_data' : format_cluster_ic_data(all_ics, prof_lengths, opts['clusters2graph']),
       'chr_sizes': chr_sizes,
       #'term_freq_table': dict(Cohort.ont['hpo'].get_profiles_terms_frequency(translate = False)), #TODO: check, it is giving all the frequencies equal
-      'term_freq_table': {Cohort.ont['hpo'].translate_name(hpo): value/100 for hpo, value in (dict(hpo_stats)).items()}, 
       'ontology': Cohort.ont['hpo']
     }
 

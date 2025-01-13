@@ -8,6 +8,7 @@ from py_exp_calc import exp_calc
 from py_exp_calc.exp_calc import intersection
 from py_semtools.ontology import Ontology
 from pets.genomic_features import Genomic_Feature
+from pets.io import load_hpo_ci_values
 
 class Cohort():
     #TODO: Ask Pedro about these first lines of code
@@ -160,22 +161,26 @@ class Cohort():
         profile_sizes, parental_terms_per_profile = ont.get_profile_redundancy()
         return profile_sizes, parental_terms_per_profile
 
-    def get_profiles_terms_frequency(self, **options):
-        ont = Cohort.ont[Cohort.act_ont]
-        term_stats = ont.get_profiles_terms_frequency(**options) #https://www.ruby-lang.org/en/news/2019/12/12/separation-of-positional-and-keyword-arguments-in-ruby-3-0/
-        return term_stats
-
     def compute_term_list_and_childs(self, file = None):
         ont = Cohort.ont[Cohort.act_ont]
         suggested_childs, term_with_childs_ratio = ont.compute_term_list_and_childs()
         if file != None: self.write_detailed_hpo_profile_evaluation(suggested_childs, file)
         return suggested_childs, term_with_childs_ratio
 
-    def get_ic_analysis(self):
+    def get_ic_analysis(self, freq_type = None, ic_file = None):
         ont = Cohort.ont[Cohort.act_ont]
         onto_ic, freq_ic = ont.get_observed_ics_by_onto_and_freq() # IC for TERMS
-        onto_ic_profile, freq_ic_profile = ont.get_profiles_resnik_dual_ICs() # IC for PROFILES
-        return onto_ic, freq_ic, onto_ic_profile, freq_ic_profile
+        if freq_type == 'freq_internal':
+            freq_ic = load_hpo_ci_values(ic_file)
+            ont.ics['resnik_observed'] = freq_ic
+            for pat_id, phenotypes in self.each_profile():
+                ont.dicts['prof_IC_observ'][pat_id] = self.get_profile_ic(phenotypes, freq_ic)
+        ont.get_profiles_resnik_dual_ICs() # IC for PROFILES
+        if freq_type == 'freq_internal' or freq_type == 'freq':
+            phenotype_ic = freq_ic
+        elif freq_type == 'onto':
+            phenotype_ic = onto_ic
+        return phenotype_ic
 
     def get_profiles_mean_size(self):
         ont = Cohort.ont[Cohort.act_ont]

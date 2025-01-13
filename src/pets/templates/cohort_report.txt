@@ -33,10 +33,7 @@
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO stats</h1>
 	<p> HPOs more frequent in the cohort </p>
-	${ plotter.table(id= "hpo_stats", header= True, styled= 'dt', 
-		cell_align= "left center".split(" "), attrib= {'class': 'table table-striped'},
-		func = lambda data: data.insert(0,['HPO', ' Patient percentage']))
-	}
+	${ plotter.makeTermFreqTable(ontology="ontology", height=800, width=800)}
 </div>
 
 
@@ -50,7 +47,7 @@
 
 	<p> HPOs frequency distribution. Colour based on the HPO frequency.</p>
 	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;">
-		${plotter.ontoplot(id="term_freq_table", ontology="ontology", root_node="HP:0000118", reference_node="HP:0000118", height=800, width=800)}
+		${plotter.ontoplot(ontology="ontology", root_node="HP:0000118", reference_node="HP:0000118", height=800, width=800)}
 	</div>
 </div>
 
@@ -58,16 +55,14 @@
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO profile redundancy</h1>
 	<p> For each patient profile size (number of phenotypes, x-axis) it is shown the number of HPO phenotypes that are parent of other terms within the profile (number of parent terms, y-axis). </p>
 
-	${ plotter.scatter2D(id= 'parents_per_term', header=False, row_names=False, title = 'HP term redundancy in patient profiles', x_label = 'ProfileSize', y_label = 'ParentTerms', alpha=0.6, add_densities=True, config={"dataPointSize":8} )}
+	${ plotter.plotProfRed(ontology="ontology", height=800, width=800)}
 
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto; overflow: hidden"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO ICs distribution</h1>
 	<p> First figure shows the ICs distribution in terms of the HP ontology (x-axis) and for each single HPO term, its frequency in the cohort according to the HP ontology structure (y-axis) and the second figure shows the same distributions considering the profiles analyzed. </p>
-
-	${ plotter.scatter2D(id= 'hpo_ic_data', header=False, row_names=False, title='HP term IC distribution', x_label = 'HP Ontology IC', y_label = 'HP Frequency based IC', alpha=0.6, add_densities=True, config={"dataPointSize":8, "setMaxX": 4.5, "setMaxY":4.5, "setMinX": 0, "setMinY": 0}  )}
-	${ plotter.scatter2D(id= 'hpo_ic_data_profiles', header=False, row_names=False, title='HP patient profile IC distribution', x_label = 'HP Ontology Profile IC', y_label = 'HP Frequency based Profile IC', alpha=0.6, add_densities=True, config={"dataPointSize":8, "setMaxX": 4.5, "setMaxY":4.5, "setMinX": 0, "setMinY": 0}  )}
+	${plotter.ontoICdist(ontology="ontology", dist_type=['term', 'prof'], height=800, width=800)}
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
