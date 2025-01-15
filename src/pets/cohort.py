@@ -109,22 +109,6 @@ class Cohort():
         for id, var_info in self.vars.items():
             yield(id, var_info)
 
-    def get_general_profile(self,thr=0): # TODO move funcionality to semtools
-        term_count = defaultdict(lambda: 0)
-        for id, prof in self.each_profile():
-            for term in prof:
-                term_count[term] += 1
-
-        records = len(self.profiles)
-        general_profile = []
-        for term, count in term_count.items():
-            if count / float(records) >= thr: general_profile.append(term)
-        
-        #TODO: check if this is the correct way to access the ontology (migrated from ruby)
-        ont = Cohort.ont[Cohort.act_ont]
-        # ont = @@ont[Cohort.act_ont]
-        return ont.clean_profile_hard(general_profile)
-
     def check(self, hard=False): # OLD format_patient_data
         #TODO: check if this is the correct way to access the ontology (migrated from ruby)
         ont = Cohort.ont[Cohort.act_ont]
@@ -196,11 +180,6 @@ class Cohort():
         ont = Cohort.ont[Cohort.act_ont]
         dsi = ont.get_dataset_specifity_index(type)
         return dsi
-
-    def compare_profiles(self, **options):
-        ont = Cohort.ont[Cohort.act_ont]
-        similarities = ont.compare_profiles(**options)
-        return similarities
 
     def index_vars(self): # equivalent to process_patient_data
         for id, var in self.each_var():
@@ -361,79 +340,6 @@ class Cohort():
         if profile_length == 0: profile_length = 1 
         return ic/profile_length
 
-    def get_matrix_similarity(self, method_name, options, ontology = 'hpo', reference_profiles=None, profiles_similarity_filename=None, matrix_filename = None):
-        if reference_profiles == None: 
-            profiles_similarity = self.compare_profiles(sim_type = method_name, external_profiles = reference_profiles)
-        else: # AS reference profiles are constant, the sematic comparation will be A => B (A reference). So, we have to invert the elements to perform the comparation
-            ont = Cohort.get_ontology(ontology)
-            pat_profiles = ont.profiles # TEmporal copy to preserve patient profiles and inject reference profiles
-            ont.load_profiles(reference_profiles, reset_stored = True)
-            profiles_similarity = ont.compare_profiles(sim_type = method_name, 
-                external_profiles = pat_profiles, 
-                bidirectional = False)
-            ont.load_profiles(pat_profiles, reset_stored = True)
-            profiles_similarity = exp_calc.invert_nested_hash(profiles_similarity)
-        if options.get('sim_thr') != None: exp_calc.remove_nested_entries(profiles_similarity, lambda id, sim: sim >= options['sim_thr']) 
-        if profiles_similarity_filename != None: self.write_profile_pairs(profiles_similarity, profiles_similarity_filename)
-        axis_file_x = re.sub('.npy','_x.lst', matrix_filename)
-        axis_file_y = re.sub('.npy','_y.lst', matrix_filename)
-        if reference_profiles == None:
-            y_names = None
-            similarity_matrix, x_names = exp_calc.to_wmatrix(profiles_similarity, squared = True, symm = True)
-        else:
-            similarity_matrix, y_names, x_names = exp_calc.to_wmatrix(profiles_similarity, squared = False, symm = False)
-        exp_calc.save(similarity_matrix, matrix_filename, 
-            x_axis_names=x_names, x_axis_file=axis_file_x, 
-            y_axis_names=y_names, y_axis_file=axis_file_y)
-        return similarity_matrix, y_names, x_names
-
-    def get_similarity_clusters(self, method_name, ontology, options, temp_folder = None, reference_profiles = None):
-        clusters = {}
-        similarity_matrix = None
-        linkage = None
-        raw_cls = None
-        if len(self.profiles) > 1:
-            if temp_folder != None: # To save and load results from disk
-                matrix_filename = os.path.join(temp_folder, f"similarity_matrix_{method_name}.npy")
-                axis_file = re.sub('.npy','_x.lst', matrix_filename)
-                axis_file_y = None if reference_profiles == None else re.sub('.npy','_y.lst', matrix_filename)
-                profiles_similarity_filename = os.path.join(temp_folder, f'profiles_similarity_{method_name}.txt')
-                cluster_file = os.path.join(temp_folder, f"{method_name}_clusters.txt")
-                linkage_file = os.path.join(temp_folder, f"{method_name}_linkage.npy")
-                raw_cls_file = os.path.join(temp_folder, f"{method_name}_raw_cls.npy")
-            if temp_folder == None or not os.path.exists(matrix_filename):
-                similarity_matrix, y_names, x_names = self.get_matrix_similarity(method_name, options, 
-                    ontology = ontology, reference_profiles=reference_profiles,  
-                    profiles_similarity_filename=profiles_similarity_filename, 
-                    matrix_filename = matrix_filename)
-            elif temp_folder != None or os.path.exists(matrix_filename):
-                similarity_matrix, x_names, y_names = exp_calc.load(matrix_filename, x_axis_file=axis_file, y_axis_file=axis_file_y)
-            
-            if temp_folder == None or not os.path.exists(cluster_file):
-                if method_name == 'resnik':
-                    dist_matrix = np.amax(similarity_matrix) - similarity_matrix
-                elif method_name == 'lin':
-                    dist_matrix = 1 - similarity_matrix
-                clusters, cls_objects = exp_calc.get_hc_clusters(dist_matrix, dist = 'custom', method = 'ward', identify_clusters='max_avg', n_clusters=3, item_list = x_names)
-                linkage = cls_objects['link']
-                raw_cls = cls_objects['cls']
-                
-                if temp_folder != None:
-                    with open(cluster_file, 'w') as f:
-                        for clusterID, patientIDs in clusters.items(): f.write(f"{clusterID}\t{','.join(patientIDs)}\n")
-                    np.save(linkage_file, linkage)
-                    np.save(raw_cls_file, np.array(raw_cls, dtype=np.int32))
-                    #with open(raw_cls_file, 'w') as f: f.write(json.dumps(raw_cls))
-            elif temp_folder != None or os.path.exists(cluster_file):
-                with open(cluster_file) as f:
-                    for l in f: 
-                        clusterID, patientIDs = l.rstrip().split("\t")
-                        clusters[int(clusterID)] = patientIDs.split(",")
-                linkage = np.load(linkage_file)
-                raw_cls = np.load(raw_cls_file)
-                #with open(raw_cls_file) as f: raw_cls = json.loads(f.read())
-        return clusters, similarity_matrix, linkage, raw_cls
-
     def write_detailed_hpo_profile_evaluation(self, suggested_childs, detailed_profile_evaluation_file):
         with open(detailed_profile_evaluation_file, 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile, delimiter="\t", quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -456,9 +362,3 @@ class Cohort():
                             parent_field = ""
                         csvwriter.writerow([parent_field, f"{child_name} ({child_code})"])
                 csvwriter.writerow(["", ""])
-
-    def write_profile_pairs(self, similarity_pairs, filename):
-        with open(filename, 'w') as f:
-            for pairsA, pairsB_and_values in similarity_pairs.items():
-                for pairsB, values in pairsB_and_values.items():
-                    f.write(f"{pairsA}\t{pairsB}\t{values}\n")

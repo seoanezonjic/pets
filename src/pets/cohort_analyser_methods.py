@@ -167,18 +167,18 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
   template = open(template_path_obj).read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
   clustering_data = {}
+  patient_profiles = hpo.profiles
   for method_name in options['clustering_methods']:
-    clusters, similarity_matrix, linkage, raw_cls = patient_data.get_similarity_clusters(method_name, 'hpo', options, temp_folder = temp_folder, reference_profiles = reference_profiles)
-    clusters_codes, clusters_info = parse_clusters_data(clusters, patient_data)
-    clustering_data[method_name] = {'cls': clusters, 'sim': similarity_matrix, 'link': linkage, 'raw_cls': raw_cls, 'boxplot_sims': get_similarities4boxplot(raw_cls, similarity_matrix)}
+    hpo.get_similarity_clusters(method_name, options, temp_folder = temp_folder, reference_profiles = reference_profiles)
+    semantic_clust = hpo.clustering[method_name]
+    clusters_codes, clusters_info = parse_clusters_data(semantic_clust['cls'], patient_data)
+    clustering_data[method_name] = {'boxplot_sims': get_similarities4boxplot(semantic_clust['raw_cls'], semantic_clust['sim'])}
 
     sim_mat4cluster = {}
     if options['detailed_clusters']:
       for clID, patient_number, patient_ids, hpo_codes in clusters_codes:
-        cluster_cohort = Cohort()
-        for i, patID in enumerate(patient_ids): cluster_cohort.add_record([patID, hpo_codes[i], []])
-        cluster_profiles = cluster_cohort.profiles
-        ref_profile = cluster_cohort.get_general_profile()
+        cluster_profiles = { patID: hpo_codes[i] for i, patID in enumerate(patient_ids)}
+        ref_profile = hpo.get_general_profile()
         hpo.load_profiles({'ref': ref_profile}, reset_stored = True)    
         candidate_sim_matrix, _, _, _ = hpo.calc_sim_term2term_similarity_matrix(ref_profile, 'ref', cluster_profiles, 
           term_limit = 100, candidate_limit = 100, sim_type = 'lin', bidirectional = False, string_format = True, header_id = "HP")
@@ -191,6 +191,7 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
       'hpo' : hpo,
       'sim_mat4cluster' : sim_mat4cluster
      }
+    hpo.profiles = patient_profiles
 
     report = Py_report_html(container, title='Patient clusters report')
     report.build(template)

@@ -222,8 +222,8 @@ def cohort_analyzer(args=None):
       help="How may patient clusters are plotted in cluster plots. Default 30")
     parser.add_argument("-i", "--input_file", dest="input_file", default= None,
       help="Input file with patient data")
-    parser.add_argument("-m", "--clustering_methods", dest="clustering_methods", default=['lin'], type=tolist,
-      help="Clustering methods")
+    parser.add_argument("-m", "--similarity_methods", dest="clustering_methods", default=['lin'], type=tolist,
+      help="Similarity methods to use in clustering step")
     parser.add_argument("-o", "--output_file", dest="output_file", default= None,
       help="Output file with patient data")
     parser.add_argument("-P", "--hpo_file", dest="hpo_file", default= None,
@@ -688,7 +688,6 @@ def main_cohort_analyzer(options):
 
     container = {
       'temp_folder' : temp_folder,
-      # 'top_clust_phen' : len(top_clust_phen),
       'summary_stats' : summary_stats,
       'clustering_methods' : opts['clustering_methods'],
       'all_cnvs_length' : [ [l] for l in all_cnvs_length ],
@@ -697,7 +696,6 @@ def main_cohort_analyzer(options):
       'dummy_cluster_chr_data' : dummy_cluster_chr_data,
       'dummy_ic_data' : format_cluster_ic_data(all_ics, prof_lengths, opts['clusters2graph']),
       'chr_sizes': chr_sizes,
-      #'term_freq_table': dict(Cohort.ont['hpo'].get_profiles_terms_frequency(translate = False)), #TODO: check, it is giving all the frequencies equal
       'ontology': Cohort.ont['hpo']
     }
 

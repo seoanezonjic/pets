@@ -130,10 +130,8 @@
 	</div>
 </div>
 
-
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h2 style="text-align: center; background-color:#d6eaf8">HPO frequency in top clusters</h2>
-
 	% for n in range(plotter.hash_vars["new_cluster_phenotypes"]):
 		${ plotter.table(id= f"clust_{n}", header= True, border= 2, row_names= False, text= True, 
 			cell_align= "center" ,
@@ -142,7 +140,6 @@
 			# data.unshift(["HPO information in cluster #{n}\tPhenotypes\tFrequency"])
 		}
 	% endfor
-
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
@@ -150,24 +147,10 @@
 	<p> For each patient, their HPO profile similarity coefficient is calculated according to the different methods specified in the analysis and represented in these heatmaps. </p>
 
 	% for clust_method in plotter.hash_vars["clustering_methods"]:
-		<% sim_id = f"{clust_method}_sim" %>
-		<% link_id = f"{clust_method}_link" %>
-		<% raw_cls_id = f"{clust_method}_raw_cls" %>
-		% if sim_id in plotter.hash_vars and plotter.hash_vars[raw_cls_id] is not None:
-			<%
-				clustering = [ i[0] for i in plotter.hash_vars[raw_cls_id]]
-				uniq_cls = set(clustering)
-				lut = dict(zip(uniq_cls, plotter.get_color_palette(len(uniq_cls))))
-				row_colors = [ lut[i] for i in clustering ]
-			%>
-			${ plotter.static_plot_main( id = sim_id, raw = True,
-			plotting_function = lambda data, plotter_list: plotter_list["sns"].clustermap(data=data, row_linkage=plotter.hash_vars[link_id], col_linkage=plotter.hash_vars[link_id], row_colors=row_colors ), whole=True)}
-		% endif
-
+		${ plotter.plotClust(ontology="ontology", method_name=clust_method, height=800, width=800) }
 		<% boxplot_sims_id = f"{clust_method}_boxplot_sims" %>
 		% if boxplot_sims_id in plotter.hash_vars:
 			${ plotter.static_plot_main(id= boxplot_sims_id, var_attr=[1], header= True, row_names= False, plotting_function = lambda data, plotter_list: plotter_list["sns"].boxplot(data=data, y='group', x='Sims')) }
 		% endif
 	% endfor
-
 </div>
