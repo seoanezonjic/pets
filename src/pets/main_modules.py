@@ -208,43 +208,6 @@ def main_get_gen_features(opts):
                 f.write(f"{id}\t{ft_id}\n")
 
 
-def main_get_sorted_profs(opts):
-    options = vars(opts)
-    hpo_file = os.environ.get('hpo_file') if os.environ.get('hpo_file') else HPO_FILE
-    Cohort.load_ontology("hpo", hpo_file)
-    Cohort.act_ont = "hpo"
-    hpo = Cohort.get_ontology(Cohort.act_ont)
-    patient_data, _, _ = Cohort_Parser.load(options)
-    patient_data.check(hard=options["hard_check"])
-
-    clean_profiles = patient_data.profiles
-
-    if options.get("ref_prof"):
-      ref_profile = hpo.clean_profile_hard(options["ref_prof"])
-    else:
-      ref_profile = patient_data.get_general_profile(options["term_freq"])
-
-    hpo.load_profiles({"ref": ref_profile}, reset_stored= True)
-
-    candidate_sim_matrix, _, candidates_ids, similarities = hpo.calc_sim_term2term_similarity_matrix(ref_profile, "ref", clean_profiles, 
-          term_limit = options["matrix_limits"][0], candidate_limit = options["matrix_limits"][-1], sim_type = 'lin', bidirectional = False,
-          string_format = True, header_id = "HP")
-    
-    negative_matrix, _ = hpo.get_negative_terms_matrix(ref_profile, clean_profiles, candidate_ids = candidates_ids, 
-            term_limit = options["matrix_limits"][0], candidate_limit = options["matrix_limits"][-1],
-            string_format = True, header_id = "HP")
-    
-    template = open(str(files('pets.templates').joinpath('similarity_matrix.txt'))).read()
-    container = { "similarity_matrix": candidate_sim_matrix, "negative_matrix": negative_matrix}
-    report = Py_report_html(container, 'Similarity matrix')
-    report.build(template)
-    report.write(options["output_file"])
-
-    with open(options["output_file"].replace('.html','') +'.txt', 'w') as f:
-      for candidate, value in sorted(similarities["ref"].items(), key=lambda pair: pair[1], reverse=True):
-        f.write("\t".join([str(candidate), str(value)])+"\n")
-
-
 def main_paco_translator(opts):
     options = vars(opts)
     hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
