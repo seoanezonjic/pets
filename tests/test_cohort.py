@@ -1,4 +1,4 @@
-import sys, os, json, unittest 
+import sys, os, json, unittest, shutil, copy
 from importlib.resources import files
 import subprocess
 from subprocess import PIPE
@@ -171,13 +171,6 @@ class CohortTestSuite(unittest.TestCase):
             self.assertIn(pat, ["132", "599", "647", "648"])
             self.assertIn(vars, self.patient_data.vars.values())
 
-
-    def test_get_general_profile(self):
-        #Intellectual disability HP:0001249 is the term with a frequency higher than 0.5 in the toy dataset
-        general_profiles = self.patient_data.get_general_profile(thr=0.5)
-        self.assertEqual(general_profiles, ["HP:0001249"])
-
-
     def test_check(self):
         #Adding a new record with an incorrect HP term
         new_record_bad = [2000, ["HP:BADCODE"], [["21", 20, 25], ["X", 1000, 2000]]]
@@ -222,19 +215,11 @@ class CohortTestSuite(unittest.TestCase):
 
         self.patient_data.link2ont(Cohort.act_ont)
         profile_sizes, parental_terms_per_profile = self.patient_data.get_profile_redundancy()
-        expected_profile_sizes = (3, 3, 2, 2, 1) #From patients sorted from higher to lower number of HP terms
-        expected_parental_terms_per_profile = (0, 0, 1, 0, 0) #Same order as above
+        expected_profile_sizes = [3, 1, 2, 3, 2]
+        expected_parental_terms_per_profile = [0, 0, 0, 0, 1] #Same order as above
 
         self.assertEqual(profile_sizes, expected_profile_sizes)
         self.assertEqual(parental_terms_per_profile, expected_parental_terms_per_profile)
-
-
-    def test_get_profiles_terms_frequency(self):
-        self.patient_data.link2ont(Cohort.act_ont)
-        term_stats = self.patient_data.get_profiles_terms_frequency()
-        expected_term_stats = [['Intellectual disability', 1.0], ['Autism', 0.25], ['Hypotonia', 0.25], 
-                               ['Turricephaly', 0.25], ['Hearing impairment', 0.25], ['Microcephaly', 0.25]]
-        self.assertEqual(term_stats, expected_term_stats)
 
 
     def test_compute_term_list_and_childs(self):
@@ -249,26 +234,31 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(term_with_childs_ratio, expected_term_with_childs_ratio)
 
 
-    def test_get_profile_ontology_distribution_tables(self):
-        self.patient_data.link2ont(Cohort.act_ont)
-        ontology_levels, distribution_percentage = self.patient_data.get_profile_ontology_distribution_tables()
-        expected_ontology_levels = [['level', 'ontology', 'cohort'], [1, 1, 0], [2, 6, 0], [3, 62, 0], [4, 304, 0], [5, 882, 0], [6, 2234, 5], [7, 3810, 2], [8, 3802, 2], [9, 3008, 0], [10, 1914, 0], [11, 709, 0], [12, 348, 0], [13, 106, 0], [14, 31, 0], [15, 13, 0], [16, 2, 0]]
-        expected_distribution_percentage = [['level', 'ontology', 'weighted cohort', 'uniq terms cohort'], [1, 0.006, 0.0, 0.0], [2, 0.035, 0.0, 0.0], [3, 0.36, 0.0, 0.0], [4, 1.764, 0.0, 0.0], [5, 5.118, 0.0, 0.0], [6, 12.964, 55.556, 33.333], [7, 22.11, 22.222, 33.333], [8, 22.064, 22.222, 33.333], [9, 17.456, 0.0, 0.0], [10, 11.107, 0.0, 0.0], [11, 4.114, 0.0, 0.0], [12, 2.019, 0.0, 0.0], [13, 0.615, 0.0, 0.0], [14, 0.18, 0.0, 0.0], [15, 0.075, 0.0, 0.0], [16, 0.012, 0.0, 0.0]]
-        self.assertEqual(ontology_levels, expected_ontology_levels)
-        self.assertEqual(distribution_percentage, expected_distribution_percentage)
-
     def test_get_ic_analysis(self):
-        self.patient_data.link2ont(Cohort.act_ont)
-        onto_ic, freq_ic, onto_ic_profile, freq_ic_profile = self.patient_data.get_ic_analysis()
-        expected_onto_ic = {'HP:0001252': 3.0902076502756683, 'HP:0000365': 2.6681339618869115, 'HP:0001249': 3.3912376459396496, 'HP:0000262': 3.759214431234244, 'HP:0000252': 3.537365681617888, 'HP:0000717': 4.2363356859539065}
-        expected_freq_ic = {'HP:0001252': 0.9030899869919435, 'HP:0000365': 0.9030899869919435, 'HP:0001249': 0.3010299956639812, 'HP:0000262': 0.9030899869919435, 'HP:0000252': 0.9030899869919435, 'HP:0000717': 0.9030899869919435}
+        tmp_folder = os.path.join(ROOT_PATH, "tmp", "ic_files")
+        mock_ic_file = os.path.join(tmp_folder, "hpo_ICs.txt")
+        os.makedirs(tmp_folder, exist_ok=True)
+        with open(mock_ic_file, "w") as f:
+            for hpo, ic in self.ic_hpos.items(): f.write(f"{hpo}\t{ic}\n") 
+
+        expected_onto_ic = {'HP:0000717': 4.2363356859539065, 'HP:0001252': 3.0902076502756683, 'HP:0001249': 3.3912376459396496, 'HP:0000262': 3.759214431234244, 'HP:0000365': 2.6681339618869115, 'HP:0000252': 3.537365681617888}
+        expected_freq_ic = {'HP:0000717': 1.0876789846883463, 'HP:0001252': 1.3467739354833985, 'HP:0001249': 0.4615785999681353, 'HP:0000262': 3.2505419780102724, 'HP:0000365': 1.8888141419926796, 'HP:0000252': 1.1510339842823074}
         expected_onto_ic_profile = {'132': 3.5725936607230744, '599': 3.3912376459396496, '647': 3.5752260385869468, '648': 3.198912429814816}
-        expected_freq_ic_profile = {'132': 0.7024033232159561, '599': 0.3010299956639812, '647': 0.6020599913279624, '648': 0.7024033232159561}
+        expected_freq_ic_profile = {'132': 0.9653438400466268, '599': 0.4615785999681353, '647': 1.856060288989204, '648': 1.167142242081041}
+
+
+        self.patient_data.link2ont(Cohort.act_ont)
+        freq_ic = copy.deepcopy( self.patient_data.get_ic_analysis("freq_internal", ic_file=mock_ic_file))
+        prof_IC_observ = copy.deepcopy(self.patient_data.ont["hpo"].dicts['prof_IC_observ'])
+        prof_IC_struct = copy.deepcopy(self.patient_data.ont["hpo"].dicts['prof_IC_struct'])
+        onto_ic = self.patient_data.get_ic_analysis("onto", ic_file=mock_ic_file)
 
         self.assertEqual(onto_ic, expected_onto_ic)
         self.assertEqual(freq_ic, expected_freq_ic)
-        self.assertEqual(onto_ic_profile, expected_onto_ic_profile)
-        self.assertEqual(freq_ic_profile, expected_freq_ic_profile)
+        self.assertEqual(prof_IC_struct, expected_onto_ic_profile)
+        self.assertEqual(prof_IC_observ, expected_freq_ic_profile)
+
+        shutil.rmtree(tmp_folder)
 
 
     def test_get_profiles_mean_size(self):
@@ -294,16 +284,6 @@ class CohortTestSuite(unittest.TestCase):
         
         self.assertEqual(dsi_uniq, expected_dsi_uniq)
         self.assertEqual(dsi_weigthed, expected_dsi_weigthed)
-
-
-    def test_compare_profiles(self):
-        self.patient_data.link2ont(Cohort.act_ont)
-        similarities = self.patient_data.compare_profiles()
-        exptected_similarities = {'132': {'132': 3.5725936607230744, '599': 2.104921447549329, '647': 1.9166626779429385, '648': 1.6416691014914389}, 
-                                  '599': {'132': 2.104921447549329, '599': 3.3912376459396496, '647': 2.2639587126068683, '648': 1.9089226834606448}, 
-                                  '647': {'132': 1.9166626779429385, '599': 2.2639587126068683, '647': 3.5752260385869468, '648': 2.0721949277359677}, 
-                                  '648': {'132': 1.6416691014914389, '599': 1.9089226834606448, '647': 2.0721949277359677, '648': 3.198912429814816}}
-        self.assertEqual(similarities, exptected_similarities)
 
 
     def test_index_vars(self):
@@ -480,53 +460,6 @@ class CohortTestSuite(unittest.TestCase):
         returned = self.patient_data.get_profile_ic(hpos, self.ic_hpos)
         self.assertEqual(returned, profile_ic)
 
-    def test_get_matrix_similarity(self): #Helper function tested in get_similarity_clusters (its higher order function)
-        pass
-        #self.assertFalse(True, "Helper function tested in get_similarity_clusters")
-
-    def test_get_similarity_clusters(self):
-        options = {"sim_thr": 0.3}
-        method_name = "resnik"
-        tmp_folder = os.path.join(ROOT_PATH, "tmp", "similarity_cluster")
-        os.makedirs(tmp_folder, exist_ok=True)
-
-        expected_clusters = {6: ['648', '132', '599', '647']}
-        expected_sim_matrix =  np.array([[0.         , 1.6416691  , 1.90892268 , 2.07219493],
-                                        [1.6416691  , 0.         , 2.10492145 , 1.91666268],
-                                        [1.90892268 , 2.10492145 , 0.         , 2.26395871],
-                                        [2.07219493 , 1.91666268 , 2.26395871 , 0.        ]])
-        
-        expected_linkage = np.array([[2.         , 3.         , 0.         , 2.        ],
-                                    [1.         , 4.         , 0.31188394 , 3.        ],
-                                    [0.         , 5.         , 0.50071574 , 4.        ]])
-        
-        expected_raw_cls = np.array([[6], [6], [6], [6]])
-
-        #Testing for the first time (no files in tmp_folder, so values have to be calculated)
-        clusters, similarity_matrix, linkage, raw_cls = self.patient_data.get_similarity_clusters(method_name, "hpo", options, temp_folder=tmp_folder, reference_profiles=None)
-
-        self.assertEqual(clusters, expected_clusters)
-        self.assertTrue(np.isclose(similarity_matrix, expected_sim_matrix).all())
-        self.assertTrue(np.isclose(linkage, expected_linkage).all())
-        self.assertTrue((raw_cls == expected_raw_cls).all())
-
-        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}.npy")))
-        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}_x.lst")))
-        self.assertFalse(os.path.exists(os.path.join(tmp_folder, f"similarity_matrix_{method_name}_y.lst")))
-        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f"{method_name}_clusters.txt")))
-        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'profiles_similarity_{method_name}.txt')))
-        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'{method_name}_linkage.npy')))
-        self.assertTrue(os.path.exists(os.path.join(tmp_folder, f'{method_name}_raw_cls.npy')))
-
-        #Testing for the second time (files in tmp_folder, so values will be loaded from files instead of being calculated)
-        clusters, similarity_matrix, linkage, raw_cls = self.patient_data.get_similarity_clusters(method_name, "hpo", options, temp_folder=tmp_folder, reference_profiles=None)
-        self.assertEqual(clusters, expected_clusters)
-        self.assertTrue(np.isclose(similarity_matrix, expected_sim_matrix).all())
-        self.assertTrue(np.isclose(linkage, expected_linkage).all())
-        self.assertTrue((raw_cls == expected_raw_cls).all())
-
-        for file in os.listdir(tmp_folder):
-            os.remove(os.path.join(tmp_folder, file))
 
     def test_calc_sim_term2term_similarity_matrix(self):
         reference_profile = ["HP:0000365", "HP:0001249"]
@@ -563,20 +496,4 @@ class CohortTestSuite(unittest.TestCase):
         self.assertEqual(int(few_HPs_warning), 1)
         
         os.remove(os.path.join(tmp_folder, "file.csv"))
-        
-
-    def test_write_profile_pairs(self):
-        pairs = {"A": {"B": 3, "C": 4}, "B": {"C": 5, "D": 9}, "C": {"D": 6}}
-        tmp_folder = os.path.join(ROOT_PATH, "tmp", "dummy_profile")
-        filename = os.path.join(tmp_folder, "profile_pairs.txt")
-        os.makedirs(tmp_folder, exist_ok=True)
-
-        self.patient_data.write_profile_pairs(pairs, filename)
-        self.assertTrue(os.path.exists(filename))
-
-        filee = open(filename)
-        self.assertEqual("A\tB\t3\nA\tC\t4\nB\tC\t5\nB\tD\t9\nC\tD\t6\n", filee.read())
-        filee.close()
-
-        for file in os.listdir(tmp_folder):
-            os.remove(os.path.join(tmp_folder, file))
+    

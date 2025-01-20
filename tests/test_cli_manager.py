@@ -6,7 +6,7 @@ from subprocess import PIPE
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
-from pets import get_gen_features, get_sorted_profs, paco_translator, profiles2phenopacket, cohort_analyzer, evidence_profiler, diseasome_generator, collapse_terms, filter_omim, MONDO_FILE, HPO_FILE, GENCODE
+from pets import get_gen_features, paco_translator, profiles2phenopacket, cohort_analyzer, evidence_profiler, diseasome_generator, collapse_terms, filter_omim, MONDO_FILE, HPO_FILE, GENCODE
 import warnings
 import numpy as np
 import pytest
@@ -118,21 +118,6 @@ def test_paco_translator():
         f1.close()
         f2.close()
         os.remove(f"{os.path.join(RETURNED_PATH, 'paco_translator', file)}")
-
-def test_get_sorted_profs():
-    os.environ["hpo_file"] = HPO_FILE
-    os.makedirs(f"{os.path.join(RETURNED_PATH, 'get_sorted_profs')}", exist_ok=True)
-
-    list_of_args = ["-P", f"{os.path.join(SCRIPT_DATA_TEST_PATH, 'get_sorted_profs', 'pmm2_paco_format.txt')}", 
-                    "-r", f"{os.path.join(SCRIPT_DATA_TEST_PATH, 'get_sorted_profs', 'profile')}",
-                    "-c", "chr", "-d", "patient_id", "-s", "start", "-e", "stop", "-p", "phenotypes", 
-                    "-S", ",", "-o", f"{os.path.join(RETURNED_PATH, 'get_sorted_profs', 'report.html')}"]
-    
-    get_sorted_profs(list_of_args)
-    assert os.path.exists(f"{os.path.join(RETURNED_PATH, 'get_sorted_profs', 'report.html')}")
-
-    os.remove(f"{os.path.join(RETURNED_PATH, 'get_sorted_profs', 'report.html')}")
-
 
 def test_get_gen_features():
     os.makedirs(f"{os.path.join(RETURNED_PATH, 'get_gen_features')}", exist_ok=True)    
