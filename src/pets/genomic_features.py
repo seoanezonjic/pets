@@ -39,6 +39,7 @@ class Genomic_Feature:
             for ft_list in feat_list:
                 feat_len = len(ft_list)
                 self.reg_id +=1
+                if feat_len < 3: continue
                 if feat_len == 4:
                     chrm, start, stop, to = ft_list
                     r_id = to
