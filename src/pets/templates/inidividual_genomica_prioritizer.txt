@@ -1,0 +1,18 @@
+# Generar aquí los siguientes casos.
+
+# Por lo que he visto, copiarme descaradamente del phenogenius report.
+
+# Hacerlo de modo que esto sea útil tanto para genes (si se dice que es de genes) como de variantes (si se dice que es de variantes)
+# Tabla de top para genes.
+
+# Distribución de valores de score.
+
+# Distribución de valores de features numéricas.
+
+# Para categóricas -> Hacer un diagrama de cuanto hay en total y top.
+
+# Comparación de correlación entre features (con comparación entre total y top).
+
+# Colocar un sistema con sus clicks en los que añadir los genes correspondientes con los datos que se consideren oportunos
+
+

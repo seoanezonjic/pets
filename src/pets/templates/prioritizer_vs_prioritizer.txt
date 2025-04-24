@@ -1,0 +1,4 @@
+# Hacerlo para el caso de variantes y para ell caso de gene sque siga siendo compatible.
+# Corrplot de la semejanza en scores
+# PCA 
+# Corrplot de las semenjanzas de features???

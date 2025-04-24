@@ -14,6 +14,7 @@ from pets.io import write_tabulated_data, load_profiles, load_variants, load_evi
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.reference_parser import Reference_parser
 from pets.parsers.coord_parser import Coord_Parser
+from pets.genomic_prioritizer import GenomicPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer
 from py_exp_calc.exp_calc import invert_hash, uniq
 from py_semtools.ontology import Ontology
 from py_semtools.sim_handler import similitude_network
@@ -430,6 +431,23 @@ def main_evidence_profiler(opts):
             hotspots_with_pat_vars,
             template, options["output_folder"]
         )
+
+def main_report_prioritizer(opts):
+    options = vars(opts)
+    
+    for prioritizer, path2folder_results in options["prioritizers"].items():
+        if prioritizer == "phen2gene":
+            prioritizer = Phen2GenePrioritizer()
+        elif prioritizer == "gado":
+            prioritizer = GadoPrioritizer()
+        elif prioritizer == "phenogenius":
+            prioritizer = PhenogeniusPrioritizer()
+        elif prioritizer == "default":
+            prioritizer = DefaultGenomicPrioritizer()
+        else:
+            raise Exception(f"Unknown prioritizer: {prioritizer}")
+        prioritizer.post_process(path2folder_results, 
+                         write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
 
 #############################################################################################
 ## METHODS

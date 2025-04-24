@@ -1,0 +1,5 @@
+# Una opción es hacer lo mismo prácticamente que se hace con las individuales. 
+# Eliminando lo que sea demasiado costoso computacinalmente.
+# Probablemente la mayoría de aspectostenga que precomputarlos. Pero vueno es. Aquí nos mantemeos sencillos.
+
+# Me gustaría una gráfica de qué genes son los más resaltados entre todos los tops.

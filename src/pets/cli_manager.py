@@ -6,6 +6,12 @@ def tolist(string):
   if string == "": return []
   return string.split(',')
 
+def double_split(string, sep1=";", sep2=","):
+    return [sublst.split(sep2) for sublst in string.strip().split(sep1)]
+
+def loading_dic(string, sep1=";", sep2=","):
+    return {key: value for key, value in double_split(string, sep1=sep1, sep2=sep2)}
+
 ##############################################
 #Add parser common options
 def add_parser_commom_options(parser):
@@ -279,3 +285,23 @@ def collapse_terms(args=None):
     opts = parser.parse_args(args)
 
     main_collapse_terms(opts)
+
+def report_prioritizer(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    add_parser_commom_options(parser)
+
+    parser.add_argument("--prioritizers", dest="prioritizers", default= None, type=lambda x: loading_dic(x, sep1=";", sep2=","),
+                    help="Format prioritizer:path_to_prioritizer_file")
+    parser.add_argument("--integrated_report", dest="integrated_report", default= None,
+                    help="Path to the integrated report file")
+    parser.add_argument("--comparing_report", dest="report", default= None, 
+                    help="Path to the comparing report file")
+    parser.add_argument("--read_tmp",dest="read_tmp",default=False, action="store_true",
+                        help="Read processed file for report analysis")
+    parser.add_argument("--write_tmp",dest="write_tmp",default=None, type=str,
+                    help="Write processed file for report analysis. This flag cancel the posterior report analysis")
+    
+    
+    opts = parser.parse_args(args)
+    main_report_prioritizer(opts)
