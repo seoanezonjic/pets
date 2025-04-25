@@ -301,6 +301,8 @@ def report_prioritizer(args=None):
                         help="Read processed file for report analysis")
     parser.add_argument("--write_tmp",dest="write_tmp",default=None, type=str,
                     help="Write processed file for report analysis. This flag cancel the posterior report analysis")
+    parser.add_argument("--benchmark_type",dest="benchmark_type",default="gene", type=str,
+                    help="Choose type of benchmark. Choose between 'gene' and 'variant', or both. Options: 'variant', 'gene', 'both'")
     
     
     opts = parser.parse_args(args)

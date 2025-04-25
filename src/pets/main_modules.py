@@ -14,7 +14,7 @@ from pets.io import write_tabulated_data, load_profiles, load_variants, load_evi
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.reference_parser import Reference_parser
 from pets.parsers.coord_parser import Coord_Parser
-from pets.genomic_prioritizer import GenomicPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer
+from pets.genomic_prioritizer import GenomicPrioritizer, AimarrvelPrioritizer, LiricalPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, ExomiserPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer
 from py_exp_calc.exp_calc import invert_hash, uniq
 from py_semtools.ontology import Ontology
 from py_semtools.sim_handler import similitude_network
@@ -444,10 +444,20 @@ def main_report_prioritizer(opts):
             prioritizer = PhenogeniusPrioritizer()
         elif prioritizer == "default":
             prioritizer = DefaultGenomicPrioritizer()
+        elif prioritizer == "exomiser":
+            prioritizer = ExomiserPrioritizer()
+        elif prioritizer == "aimarrvel":
+            prioritizer = AimarrvelPrioritizer()
+        elif prioritizer == "lirical":
+            prioritizer = LiricalPrioritizer()
         else:
             raise Exception(f"Unknown prioritizer: {prioritizer}")
-        prioritizer.post_process(path2folder_results, 
-                         write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+        if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
+            prioritizer.post_process_results_genes(path2folder_results, 
+                             write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+        elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
+            prioritizer.post_process_results_variants(path2folder_results, 
+                             write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
 
 #############################################################################################
 ## METHODS
