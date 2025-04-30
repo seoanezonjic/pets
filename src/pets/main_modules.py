@@ -467,8 +467,14 @@ def main_report_prioritizer(opts):
                 # Report the maximum comparison
                 pass
             else:
-                # Report for N patient 1 tool
-                pass
+                first_prioritizer = list(prioritizer.values())[0]
+                prio_table, quantitative_feature, qualitative_feature = first_prioritizer.get_combined_results(options["benchmark_type"])
+                container = {
+                    "quantitative": quantitative_feature,
+                    "qualitative": qualitative_feature,
+                    "prio_table": prio_table
+                }
+                template="integrated_by_patient_prioreport.txt"
         else:
             first_prioritizer = list(prioritizer.values())[0]
 
@@ -486,9 +492,9 @@ def main_report_prioritizer(opts):
             }
             template="individual_prioreport.txt"
 
-    report = Py_report_html(container)
-    report.build(open(str(files('pets.templates').joinpath(template))).read())
-    report.write(options["output_file"] + '.html')
+        report = Py_report_html(container)
+        report.build(open(str(files('pets.templates').joinpath(template))).read())
+        report.write(options["output_file"] + '.html')
 
         
     

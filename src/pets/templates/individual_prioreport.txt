@@ -3,12 +3,11 @@
         import numpy as np
 %>
 <% 
-    plotter.hash_vars["prio_table"] = plotter.df_to_numeric(plotter.hash_vars["prio_table"], [0,1] + plotter.hash_vars["quantitative"])
-    print(plotter.hash_vars["prio_table"])
+    all_numeric = [0,1]
+    if plotter.hash_vars["quantitative"]: all_numeric += plotter.hash_vars["quantitative"]
+    plotter.hash_vars["prio_table"] = plotter.df_to_numeric(plotter.hash_vars["prio_table"], all_numeric)
     plotter.hash_vars["prio_table_top100"] = plotter.get_top_rank(plotter.hash_vars["prio_table"], 100) 
-    print(plotter.hash_vars["prio_table_top100"])
     colnames = list(plotter.hash_vars["prio_table_top100"].columns)
-    print(colnames)
 %>
 <% plotter.set_header() %>
 ${plotter.create_title("Individual Report", id='main_title', hlevel=2, indexable=True, clickable=False)}
@@ -26,7 +25,7 @@ ${plotter.make_title("table", "top_gene_table", "Top 100 candidates associated w
                                 'class' : "table table-striped table-dark"})}
 </div>
 
-
+% if plotter.hash_vars["qualitative"]:
 ${plotter.create_title("Distribution for each categorical variable", id='top_candidates', hlevel=2, indexable=True, clickable=False)}
 % for cat_idx in plotter.hash_vars["qualitative"]:
     <%
@@ -84,6 +83,7 @@ ${plotter.create_title("Distribution for each categorical variable", id='top_can
     ${plotter.create_title(f"Category: {categorical_name}", id=f"table_pie{categorical_name}i", indexable=False, clickable=True, hlevel=2, t_id=f"table_pie_{categorical_name}")}
     ${plotter.create_collapsable_container(f"table_pie_{categorical_name}", txt)}
 % endfor
+% endif
 
 % if plotter.hash_vars["quantitative"]:
 ${plotter.create_title("Quantitative correlation", id='top_gene', hlevel=2, indexable=True, clickable=False)}
@@ -111,11 +111,13 @@ ${plotter.make_title("figure", "corr", "Spearman correlation between the quantit
 % endif
 
 % if plotter.hash_vars["qualitative"] or plotter.hash_vars["quantitative"]:
+${plotter.create_title("Detailed information top candidates", id='top_gene', hlevel=2, indexable=True, clickable=False)}
 % for i in range(0,25):
     <%
         txt = f""
-        if plotter.hash_vars["qualitative"]:
+        if plotter.hash_vars["quantitative"]:
             plotter.hash_vars["table_candidate_quant"] = list(plotter.hash_vars["prio_table_top100"].iloc[i,plotter.hash_vars["quantitative"]].items())
+            plotter.hash_vars["table_candidate_quant"].insert(0, ["Quantitative variables", "Value"])
             title_quant = plotter.make_title("table", f"table_quant_{i}", f"Quantitative variables")
             table_quant = plotter.table(id="table_candidate_quant", header=True, text=True, title="", row_names=False, fields=[0,1], styled='dt', border=2, attrib={'class': "table table-striped table-dark"})
             txt += """<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">""" + "\n"
@@ -123,8 +125,9 @@ ${plotter.make_title("figure", "corr", "Spearman correlation between the quantit
             txt += table_quant + "\n"
             txt += "</div>" + "\n"
         
-        if plotter.hash_vars["quantitative"]:
+        if plotter.hash_vars["qualitative"]:
             plotter.hash_vars["table_candidate_qual"] = list(plotter.hash_vars["prio_table_top100"].iloc[i,plotter.hash_vars["qualitative"]].items())
+            plotter.hash_vars["table_candidate_qual"].insert(0, ["Qualitative variables", "Value"])
             title_qual = plotter.make_title("table", f"table_qual_{i}", f"Qualitative variables")
             table_qual = plotter.table(id="table_candidate_qual", header=True, text=True, title="", row_names=False, fields=[0,1], styled='dt', border=2, attrib={'class': "table table-striped table-dark"})
             txt += """<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">""" + "\n"

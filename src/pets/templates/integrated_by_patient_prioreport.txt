@@ -1,5 +1,16 @@
-# Una opción es hacer lo mismo prácticamente que se hace con las individuales. 
-# Eliminando lo que sea demasiado costoso computacinalmente.
-# Probablemente la mayoría de aspectostenga que precomputarlos. Pero vueno es. Aquí nos mantemeos sencillos.
+<%
+        import pandas as pd
+        import numpy as np
+%>
+<% 
+    all_numeric = [0,1]
 
-# Me gustaría una gráfica de qué genes son los más resaltados entre todos los tops.
+    if plotter.hash_vars["quantitatives"]: 
+        all_numeric += plotter.hash_vars["quantitatives"]
+    
+    plotter.hash_vars["prio_table"] = plotter.df_to_numeric(plotter.hash_vars["prio_table"], all_numeric)
+    plotter.hash_vars["prio_table_top100"] = plotter.get_top_rank(plotter.hash_vars["prio_table"], 100) 
+    colnames = list(plotter.hash_vars["prio_table_top100"].columns)
+%>
+<% plotter.set_header() %>
+${plotter.create_title("Integrated Report By Patient", id='main_title', hlevel=2, indexable=True, clickable=False)}
