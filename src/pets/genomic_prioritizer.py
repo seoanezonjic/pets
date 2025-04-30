@@ -45,6 +45,8 @@ class GenomicPrioritizer:
         self.patient2gene_results = {}
         self.priot_type = ["gene", "variant"]
         self.identifier_translator = {}
+        self.quant_features_idx = {}
+        self.qual_features_idx = {}
 
     def load_identifier_tanslator(self, source_id, target_id):
         self.identifier_translator[(source_id, target_id)] = {}
@@ -82,6 +84,8 @@ class Phen2GenePrioritizer(GenomicPrioritizer):
     def __init__(self):
         super().__init__() 
         self.priot_type = ["gene"] 
+        self.quant_features_idx = {}
+        self.qual_features_idx = {}
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
@@ -103,6 +107,8 @@ class Phen2GenePrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_proccesed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f], pf)
+            self.quant_features_idx[f] = None
+            self.qual_features_idx[f] = [4]
     
     def get_result_gene(self, df, rank=0, gene={"gene_symbol": 1}, score=3, quali_feature=[4], quant_feature=[]):
         """
@@ -131,6 +137,8 @@ class GadoPrioritizer(GenomicPrioritizer):
     def __init__(self):
         super().__init__() 
         self.priot_type = ["gene"] 
+        self.quant_features_idx = {}
+        self.qual_features_idx = {}
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
@@ -152,7 +160,9 @@ class GadoPrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_proccesed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f], pf)
-    
+            self.quant_features_idx[f] = None
+            self.qual_features_idx[f] = list(range(4,self.patient2gene_results[f].shape[1]))
+
     def get_result_gene(self, df, rank=0, gene={"gene_symbol": 1}, score=3, quali_feature=[4], quant_feature=[]):
         """
         Process the data from the raw results directory.
@@ -174,6 +184,8 @@ class PhenogeniusPrioritizer(GenomicPrioritizer):
     def __init__(self):
         super().__init__() 
         self.priot_type = ["gene"] 
+        self.quant_features_idx = {}
+        self.qual_features_idx = {}
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
@@ -195,6 +207,8 @@ class PhenogeniusPrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_proccesed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f], pf)
+            self.quant_features_idx[f] = list(range(4,self.patient2gene_results[f].shape[1]-1))
+            self.qual_features_idx[f] = [self.patient2gene_results[f].shape[1]]
     
     def _get_hpos_scores(self, row, col=4):
         hpos_scores = re.sub("\[|\]|{|}","",row[col]).split(",")
@@ -264,6 +278,8 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
     def __init__(self):
         super().__init__() 
         self.priot_type = ["gene", "variant"] 
+        self.quant_features_idx = {}
+        self.qual_features_idx = {}
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
@@ -288,6 +304,8 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_proccesed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f], pf)
+            self.quant_features_idx[f] = None
+            self.qual_features_idx[f] = None
 
     def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
         files = os.listdir(raw_results_dir)
@@ -308,6 +326,8 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_proccesed"), 'wb') as pf:
                         pickle.dump(self.patient2variant_results[f], pf)
+            self.quant_features_idx[f] = None
+            self.qual_features_idx[f] = None
 
     def get_result_gene(self, df, rank=107, gene={"gene_symbol": 111, "ensemble_id": 112}, score=105, quali_feature=[], quant_feature=[]):
         processed_data = pd.DataFrame()
@@ -351,6 +371,8 @@ class LiricalPrioritizer(GenomicPrioritizer):
     def __init__(self):
         super().__init__() 
         self.priot_type = ["gene", "variant"] 
+        self.quant_features_idx = {}
+        self.qual_features_idx = {}
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
@@ -390,6 +412,9 @@ class LiricalPrioritizer(GenomicPrioritizer):
                     with open(os.path.join(write_tmp, f+"_proccesed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f], pf)
 
+            self.quant_features_idx[f] = [4,5]
+            self.qual_features_idx[f] = [6,7]
+
     def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
         Post-process the gene results from the raw results directory.
@@ -427,7 +452,8 @@ class LiricalPrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_proccesed"), 'wb') as pf:
                         pickle.dump(self.patient2variant_results[f], pf)
-
+            self.quant_features_idx[f] = [8,9,10]
+            self.qual_features_idx[f] = [11,12]
 
     def get_result_gene(self, df):
         processed_data = pd.DataFrame()
@@ -480,6 +506,9 @@ class LiricalPrioritizer(GenomicPrioritizer):
                 processed_data["pathogenicityScore"].append(float(var_data["pathogenicity"]))
                 for feature in ["pretestprob", "posttestprob", "diseaseName", "diseaseCurie"]:
                     processed_data[feature].append(row[feature])
+
+                # quanti : [7,8,9]
+                # quali: [10,11,12]
         processed_data = pd.DataFrame.from_dict(processed_data)
         processed_data = processed_data[[*cols_of_interset]]
         return processed_data
@@ -489,6 +518,8 @@ class ExomiserPrioritizer(GenomicPrioritizer):
     def __init__(self):
         super().__init__() 
         self.priot_type = ["gene", "variant"] 
+        self.quant_features_idx = {}
+        self.qual_features_idx = {}
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
@@ -511,6 +542,8 @@ class ExomiserPrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_proccesed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f], pf)
+            self.quant_features_idx[f] = [4,5,6,7]
+            self.qual_features_idx[f] = None
     
     def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
         files = os.listdir(raw_results_dir)
@@ -529,6 +562,8 @@ class ExomiserPrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_proccesed"), 'wb') as pf:
                         pickle.dump(self.patient2variant_results[f], pf)
+            self.quant_features_idx[f] =  [8,9,10,11]
+            self.qual_features_idx[f] = None  
 
     def get_result_variant(self, json_results):
         data = {"gene_symbol": [], "ensembl_id": [], "score": [], "priorityScore": [], "pValue": [], "hiphive_score": [], "omim_score": [], 

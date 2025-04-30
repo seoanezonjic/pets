@@ -303,7 +303,7 @@ def report_prioritizer(args=None):
                     help="Write processed file for report analysis. This flag cancel the posterior report analysis")
     parser.add_argument("--benchmark_type",dest="benchmark_type",default="gene", type=str,
                     help="Choose type of benchmark. Choose between 'gene' and 'variant', or both. Options: 'variant', 'gene', 'both'")
-    
-    
+    parser.add_argument("-o", "--output_file", dest="output_file", default= "report_prioritizer", 
+                    help="Path to the output file to write results")
     opts = parser.parse_args(args)
     main_report_prioritizer(opts)

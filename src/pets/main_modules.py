@@ -7,6 +7,7 @@ import requests
 import numpy as np
 from py_report_html import Py_report_html
 import pets
+import pets.report_pets
 from pets.cohort_analyser_methods import *
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
@@ -435,29 +436,62 @@ def main_evidence_profiler(opts):
 def main_report_prioritizer(opts):
     options = vars(opts)
     
-    for prioritizer, path2folder_results in options["prioritizers"].items():
-        if prioritizer == "phen2gene":
-            prioritizer = Phen2GenePrioritizer()
-        elif prioritizer == "gado":
-            prioritizer = GadoPrioritizer()
-        elif prioritizer == "phenogenius":
-            prioritizer = PhenogeniusPrioritizer()
-        elif prioritizer == "default":
-            prioritizer = DefaultGenomicPrioritizer()
-        elif prioritizer == "exomiser":
-            prioritizer = ExomiserPrioritizer()
-        elif prioritizer == "aimarrvel":
-            prioritizer = AimarrvelPrioritizer()
-        elif prioritizer == "lirical":
-            prioritizer = LiricalPrioritizer()
+    prioritizer = {}
+    for prioritizer_type, path2folder_results in options["prioritizers"].items():
+        if prioritizer_type == "phen2gene":
+            prioritizer[(prioritizer_type, path2folder_results)] = Phen2GenePrioritizer()
+        elif prioritizer_type == "gado":
+            prioritizer[(prioritizer_type, path2folder_results)] = GadoPrioritizer()
+        elif prioritizer_type == "phenogenius":
+            prioritizer[(prioritizer_type, path2folder_results)] = PhenogeniusPrioritizer()
+        elif prioritizer_type == "exomiser":
+            prioritizer[(prioritizer_type, path2folder_results)] = ExomiserPrioritizer()
+        elif prioritizer_type == "aimarrvel":
+            prioritizer[(prioritizer_type, path2folder_results)] = AimarrvelPrioritizer()
+        elif prioritizer_type == "lirical":
+            prioritizer[(prioritizer_type, path2folder_results)] = LiricalPrioritizer()
+        elif prioritizer_type == "default":
+            prioritizer[(prioritizer_type, path2folder_results)] = DefaultGenomicPrioritizer()
         else:
             raise Exception(f"Unknown prioritizer: {prioritizer}")
         if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
-            prioritizer.post_process_results_genes(path2folder_results, 
+            prioritizer[(prioritizer_type, path2folder_results)].post_process_results_genes(path2folder_results, 
                              write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
         elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
-            prioritizer.post_process_results_variants(path2folder_results, 
+            prioritizer[(prioritizer_type, path2folder_results)].post_process_results_variants(path2folder_results, 
                              write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+
+    if not options["write_tmp"]:
+        if options["integrated_report"]:
+            if len(prioritizer.keys()) > 1:
+                # Report the maximum comparison
+                pass
+            else:
+                # Report for N patient 1 tool
+                pass
+        else:
+            first_prioritizer = list(prioritizer.values())[0]
+
+            quantitative_feature = list(first_prioritizer.quant_features_idx.values())[0]
+            qualitative_feature = list(first_prioritizer.qual_features_idx.values())[0]
+            if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
+                prio_table = list(first_prioritizer.patient2gene_results.values())[0] 
+            elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
+                prio_table = list(first_prioritizer.patient2variant_results.values())[0] 
+
+            container = {
+                "quantitative": quantitative_feature,
+                "qualitative": qualitative_feature,
+                "prio_table": prio_table
+            }
+            template="individual_prioreport.txt"
+
+    report = Py_report_html(container)
+    report.build(open(str(files('pets.templates').joinpath(template))).read())
+    report.write(options["output_file"] + '.html')
+
+        
+    
 
 #############################################################################################
 ## METHODS
