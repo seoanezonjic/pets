@@ -15,7 +15,7 @@ from pets.io import write_tabulated_data, load_profiles, load_variants, load_evi
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.reference_parser import Reference_parser
 from pets.parsers.coord_parser import Coord_Parser
-from pets.genomic_prioritizer import GenomicPrioritizer, AimarrvelPrioritizer, LiricalPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, ExomiserPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer
+from pets.genomic_prioritizer import GenomicPrioritizer, AimarrvelPrioritizer, LiricalPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, ExomiserPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer
 from py_exp_calc.exp_calc import invert_hash, uniq
 from py_semtools.ontology import Ontology
 from py_semtools.sim_handler import similitude_network
@@ -465,7 +465,10 @@ def main_report_prioritizer(opts):
         if options["integrated_report"]:
             if len(prioritizer.keys()) > 1:
                 # Report the maximum comparison
-                pass
+                metaprioritizer = MetaGenomicPrioritizer(prioritizer)
+                metaprioritizer.merge_results(type=options["benchmark_type"])
+                #prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(options["benchmark_type"])
+                raise "NotImplementedError: integrated report not implemented yet"
             else:
                 first_prioritizer = list(prioritizer.values())[0]
                 prio_table, quantitative_feature, qualitative_feature = first_prioritizer.get_combined_results(options["benchmark_type"])
@@ -474,9 +477,6 @@ def main_report_prioritizer(opts):
                     "qualitative": qualitative_feature,
                     "prio_table": prio_table
                 }
-                print(prio_table)
-                print(quantitative_feature)
-                print(qualitative_feature)
                 template="integrated_by_patient_prioreport.txt"
         else:
             first_prioritizer = list(prioritizer.values())[0]

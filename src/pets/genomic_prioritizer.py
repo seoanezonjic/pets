@@ -647,7 +647,6 @@ class ExomiserPrioritizer(GenomicPrioritizer):
             data["gene_symbol"].append(row["geneIdentifier"]["geneSymbol"])
             data["ensembl_id"].append(row["geneIdentifier"]["geneId"])
             data["score"].append(row["combinedScore"])
-            print(row)
             data["priorityScore"].append(row.get("priorityScore",None))
             data["pValue"].append(row["pValue"])
             data["hiphive_score"].append(row["priorityResults"]["HIPHIVE_PRIORITY"].get("score"))
@@ -663,6 +662,61 @@ class ExomiserPrioritizer(GenomicPrioritizer):
 
         return processed_data
 
+class MetaGenomicPrioritizer:
+    def __init__(self, prioritizers):
+        self.prioritizers = prioritizers # prioritizer_name -> prioritizer_instance
+        self.merged_gene_results = {}
+        self.merged_variant_results = {}
+        self.model = None
+        self.feature_columns = []  # columns used as features
 
+    def merge_results(self, type="gene"):
+        # Mapping type to attributes
+        id_candidates = {"gene": "ensembl_id", "variant": "varId"}
+        results_attr = {"gene": "patient2gene_results", "variant": "patient2variant_results"}
+        merged_attr = {"gene": "merged_gene_results", "variant": "merged_variant_results"}
 
+        if type not in id_candidates:
+            raise ValueError(f"Invalid type: {type}")
 
+        id_candidate = id_candidates[type]
+        results_key = results_attr[type]
+        merged_key = merged_attr[type]
+
+        # Collect all patients
+        all_patients = set()
+        for prioritizer in self.prioritizers.values():
+            all_patients.update(getattr(prioritizer, results_key).keys())
+        all_patients = sorted(list(all_patients))
+
+        # Ensure every prioritizer has an entry for every patient
+        for patient in all_patients:
+            for prioritizer in self.prioritizers.values():
+                results_dict = getattr(prioritizer, results_key)
+                if patient not in results_dict:
+                    results_dict[patient] = pd.DataFrame()
+
+        # Merge per patient
+        merged_results = {}
+        for patient in all_patients:
+            dfs = [getattr(prioritizer, results_key)[patient] for prioritizer in self.prioritizers.values()]
+            
+            if not dfs or dfs[0].empty:
+                merged_results[patient] = pd.DataFrame()
+                continue
+
+            # find common columns
+            common_cols = set(dfs[0].columns)
+            for df in dfs[1:]:
+                common_cols &= set(df.columns)
+            dfs_common = [df[list(common_cols)] for df in dfs]
+
+            # merge on id_candidate
+            merged = dfs_common[0]
+            for df in dfs_common[1:]:
+                merged = pd.merge(merged, df, on=id_candidate, how='outer')
+
+            merged_results[patient] = merged
+
+        # assign to attribute
+        setattr(self, merged_key, merged_results)
