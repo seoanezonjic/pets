@@ -96,8 +96,14 @@ class GenomicPrioritizer:
         # Now we order the columns respecting the original order
         combined_df = combined_df[first_feat + quant_features + qual_features + ["pat_number"]]
         # Now we obtain the indexes
-        quant_idx = list(range(len(first_feat), len(first_feat) + len(quant_features)))
-        qual_idx = list(range(quant_idx[1], quant_idx[1] + len(qual_features)))
+        final_idx = len(first_feat)
+        quant_idx = None
+        qual_idx = None
+        if quant_features:
+            quant_idx = list(range(final_idx, final_idx + len(quant_features)))
+            final_idx += len(quant_features)
+        if qual_features:
+            qual_idx = list(range(final_idx, final_idx + len(qual_features)))
         return combined_df, quant_idx, qual_idx
 
 
@@ -252,18 +258,17 @@ class PhenogeniusPrioritizer(GenomicPrioritizer):
             self.qual_features_idx[f] = [self.patient2gene_results[f].shape[1]-1]
     
     def _get_hpos_scores(self, row, col=4):
-        hpos_scores = re.sub("\[|\]|{|}","",row[col]).split(",")
+        pattern = r"'\s*([^']*?)\s*'\s*:\s*([0-9.]+)"
+        matches = re.findall(pattern, row[col])
         hpos = []
         scores = []
-        if hpos_scores == ['']:
+        if not matches:
             return hpos, scores
         else:
-            for hpo_score in hpos_scores:
-                hpo, score = hpo_score.split(": ")
-                hpo = hpo.replace("'", "")
+            for hpo, score in matches:
                 hpo = hpo.strip()
-                hpos.append(hpo)
                 scores.append(score)
+                hpos.append(hpo)
         return hpos, scores
 
     def get_hpo_table(self, row):
@@ -594,7 +599,7 @@ class ExomiserPrioritizer(GenomicPrioritizer):
                     self.patient2variant_results[f] = pickle.load(pf)
             else:
                 json_results = pd.read_csv(os.path.join(raw_results_dir, f), sep="\t")
-                with open(os.path.join(raw_results_dir, file)) as f:
+                with open(os.path.join(raw_results_dir, f)) as file:
                     json_results = json.load(file)
                 self.patient2variant_results[f] = self.get_result_variant(json_results)
                 # Save the processed data
@@ -625,7 +630,7 @@ class ExomiserPrioritizer(GenomicPrioritizer):
                 data["score"].append(row["combinedScore"])
                 data["pValue"].append(row["pValue"])
                 data["hiphive_score"].append(row["priorityResults"]["HIPHIVE_PRIORITY"].get("score"))
-                data["omim_score"].append(row["priorityResults"]["OMIM_PRIORITY"]["score"])
+                data["omim_score"].append(row["priorityResults"]["OMIM_PRIORITY"].get("score"))
         ranking = get_rank_metrics(data["score"], data["varIdUniq"])
         ranking = {row[0]:row[3] for row in ranking}
         data["rank"] = [ranking[gene] for gene in data["varIdUniq"]]
@@ -642,10 +647,11 @@ class ExomiserPrioritizer(GenomicPrioritizer):
             data["gene_symbol"].append(row["geneIdentifier"]["geneSymbol"])
             data["ensembl_id"].append(row["geneIdentifier"]["geneId"])
             data["score"].append(row["combinedScore"])
-            data["priorityScore"].append(row["priorityScore"])
+            print(row)
+            data["priorityScore"].append(row.get("priorityScore",None))
             data["pValue"].append(row["pValue"])
-            data["hiphive_score"].append(row["priorityResults"]["HIPHIVE_PRIORITY"]["score"])
-            data["omim_score"].append(row["priorityResults"]["OMIM_PRIORITY"]["score"])
+            data["hiphive_score"].append(row["priorityResults"]["HIPHIVE_PRIORITY"].get("score"))
+            data["omim_score"].append(row["priorityResults"]["OMIM_PRIORITY"].get("score"))
         ranking = get_rank_metrics(data["score"], data["ensembl_id"])
         genes = [row[0] for row in ranking]
         ranking = {row[0]:row[3] for row in ranking}

@@ -51,6 +51,11 @@ def df_to_numeric(self, table, numeric_cols):
         col_name = table.columns[idx]
         table[col_name] = pd.to_numeric(table[col_name], errors='coerce')
     return table
+
+def df_to_list(self, df):
+    l = df.values.tolist()
+    l.insert(0, df.columns.tolist())
+    return l
      
 
 #### METHODS FOR SIMILARITY MATRIX HEATMAP
@@ -61,3 +66,4 @@ Py_report_html.get_top_rank = get_top_rank
 Py_report_html.get_corr_table = get_corr_table
 Py_report_html.make_title = make_title
 Py_report_html.df_to_numeric = df_to_numeric
+Py_report_html.df_to_list = df_to_list

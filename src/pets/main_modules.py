@@ -474,6 +474,9 @@ def main_report_prioritizer(opts):
                     "qualitative": qualitative_feature,
                     "prio_table": prio_table
                 }
+                print(prio_table)
+                print(quantitative_feature)
+                print(qualitative_feature)
                 template="integrated_by_patient_prioreport.txt"
         else:
             first_prioritizer = list(prioritizer.values())[0]

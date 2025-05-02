@@ -293,8 +293,8 @@ def report_prioritizer(args=None):
 
     parser.add_argument("--prioritizers", dest="prioritizers", default= None, type=lambda x: loading_dic(x, sep1=";", sep2=","),
                     help="Format prioritizer:path_to_prioritizer_file")
-    parser.add_argument("--integrated_report", dest="integrated_report", default= None,
-                    help="Path to the integrated report file")
+    parser.add_argument("--integrated_report", dest="integrated_report", default= False, action="store_true",
+                    help="Select if integration is needed")
     parser.add_argument("--comparing_report", dest="report", default= None, 
                     help="Path to the comparing report file")
     parser.add_argument("--read_tmp",dest="read_tmp",default=False, action="store_true",
