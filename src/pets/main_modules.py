@@ -742,6 +742,10 @@ def get_collapsed_with_unique_parents(ontology, terms_to_parents_collapsed, rm_c
     return collapsed_with_unique_parents
 
 def main_phenPatMaster(opts):
+    # TODO: Refactor this creating a parser and writer of phenopackets and integrate Cohort class to perform this operations
+    hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
+    ontology = Ontology(file= hpo_file, load_file = True) 
+
     phenopacket_files=glob.glob(os.path.join(opts.input_folder, '*.json'))
     count = 1
     pp_dict = dict()
@@ -758,6 +762,24 @@ def main_phenPatMaster(opts):
                 for gen_inter in genomic_inter:
                     gen_inter['subjectOrBiosampleId'] = new_id
         count += 1
+        
+        if opts.clean_phen:
+            pp_phens = phenopacket['phenotypicFeatures']
+            phens = []
+            neg_phens = [] # HPOs that has NOT present the patient
+            for ph in pp_phens:
+                hp_code = ph["type"]['id']
+                if ph.get("excluded"):
+                    neg_phens.append(hp_code)
+                else:
+                    phens.append(hp_code)
+
+            phens = ontology.clean_profile_hard(phens)
+            neg_phen_defs, _ = ontology.check_ids(neg_phens)
+            pp_phens = []
+            for hp in phens: pp_phens.append({'type':{'id': hp , 'label': ontology.translate_id(hp) }})
+            for hp in neg_phen_defs: pp_phens.append({'type':{'id': hp , 'label': ontology.translate_id(hp) }, 'excluded': True })
+            phenopacket['phenotypicFeatures'] = pp_phens
 
         json_object = json.dumps(phenopacket, indent=4)
         if opts.overwrite_file_name:

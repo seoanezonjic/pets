@@ -319,7 +319,8 @@ def phenPatMaster(args=None):
                     help="Generate automatic id for phenopackets. it will used in ALL id fields.")
     parser.add_argument("--overwrite_file_name", dest="overwrite_file_name", default= False, action = 'store_true',
                     help="When used, the output phenopacket uses phenopacket id as file name.")
-
+    parser.add_argument("--clean_phen", dest="clean_phen", default= False, action = 'store_true',
+                    help="When used, check HP terms, update obsolete and remove parental relations.")
     opts = parser.parse_args(args)
 
     main_phenPatMaster(opts)
