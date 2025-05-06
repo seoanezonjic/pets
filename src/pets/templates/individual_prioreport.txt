@@ -1,0 +1,142 @@
+<%
+        import pandas as pd
+        import numpy as np
+%>
+<% 
+    all_numeric = [0,1]
+    if plotter.hash_vars["quantitative"]: all_numeric += plotter.hash_vars["quantitative"]
+    plotter.hash_vars["prio_table"] = plotter.df_to_numeric(plotter.hash_vars["prio_table"], all_numeric)
+    plotter.hash_vars["prio_table_top100"] = plotter.get_top_rank(plotter.hash_vars["prio_table"], 100) 
+    colnames = list(plotter.hash_vars["prio_table_top100"].columns)
+%>
+<% plotter.set_header() %>
+${plotter.create_title("Individual Report", id='main_title', hlevel=2, indexable=True, clickable=False)}
+
+${plotter.create_title("Top Candidates", id='top_candidates', hlevel=2, indexable=True, clickable=False)}
+${plotter.make_title("table", "top_gene_table", "Top 100 candidates associated with the phenotypes")}
+<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">
+        <%
+            table_top = plotter.hash_vars["prio_table_top100"].values.tolist()
+            table_top.insert(0,list(plotter.hash_vars["prio_table_top100"]))
+            plotter.hash_vars["table_top100"] = table_top
+        %>
+        ${plotter.table(id="table_top100", header=True, text= True, title="", row_names = False, fields = [0,1,2],
+                        styled='dt', border= 2, attrib = {
+                                'class' : "table table-striped table-dark"})}
+</div>
+
+% if plotter.hash_vars["qualitative"]:
+${plotter.create_title("Distribution for each categorical variable", id='top_candidates', hlevel=2, indexable=True, clickable=False)}
+% for cat_idx in plotter.hash_vars["qualitative"]:
+    <%
+        # Creating the pie plot
+        categorical_name = colnames[cat_idx]
+
+        pie_table = [list(row) for row in plotter.hash_vars["prio_table"][categorical_name].value_counts().items()]
+        pie_table.insert(0, [categorical_name, "freq"])
+        plotter.hash_vars["pie_table_all"] = pie_table
+
+        pie_table = [list(row) for row in plotter.hash_vars["prio_table_top100"][categorical_name].value_counts().items()]
+        pie_table.insert(0, [categorical_name, "freq"])
+        plotter.hash_vars["pie_table_top"] = pie_table
+
+        txt = f""
+        title = plotter.make_title("figure", "seed_vs_predict", f"Proportion of the category {categorical_name}. A) All candidates, B) Top 100 candidates.")
+        plot_all = plotter.pie(id='pie_table_all', header=False, text= True, title="A", row_names = True)
+        plot_top = plotter.pie(id='pie_table_top', header=False, text= True, title="B", row_names = True)
+        txt += f"<p>Category: {categorical_name}</p>" + "\n"
+        txt += """<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">""" + "\n"
+        txt += plot_all + "\n"
+        txt += plot_top + "\n"
+        txt += "</div>" + "\n"
+        txt += title + "\n"
+    %>
+    <%
+
+        plotter.hash_vars["scores_boxplot"] = [["Score", "Group"]]
+        plotter.hash_vars["scores_boxplot"].extend([[score, "All"] for score in plotter.hash_vars["prio_table"]["score"]])
+        plotter.hash_vars["scores_boxplot"].extend([[row[0], row[1]] for row in plotter.hash_vars["prio_table"][["score", categorical_name]].values])
+        plotter.hash_vars["scores_boxplot_top100"] = [["Score", "Group"]]
+        plotter.hash_vars["scores_boxplot_top100"].extend([[score, "All"] for score in plotter.hash_vars["prio_table_top100"]["score"]])
+        plotter.hash_vars["scores_boxplot_top100"].extend([[row[0], row[1]] for row in plotter.hash_vars["prio_table_top100"][["score", categorical_name]].values])
+        title = plotter.make_title("figure", "boxplot", f"Distribution of the scores of {categorical_name} associated with each gene. A) All genes; B) Top 100 genes.")
+        plot_all = plotter.boxplot(id="scores_boxplot", row_names = False, title="A",
+        header = True, fields=[0], smp_attr=[1], x_label="Score", group="Group",
+        config={"groupingFactors": ["Group"], 
+		"showViolinBoxplot":True,
+                "colorBy": "Group",
+                "xAxisTextScaleFontFactor":1.3,
+                'smpTextScaleFontFactor':1.3})
+        plot_top = plotter.boxplot(id="scores_boxplot_top100", row_names = False, title="B",
+        header = True, fields=[0], smp_attr=[1], x_label="Score", group="Group",
+        config={"groupingFactors": ["Group"], 
+		"showViolinBoxplot":True,
+                "colorBy": "Group",
+                "xAxisTextScaleFontFactor":1.3,
+                'smpTextScaleFontFactor':1.3})
+        txt += """<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">""" + "\n"
+        txt += plot_all + "\n"
+        txt += plot_top + "\n"
+        txt += "</div>" + "\n"
+        txt += title + "\n"  
+    %>
+    ${plotter.create_title(f"Category: {categorical_name}", id=f"table_pie{categorical_name}i", indexable=False, clickable=True, hlevel=2, t_id=f"table_pie_{categorical_name}")}
+    ${plotter.create_collapsable_container(f"table_pie_{categorical_name}", txt)}
+% endfor
+% endif
+
+% if plotter.hash_vars["quantitative"]:
+${plotter.create_title("Quantitative correlation", id='top_gene', hlevel=2, indexable=True, clickable=False)}
+<%
+        plotter.hash_vars["scores_corr"] = plotter.get_corr_table(plotter.hash_vars["prio_table"], [0,1]+plotter.hash_vars["quantitative"])
+        print(plotter.hash_vars["scores_corr"])
+        plotter.hash_vars["scores_corr_top100"] = plotter.get_corr_table(plotter.hash_vars["prio_table_top100"], [0,1]+plotter.hash_vars["quantitative"])
+        print(plotter.hash_vars["scores_corr_top100"])
+%>
+<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">
+        ${ plotter.heatmap(id = 'scores_corr', title="A",header = True, row_names = True, 
+                config= {"setMinX":-1,
+                "setMaxX":1, 
+                "xAxisTitle": "Spearman-corr", 
+                "samplesClustered": False,
+                "showSmpDendrogram": False}) }
+        ${ plotter.heatmap(id = 'scores_corr_top100', title="B",header = True, row_names = True, 
+                config= {"setMinX":-1,
+                "setMaxX":1, 
+                "xAxisTitle": "Spearman-corr", 
+                "samplesClustered": False,
+                "showSmpDendrogram": False}) }
+</div>
+${plotter.make_title("figure", "corr", "Spearman correlation between the quantitative features. A) All genes; B) Top 100 genes.")}
+% endif
+
+% if plotter.hash_vars["qualitative"] or plotter.hash_vars["quantitative"]:
+${plotter.create_title("Detailed information top candidates", id='top_gene', hlevel=2, indexable=True, clickable=False)}
+% for i in range(0,25):
+    <%
+        txt = f""
+        if plotter.hash_vars["quantitative"]:
+            plotter.hash_vars["table_candidate_quant"] = list(plotter.hash_vars["prio_table_top100"].iloc[i,plotter.hash_vars["quantitative"]].items())
+            plotter.hash_vars["table_candidate_quant"].insert(0, ["Quantitative variables", "Value"])
+            title_quant = plotter.make_title("table", f"table_quant_{i}", f"Quantitative variables")
+            table_quant = plotter.table(id="table_candidate_quant", header=True, text=True, title="", row_names=False, fields=[0,1], styled='dt', border=2, attrib={'class': "table table-striped table-dark"})
+            txt += """<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">""" + "\n"
+            txt += title_quant + "\n"
+            txt += table_quant + "\n"
+            txt += "</div>" + "\n"
+        
+        if plotter.hash_vars["qualitative"]:
+            plotter.hash_vars["table_candidate_qual"] = list(plotter.hash_vars["prio_table_top100"].iloc[i,plotter.hash_vars["qualitative"]].items())
+            plotter.hash_vars["table_candidate_qual"].insert(0, ["Qualitative variables", "Value"])
+            title_qual = plotter.make_title("table", f"table_qual_{i}", f"Qualitative variables")
+            table_qual = plotter.table(id="table_candidate_qual", header=True, text=True, title="", row_names=False, fields=[0,1], styled='dt', border=2, attrib={'class': "table table-striped table-dark"})
+            txt += """<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">""" + "\n"
+            txt += title_qual + "\n"
+            txt += table_qual + "\n"
+            txt += "</div>" + "\n"
+    %>
+    ${plotter.create_title(f"Candidate: {plotter.hash_vars['prio_table_top100'].iloc[i,2]}", id=f"tables_quant_qual{i}i", indexable=False, clickable=True, hlevel=2, t_id=f"tables_quant_qual{i}")}
+    ${plotter.create_collapsable_container(f"tables_quant_qual{i}", txt)}
+% endfor
+% endif
+

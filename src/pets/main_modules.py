@@ -8,6 +8,7 @@ import requests
 import numpy as np
 from py_report_html import Py_report_html
 import pets
+import pets.report_pets
 from pets.cohort_analyser_methods import *
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
@@ -15,6 +16,7 @@ from pets.io import write_tabulated_data, load_profiles, load_variants, load_evi
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.reference_parser import Reference_parser
 from pets.parsers.coord_parser import Coord_Parser
+from pets.genomic_prioritizer import GenomicPrioritizer, AimarrvelPrioritizer, LiricalPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, ExomiserPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer
 from py_exp_calc.exp_calc import invert_hash, uniq
 from py_semtools.ontology import Ontology
 from py_semtools.sim_handler import similitude_network
@@ -431,6 +433,75 @@ def main_evidence_profiler(opts):
             hotspots_with_pat_vars,
             template, options["output_folder"]
         )
+
+def main_report_prioritizer(opts):
+    options = vars(opts)
+    
+    prioritizer = {}
+    for prioritizer_type, path2folder_results in options["prioritizers"].items():
+        if prioritizer_type == "phen2gene":
+            prioritizer[(prioritizer_type, path2folder_results)] = Phen2GenePrioritizer()
+        elif prioritizer_type == "gado":
+            prioritizer[(prioritizer_type, path2folder_results)] = GadoPrioritizer()
+        elif prioritizer_type == "phenogenius":
+            prioritizer[(prioritizer_type, path2folder_results)] = PhenogeniusPrioritizer()
+        elif prioritizer_type == "exomiser":
+            prioritizer[(prioritizer_type, path2folder_results)] = ExomiserPrioritizer()
+        elif prioritizer_type == "aimarrvel":
+            prioritizer[(prioritizer_type, path2folder_results)] = AimarrvelPrioritizer()
+        elif prioritizer_type == "lirical":
+            prioritizer[(prioritizer_type, path2folder_results)] = LiricalPrioritizer()
+        elif prioritizer_type == "default":
+            prioritizer[(prioritizer_type, path2folder_results)] = DefaultGenomicPrioritizer()
+        else:
+            raise Exception(f"Unknown prioritizer: {prioritizer}")
+        if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
+            prioritizer[(prioritizer_type, path2folder_results)].post_process_results_genes(path2folder_results, 
+                             write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+        elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
+            prioritizer[(prioritizer_type, path2folder_results)].post_process_results_variants(path2folder_results, 
+                             write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+
+    if not options["write_tmp"]:
+        if options["integrated_report"]:
+            if len(prioritizer.keys()) > 1:
+                # Report the maximum comparison
+                metaprioritizer = MetaGenomicPrioritizer(prioritizer)
+                metaprioritizer.merge_results(type=options["benchmark_type"])
+                #prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(options["benchmark_type"])
+                raise "NotImplementedError: integrated report not implemented yet"
+            else:
+                first_prioritizer = list(prioritizer.values())[0]
+                prio_table, quantitative_feature, qualitative_feature = first_prioritizer.get_combined_results(options["benchmark_type"])
+                container = {
+                    "quantitative": quantitative_feature,
+                    "qualitative": qualitative_feature,
+                    "prio_table": prio_table
+                }
+                template="integrated_by_patient_prioreport.txt"
+        else:
+            first_prioritizer = list(prioritizer.values())[0]
+
+            quantitative_feature = list(first_prioritizer.quant_features_idx.values())[0]
+            qualitative_feature = list(first_prioritizer.qual_features_idx.values())[0]
+            if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
+                prio_table = list(first_prioritizer.patient2gene_results.values())[0] 
+            elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
+                prio_table = list(first_prioritizer.patient2variant_results.values())[0] 
+
+            container = {
+                "quantitative": quantitative_feature,
+                "qualitative": qualitative_feature,
+                "prio_table": prio_table
+            }
+            template="individual_prioreport.txt"
+
+        report = Py_report_html(container)
+        report.build(open(str(files('pets.templates').joinpath(template))).read())
+        report.write(options["output_file"] + '.html')
+
+        
+    
 
 #############################################################################################
 ## METHODS

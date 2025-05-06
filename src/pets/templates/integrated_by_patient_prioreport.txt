@@ -1,0 +1,124 @@
+<%
+        import pandas as pd
+        import numpy as np
+%>
+
+<% 
+    # df[first_feat + quant_features + qual_features + ["pat_number"]]
+    all_numeric = [0,1]
+    if plotter.hash_vars["quantitative"]: 
+        all_numeric += plotter.hash_vars["quantitative"]
+
+    plotter.hash_vars["prio_table"] = plotter.df_to_numeric(plotter.hash_vars["prio_table"], all_numeric)
+    plotter.hash_vars["prio_table_top100"] = plotter.get_top_rank(plotter.hash_vars["prio_table"], 100) 
+    colnames = list(plotter.hash_vars["prio_table_top100"].columns)
+%>
+<% plotter.set_header() %>
+${plotter.create_title("Integrated Report By Patient", id='main_title', hlevel=2, indexable=True, clickable=False)}
+${plotter.create_title("Distribution of quantitative values within patients", id='dist_pat', hlevel=2, indexable=True, clickable=False)}
+<%
+    col_subset = [colnames[idx] for idx in all_numeric[1:]] + ["pat_number"]
+    pat2median = plotter.hash_vars["prio_table"][col_subset].groupby("pat_number").median().reset_index()
+    pat2median = pd.melt(pat2median, id_vars='pat_number', var_name='quant_variable', value_name='score')
+    plotter.hash_vars["pat2median"] = plotter.df_to_list(pat2median)
+%>
+<%
+    pat2median = plotter.hash_vars["prio_table_top100"][col_subset].groupby("pat_number").median().reset_index()
+    pat2median = pd.melt(pat2median, id_vars='pat_number', var_name='quant_variable', value_name='score')
+    plotter.hash_vars["pat2median_top100"] = plotter.df_to_list(pat2median)
+%>
+<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">
+		${plotter.boxplot(id = 'pat2median', row_names= False, header=True, title= "A", x_label= "Median",
+ 		fields=[2], height=250, width=500, smp_attr= [1], group="quant_variable", config={"groupingFactors": ["quant_variable"], "showViolinBoxplot":True,
+ 		 "colorBy": "quant_variable", "xAxisTextScaleFontFactor":1.3, 'smpTextScaleFontFactor':1.3})}
+		${plotter.boxplot(id = 'pat2median_top100', row_names= False, header=True, title= "B", x_label= "Median",
+ 		fields=[2], height=250, width=500, smp_attr= [1], group="quant_variable", config={"groupingFactors": ["quant_variable"], "showViolinBoxplot":True,
+ 		 "colorBy": "quant_variable", "xAxisTextScaleFontFactor":1.3, 'smpTextScaleFontFactor':1.3})}
+</div>
+${plotter.make_title("figure", "pat2median", "Distribution of quantitative scores. A) All genes; B) Top 100 genes.")}
+
+
+% if plotter.hash_vars["qualitative"]:
+${plotter.create_title("Distribution for each categorical variable", id='top_candidates', hlevel=2, indexable=True, clickable=False)}
+% for cat_idx in plotter.hash_vars["qualitative"]:
+    <%
+        # Creating the pie plot
+        categorical_name = colnames[cat_idx]
+
+        pie_table = [list(row) for row in plotter.hash_vars["prio_table"][categorical_name].value_counts().items()]
+        pie_table.insert(0, [categorical_name, "freq"])
+        plotter.hash_vars["pie_table_all"] = pie_table
+
+        pie_table = [list(row) for row in plotter.hash_vars["prio_table_top100"][categorical_name].value_counts().items()]
+        pie_table.insert(0, [categorical_name, "freq"])
+        plotter.hash_vars["pie_table_top"] = pie_table
+
+        txt = f""
+        title = plotter.make_title("figure", "seed_vs_predict", f"Proportion of the category {categorical_name}. A) All candidates, B) Top 100 candidates.")
+        plot_all = plotter.pie(id='pie_table_all', header=False, text= True, title="A", row_names = True)
+        plot_top = plotter.pie(id='pie_table_top', header=False, text= True, title="B", row_names = True)
+        txt += f"<p>Category: {categorical_name}</p>" + "\n"
+        txt += """<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">""" + "\n"
+        txt += plot_all + "\n"
+        txt += plot_top + "\n"
+        txt += "</div>" + "\n"
+        txt += title + "\n"
+    %>
+    <%
+
+        plotter.hash_vars["scores_boxplot"] = [["Score", "Group"]]
+        plotter.hash_vars["scores_boxplot"].extend([[score, "All"] for score in plotter.hash_vars["prio_table"]["score"]])
+        plotter.hash_vars["scores_boxplot"].extend([[row[0], row[1]] for row in plotter.hash_vars["prio_table"][["score", categorical_name]].values])
+        plotter.hash_vars["scores_boxplot_top100"] = [["Score", "Group"]]
+        plotter.hash_vars["scores_boxplot_top100"].extend([[score, "All"] for score in plotter.hash_vars["prio_table_top100"]["score"]])
+        plotter.hash_vars["scores_boxplot_top100"].extend([[row[0], row[1]] for row in plotter.hash_vars["prio_table_top100"][["score", categorical_name]].values])
+        title = plotter.make_title("figure", "boxplot", f"Distribution of the scores of {categorical_name} associated with each gene. A) All genes; B) Top 100 genes.")
+        plot_all = plotter.boxplot(id="scores_boxplot", row_names = False, title="A",
+        header = True, fields=[0], smp_attr=[1], x_label="Score", group="Group",
+        config={"groupingFactors": ["Group"], 
+		"showViolinBoxplot":True,
+                "colorBy": "Group",
+                "xAxisTextScaleFontFactor":1.3,
+                'smpTextScaleFontFactor':1.3})
+        plot_top = plotter.boxplot(id="scores_boxplot_top100", row_names = False, title="B",
+        header = True, fields=[0], smp_attr=[1], x_label="Score", group="Group",
+        config={"groupingFactors": ["Group"], 
+		"showViolinBoxplot":True,
+                "colorBy": "Group",
+                "xAxisTextScaleFontFactor":1.3,
+                'smpTextScaleFontFactor':1.3})
+        txt += """<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">""" + "\n"
+        txt += plot_all + "\n"
+        txt += plot_top + "\n"
+        txt += "</div>" + "\n"
+        txt += title + "\n"  
+    %>
+    ${plotter.create_title(f"Category: {categorical_name}", id=f"table_pie{categorical_name}i", indexable=False, clickable=True, hlevel=2, t_id=f"table_pie_{categorical_name}")}
+    ${plotter.create_collapsable_container(f"table_pie_{categorical_name}", txt)}
+% endfor
+% endif
+
+% if plotter.hash_vars["quantitative"]:
+${plotter.create_title("Quantitative correlation", id='top_gene', hlevel=2, indexable=True, clickable=False)}
+<%
+        plotter.hash_vars["scores_corr"] = plotter.get_corr_table(plotter.hash_vars["prio_table"], [0,1]+plotter.hash_vars["quantitative"])
+        plotter.hash_vars["scores_corr_top100"] = plotter.get_corr_table(plotter.hash_vars["prio_table_top100"], [0,1]+plotter.hash_vars["quantitative"])
+%>
+<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">
+        ${ plotter.heatmap(id = 'scores_corr', title="A",header = True, row_names = True, 
+                config= {"setMinX":-1,
+                "setMaxX":1, 
+                "xAxisTitle": "Spearman-corr", 
+                "samplesClustered": False,
+                "showSmpDendrogram": False}) }
+        ${ plotter.heatmap(id = 'scores_corr_top100', title="B",header = True, row_names = True, 
+                config= {"setMinX":-1,
+                "setMaxX":1, 
+                "xAxisTitle": "Spearman-corr", 
+                "samplesClustered": False,
+                "showSmpDendrogram": False}) }
+</div>
+${plotter.make_title("figure", "corr", "Spearman correlation between the quantitative features. A) All genes; B) Top 100 genes.")}
+% endif
+
+
