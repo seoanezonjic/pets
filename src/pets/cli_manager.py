@@ -279,3 +279,19 @@ def collapse_terms(args=None):
     opts = parser.parse_args(args)
 
     main_collapse_terms(opts)
+
+def phenPatMaster(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    parser.add_argument("-i", "--input_folder", dest="input_folder", default= None,
+                    help="Input phenopacket folder.")
+    parser.add_argument("-o", "--output_folder", dest="output_folder", default= None,
+                    help="Output phenopacket folder.")
+    parser.add_argument("--overwrite_id", dest="overwrite_id", default= False, action = 'store_true',
+                    help="Generate automatic id for phenopackets. it will used in ALL id fields.")
+    parser.add_argument("--overwrite_file_name", dest="overwrite_file_name", default= False, action = 'store_true',
+                    help="When used, the output phenopacket uses phenopacket id as file name.")
+
+    opts = parser.parse_args(args)
+
+    main_phenPatMaster(opts)

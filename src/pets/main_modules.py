@@ -1,5 +1,6 @@
 
 import os
+import glob, json
 from importlib.resources import files
 import urllib.parse
 import requests
@@ -668,3 +669,33 @@ def get_collapsed_with_unique_parents(ontology, terms_to_parents_collapsed, rm_c
             similarities = similitude_network([translated_child] + translated_parents, charsToRemove = rm_char)
             collapsed_with_unique_parents[child] = [ontology.translate_name(max(similarities[translated_child].items(), key=lambda x: x[1])[0])]
     return collapsed_with_unique_parents
+
+def main_phenPatMaster(opts):
+    phenopacket_files=glob.glob(os.path.join(opts.input_folder, '*.json'))
+    count = 1
+    pp_dict = dict()
+    for pp_path in phenopacket_files:
+        new_id = "pp"+str(count)
+        phenopacket = json.loads(open(pp_path).read().encode("utf-8"))
+        if opts.overwrite_id:
+            pp_dict[phenopacket['id']] = new_id
+            phenopacket['id'] = new_id
+            phenopacket['subject']['id'] = new_id
+            for inter in phenopacket['interpretations']:
+                inter['id'] = new_id
+                genomic_inter= inter['diagnosis']['genomicInterpretations']
+                for gen_inter in genomic_inter:
+                    gen_inter['subjectOrBiosampleId'] = new_id
+        count += 1
+
+        json_object = json.dumps(phenopacket, indent=4)
+        if opts.overwrite_file_name:
+            pp_name = phenopacket['id'] + '.json'
+        else:
+            pp_name = os.path.basename(pp_path)
+        with open(os.path.join(opts.output_folder, pp_name), "w") as outfile: outfile.write(json_object)
+
+    if opts.overwrite_id:
+        with open(os.path.join(opts.output_folder, 'pp_dict.txt'), "w") as outfile:
+            for old_id, new_id in pp_dict.items():
+                outfile.write(old_id+"\t"+new_id+"\n")
