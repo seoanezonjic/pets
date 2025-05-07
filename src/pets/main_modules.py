@@ -749,6 +749,7 @@ def main_phenPatMaster(opts):
     phenopacket_files=glob.glob(os.path.join(opts.input_folder, '*.json'))
     count = 1
     pp_dict = dict()
+    index = []
     for pp_path in phenopacket_files:
         new_id = "pp"+str(count)
         phenopacket = json.loads(open(pp_path).read().encode("utf-8"))
@@ -763,7 +764,7 @@ def main_phenPatMaster(opts):
                     gen_inter['subjectOrBiosampleId'] = new_id
         count += 1
         
-        if opts.clean_phen:
+        if opts.clean_phen or opts.output_file_index != None:
             pp_phens = phenopacket['phenotypicFeatures']
             phens = []
             neg_phens = [] # HPOs that has NOT present the patient
@@ -774,12 +775,24 @@ def main_phenPatMaster(opts):
                 else:
                     phens.append(hp_code)
 
-            phens = ontology.clean_profile_hard(phens)
-            neg_phen_defs, _ = ontology.check_ids(neg_phens)
-            pp_phens = []
-            for hp in phens: pp_phens.append({'type':{'id': hp , 'label': ontology.translate_id(hp) }})
-            for hp in neg_phen_defs: pp_phens.append({'type':{'id': hp , 'label': ontology.translate_id(hp) }, 'excluded': True })
-            phenopacket['phenotypicFeatures'] = pp_phens
+            if opts.clean_phen:
+                phens = ontology.clean_profile_hard(phens)
+                neg_phen_defs, _ = ontology.check_ids(neg_phens)
+                pp_phens = []
+                for hp in phens: pp_phens.append({'type':{'id': hp , 'label': ontology.translate_id(hp) }})
+                for hp in neg_phen_defs: pp_phens.append({'type':{'id': hp , 'label': ontology.translate_id(hp) }, 'excluded': True })
+                phenopacket['phenotypicFeatures'] = pp_phens
+
+            if opts.output_file_index != None:
+                for interp in phenopacket["interpretations"]:
+                    genomic_inter = interp['diagnosis']['genomicInterpretations']
+                    for gen_interp in genomic_inter:
+                        variant = gen_interp['variantInterpretation']['variationDescriptor']['vcfRecord']
+                        index.append([phenopacket['id'], phens, variant['chrom'], variant['pos'], variant['pos']])
+
+        if opts.output_file_index != None:
+            with open(opts.output_file_index, "w") as outfile:
+                for p_id, phens, chrom, start,stop in index: outfile.write(f"{p_id}\t{','.join(phens)}\t{chrom}\t{start}\t{stop}\n")
 
         json_object = json.dumps(phenopacket, indent=4)
         if opts.overwrite_file_name:

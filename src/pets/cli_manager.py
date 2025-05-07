@@ -321,6 +321,9 @@ def phenPatMaster(args=None):
                     help="When used, the output phenopacket uses phenopacket id as file name.")
     parser.add_argument("--clean_phen", dest="clean_phen", default= False, action = 'store_true',
                     help="When used, check HP terms, update obsolete and remove parental relations.")
+    parser.add_argument("--output_file_index", dest="output_file_index", default= None,
+                    help="Generate a index with phenotypical and genomical features described in phenopackets.")
+
     opts = parser.parse_args(args)
 
     main_phenPatMaster(opts)
