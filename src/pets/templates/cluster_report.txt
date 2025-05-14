@@ -38,6 +38,6 @@
 	
 		% for clID, sim_matrix in plotter.hash_vars["sim_mat4cluster"].items():
 			<% plotter.hash_vars["sim_matrix"] = sim_matrix %>
-			${ plotter.similarity_matrix_plot(id= "sim_matrix", header= True, row_names= True, title= f"Cluster {clID}" ) }
+			${ plotter.similarity_matrix_plot(id= "sim_matrix", header= True, row_names= True, x_label = "Sim", title= f"Cluster {clID}" ) }
 		% endfor
 </div>

@@ -28,13 +28,16 @@ class Cohort():
         return cls.ont[ont_id]
 
     @classmethod
-    def load_ontology(cls, ont_name, ont_file, excluded_terms_file = None):
+    def load_ontology(cls, ont_name, ont_file, excluded_terms_file = None, inplace = True):
         if excluded_terms_file == None:
             excluded_terms = []
         else:
             excluded_terms = Cohort.read_excluded_ont_file(excluded_terms_file)
-        ont = Ontology(file= ont_file, removable_terms= excluded_terms) 
-        cls.ont[ont_name] = ont
+        ont = Ontology(file= ont_file, removable_terms= excluded_terms)
+        if inplace: 
+            cls.ont[ont_name] = ont
+        else:
+            return ont
 
     @classmethod
     def read_excluded_ont_file(cls, file):
