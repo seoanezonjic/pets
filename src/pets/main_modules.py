@@ -272,9 +272,8 @@ def main_cohort_analyzer(options):
     Cohort.act_ont = "hpo"
     hpo = Cohort.ont['hpo']
 
-    #Dummy Ontology to save the common profile for each cluster when --detailed_clusters is active
-    if opts['detailed_clusters']:
-        dummy_hpo = Cohort.load_ontology("hpo", hpo_file, opts.get("excluded_hpo"), inplace=False)
+    #Temporal Ontology Object to save the common profile for each cluster when --detailed_clusters is active
+    temporal_hpo = Cohort.load_ontology("hpo", hpo_file, opts.get("excluded_hpo"), inplace=False) if opts['detailed_clusters'] else None
 
     opts['check'] = True
     patient_data, rejected_hpos, rejected_patients = Cohort_Parser.load(opts)
@@ -339,7 +338,7 @@ def main_cohort_analyzer(options):
     reference_profiles = None
     if opts.get('reference_profiles') != None: reference_profiles = load_profiles(opts['reference_profiles'], Cohort.get_ontology('hpo'))
     template = str(files('pets.templates').joinpath('cluster_report.txt'))
-    clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, template, dummy_hpo)
+    clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, template, temporal_hpo)
 
     #----------------------------------
     # GENERAL COHORT ANALYZER REPORT
