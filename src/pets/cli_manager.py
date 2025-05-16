@@ -186,6 +186,8 @@ def cohort_analyzer(args=None):
       help="Path to file tabulated file with first column as id profile and second column with ontology terms separated by separator.")
     parser.add_argument("--sim_thr", dest="sim_thr", default=None, type=float,
       help="Keep pairs with similarity value >= FLOAT.")	
+    parser.add_argument("--cl_size_factor", dest="cl_size_factor", default=1.0, type=float,
+      help="When using dinamyc clustering weigths the contribution of the cluster size in tree cut. For smaller clusters use values > 1 for greater clusters use values < 1.")
     parser.add_argument("-n","--hpo_names", dest="names", default= False, action="store_true",
       help="Define if the input HPO are human readable names. Default false")
     parser.add_argument("-p", "--hpo_term_col", dest="ont_col", default= None,
