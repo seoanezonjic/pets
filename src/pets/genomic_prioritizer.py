@@ -5,6 +5,9 @@ import pickle
 import logging
 import re
 import json
+import numpy as np
+from xgboost import XGBRanker
+from sklearn.model_selection import train_test_split
 from py_exp_calc.exp_calc import get_rank_metrics
 
 logger = logging.getLogger(__name__)
@@ -66,16 +69,25 @@ class GenomicPrioritizer:
         if type not in self.priot_type:
             raise ValueError(f"Invalid type: {type}. Must be one of {self.priot_type}")
 
+        common_results, quant_idx_per_patient, qual_idx_per_patient = self.get_common_results(type)
+        
+        for i, df in enumerate(common_results.values()):
+            # add a column with the key
+            df["pat_number"] = i
+
+        # Concatenate only common columns
+        combined_df = pd.concat([df for df in common_results.values()], ignore_index=True)
+        quant_idx = next(iter(quant_idx_per_patient.values()))
+        qual_idx = next(iter(qual_idx_per_patient.values()))
+        return combined_df, quant_idx, qual_idx
+    
+    def get_common_results(self, type):
         if type == "gene":
             results_dict = self.patient2gene_results
             first_feat = ["rank", "score", "gene_symbol", "ensembl_id"]
         elif type == "variant":
             results_dict = self.patient2variant_results
             first_feat = ["rank", "score", "varId", "contigName", "start", "end", "ref", "alt"]
-
-        for i, df in enumerate(results_dict.values()):
-            # add a column with the key
-            df["pat_number"] = i
 
         dfs = list(results_dict.values())
         common_cols = set(dfs[0].columns)
@@ -89,12 +101,7 @@ class GenomicPrioritizer:
         qual_features = list(self.qual_features_idx.values())[0]
         # obtaining the col names
         qual_features = [dfs[0].columns[i] for i in qual_features if dfs[0].columns[i] in common_cols] if qual_features else []
-        # Now we add the quant and qual features to the common columns
-
-        # Concatenate only common columns
-        combined_df = pd.concat([df[common_cols] for df in dfs], ignore_index=True)
-        # Now we order the columns respecting the original order
-        combined_df = combined_df[first_feat + quant_features + qual_features + ["pat_number"]]
+        common_results = {patient: result[first_feat+quant_features+qual_features] for patient, result in results_dict.items()}
         # Now we obtain the indexes
         final_idx = len(first_feat)
         quant_idx = None
@@ -104,7 +111,10 @@ class GenomicPrioritizer:
             final_idx += len(quant_features)
         if qual_features:
             qual_idx = list(range(final_idx, final_idx + len(qual_features)))
-        return combined_df, quant_idx, qual_idx
+        quant_idx_per_patient = {patient: quant_idx for patient in results_dict.keys()}
+        qual_idx_per_patient = {patient: qual_idx for patient in results_dict.keys()}
+
+        return common_results, quant_idx_per_patient, qual_idx_per_patient
 
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
@@ -140,20 +150,21 @@ class Phen2GenePrioritizer(GenomicPrioritizer):
         for f in files:
             # Load the data
             f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
             if read_tmp:
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
-                    self.patient2gene_results[f] = pickle.load(pf)
+                    self.patient2gene_results[f_name] = pickle.load(pf)
             else:
                 df = pd.read_csv(os.path.join(raw_results_dir, f), sep="\t")
-                self.patient2gene_results[f] = df
+                self.patient2gene_results[f_name] = df
                 # Process the data
-                self.patient2gene_results[f] = self.get_result_gene(df, rank=0, gene={"gene_symbol": 1}, score=3, quali_feature=[4], quant_feature=[])
+                self.patient2gene_results[f_name] = self.get_result_gene(df, rank=0, gene={"gene_symbol": 1}, score=3, quali_feature=[4], quant_feature=[])
                 # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
-                        pickle.dump(self.patient2gene_results[f], pf)
-            self.quant_features_idx[f] = None
-            self.qual_features_idx[f] = [4]
+                        pickle.dump(self.patient2gene_results[f_name], pf)
+            self.quant_features_idx[f_name] = None
+            self.qual_features_idx[f_name] = [4]
     
     def get_result_gene(self, df, rank=0, gene={"gene_symbol": 1}, score=3, quali_feature=[4], quant_feature=[]):
         """
@@ -194,20 +205,21 @@ class GadoPrioritizer(GenomicPrioritizer):
         for f in files:
             # Load the data
             f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
             if read_tmp:
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
-                    self.patient2gene_results[f] = pickle.load(pf)
+                    self.patient2gene_results[f_name] = pickle.load(pf)
             else:
                 df = pd.read_csv(os.path.join(raw_results_dir, f), sep="\t")
-                self.patient2gene_results[f] = df
+                self.patient2gene_results[f_name] = df
                 # Process the data
-                self.patient2gene_results[f] = self.get_result_gene(df, rank=2, gene={"gene_symbol": 1, "ensembl_id":0}, score=3, quali_feature=list(range(4,len(df.columns.values))), quant_feature=[])
+                self.patient2gene_results[f_name] = self.get_result_gene(df, rank=2, gene={"gene_symbol": 1, "ensembl_id":0}, score=3, quali_feature=list(range(4,len(df.columns.values))), quant_feature=[])
                 # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
-                        pickle.dump(self.patient2gene_results[f], pf)
-            self.qual_features_idx[f] = None
-            self.quant_features_idx[f] = list(range(4,self.patient2gene_results[f].shape[1]))
+                        pickle.dump(self.patient2gene_results[f_name], pf)
+            self.qual_features_idx[f_name] = None
+            self.quant_features_idx[f_name] = list(range(4,self.patient2gene_results[f_name].shape[1]))
 
     def get_result_gene(self, df, rank=0, gene={"gene_symbol": 1}, score=3, quali_feature=[4], quant_feature=[]):
         """
@@ -242,20 +254,21 @@ class PhenogeniusPrioritizer(GenomicPrioritizer):
         for f in files:
             # Load the data
             f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
             if read_tmp:
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
-                    self.patient2gene_results[f] = pickle.load(pf)
+                    self.patient2gene_results[f_name] = pickle.load(pf)
             else:
                 df = pd.read_csv(os.path.join(raw_results_dir, f), sep="\t")
-                self.patient2gene_results[f] = df
+                self.patient2gene_results[f_name] = df
                 # Process the data
-                self.patient2gene_results[f] = self.get_result_gene(df, rank=2, gene={"gene_symbol": 1}, score=3)
+                self.patient2gene_results[f_name] = self.get_result_gene(df, rank=2, gene={"gene_symbol": 1}, score=3)
                 # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
-                        pickle.dump(self.patient2gene_results[f], pf)
-            self.quant_features_idx[f] = list(range(4,self.patient2gene_results[f].shape[1]-1))
-            self.qual_features_idx[f] = [self.patient2gene_results[f].shape[1]-1]
+                        pickle.dump(self.patient2gene_results[f_name], pf)
+            self.quant_features_idx[f_name] = list(range(4,self.patient2gene_results[f_name].shape[1]-1))
+            self.qual_features_idx[f_name] = [self.patient2gene_results[f_name].shape[1]-1]
     
     def _get_hpos_scores(self, row, col=4):
         pattern = r"'\s*([^']*?)\s*'\s*:\s*([0-9.]+)"
@@ -336,21 +349,22 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         for f in files:
             # Load the data
             f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
             if read_tmp:
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
-                    self.patient2gene_results[f] = pickle.load(pf)
+                    self.patient2gene_results[f_name] = pickle.load(pf)
             else:
                 file_path = os.path.join(raw_results_dir, f, "prediction", "conf_4Model", "integrated", f"{f}_integrated.csv")
                 df = pd.read_csv(file_path, sep=",")
-                self.patient2gene_results[f] = df
+                self.patient2gene_results[f_name] = df
                 # Process the data
-                self.patient2gene_results[f] = self.get_result_gene(df)
+                self.patient2gene_results[f_name] = self.get_result_gene(df)
                 # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
-                        pickle.dump(self.patient2gene_results[f], pf)
-            self.quant_features_idx[f] = None
-            self.qual_features_idx[f] = None
+                        pickle.dump(self.patient2gene_results[f_name], pf)
+            self.quant_features_idx[f_name] = None
+            self.qual_features_idx[f_name] = None
 
     def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
         files = os.listdir(raw_results_dir)
@@ -358,21 +372,22 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         for f in files:
             # Load the data
             f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
             if read_tmp:
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
-                    self.patient2variant_results[f] = pickle.load(pf)
+                    self.patient2variant_results[f_name] = pickle.load(pf)
             else:
                 file_path = os.path.join(raw_results_dir, f, "prediction", "conf_4Model", "integrated", f"{f}_integrated.csv")
                 df = pd.read_csv(file_path, sep=",")
-                self.patient2variant_results[f] = df
+                self.patient2variant_results[f_name] = df
                 # Process the data
-                self.patient2variant_results[f] = self.get_result_variant(df)
+                self.patient2variant_results[f_name] = self.get_result_variant(df)
                 # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
-                        pickle.dump(self.patient2variant_results[f], pf)
-            self.quant_features_idx[f] = None
-            self.qual_features_idx[f] = None
+                        pickle.dump(self.patient2variant_results[f_name], pf)
+            self.quant_features_idx[f_name] = None
+            self.qual_features_idx[f_name] = None
 
     def get_result_gene(self, df, rank=107, gene={"gene_symbol": 111, "ensemble_id": 112}, score=105, quali_feature=[], quant_feature=[]):
         processed_data = pd.DataFrame()
@@ -428,9 +443,10 @@ class LiricalPrioritizer(GenomicPrioritizer):
         for f in files:
             # Load the data
             f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
             if read_tmp:
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
-                    self.patient2gene_results[f] = pickle.load(pf)
+                    self.patient2gene_results[f_name] = pickle.load(pf)
             else:
                 file_path = os.path.join(raw_results_dir, f)
                 header = True
@@ -449,14 +465,14 @@ class LiricalPrioritizer(GenomicPrioritizer):
                             for idx, col in enumerate(col_names):
                                 df[col].append(line[idx])
                 df = pd.DataFrame.from_dict(df)
-                self.patient2gene_results[f] = self.get_result_gene(df)
+                self.patient2gene_results[f_name] = self.get_result_gene(df)
                 # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
-                        pickle.dump(self.patient2gene_results[f], pf)
+                        pickle.dump(self.patient2gene_results[f_name], pf)
 
-            self.quant_features_idx[f] = [4,5]
-            self.qual_features_idx[f] = [6,7]
+            self.quant_features_idx[f_name] = [4,5]
+            self.qual_features_idx[f_name] = [6,7]
 
     def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
@@ -467,9 +483,10 @@ class LiricalPrioritizer(GenomicPrioritizer):
         for f in files:
             # Load the data
             f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
             if read_tmp:
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
-                    self.patient2variant_results[f] = pickle.load(pf)
+                    self.patient2variant_results[f_name] = pickle.load(pf)
             else:
                 file_path = os.path.join(raw_results_dir, f)
                 header = True
@@ -488,13 +505,13 @@ class LiricalPrioritizer(GenomicPrioritizer):
                             for idx, col in enumerate(col_names):
                                 df[col].append(line[idx])
                 df = pd.DataFrame.from_dict(df)
-                self.patient2variant_results[f] = self.get_result_variant(df)
+                self.patient2variant_results[f_name] = self.get_result_variant(df)
                 # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
-                        pickle.dump(self.patient2variant_results[f], pf)
-            self.quant_features_idx[f] = [8,9,10]
-            self.qual_features_idx[f] = [11,12]
+                        pickle.dump(self.patient2variant_results[f_name], pf)
+            self.quant_features_idx[f_name] = [8,9,10]
+            self.qual_features_idx[f_name] = [11,12]
 
     def get_result_gene(self, df):
         processed_data = pd.DataFrame()
@@ -573,20 +590,21 @@ class ExomiserPrioritizer(GenomicPrioritizer):
         for f in files:
             # Load the data
             f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
             if read_tmp:
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
-                    self.patient2gene_results[f] = pickle.load(pf)
+                    self.patient2gene_results[f_name] = pickle.load(pf)
             else:
                 json_results = pd.read_csv(os.path.join(raw_results_dir, f), sep="\t")
                 with open(os.path.join(raw_results_dir, f)) as file:
                     json_results = json.load(file)
-                self.patient2gene_results[f] = self.get_result_gene(json_results)
+                self.patient2gene_results[f_name] = self.get_result_gene(json_results)
                 # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
-                        pickle.dump(self.patient2gene_results[f], pf)
-            self.quant_features_idx[f] = [4,5,6,7]
-            self.qual_features_idx[f] = None
+                        pickle.dump(self.patient2gene_results[f_name], pf)
+            self.quant_features_idx[f_name] = [4,5,6,7]
+            self.qual_features_idx[f_name] = None
     
     def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
         files = os.listdir(raw_results_dir)
@@ -594,20 +612,21 @@ class ExomiserPrioritizer(GenomicPrioritizer):
         for f in files:
             # Load the data
             f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
             if read_tmp:
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
-                    self.patient2variant_results[f] = pickle.load(pf)
+                    self.patient2variant_results[f_name] = pickle.load(pf)
             else:
                 json_results = pd.read_csv(os.path.join(raw_results_dir, f), sep="\t")
                 with open(os.path.join(raw_results_dir, f)) as file:
                     json_results = json.load(file)
-                self.patient2variant_results[f] = self.get_result_variant(json_results)
+                self.patient2variant_results[f_name] = self.get_result_variant(json_results)
                 # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
-                        pickle.dump(self.patient2variant_results[f], pf)
-            self.quant_features_idx[f] =  [8,9,10,11]
-            self.qual_features_idx[f] = None  
+                        pickle.dump(self.patient2variant_results[f_name], pf)
+            self.quant_features_idx[f_name] =  [8,9,10,11]
+            self.qual_features_idx[f_name] = None  
 
     def get_result_variant(self, json_results):
         data = {"gene_symbol": [], "ensembl_id": [], "score": [], "priorityScore": [], "pValue": [], "hiphive_score": [], "omim_score": [], 
@@ -669,12 +688,81 @@ class MetaGenomicPrioritizer:
         self.merged_variant_results = {}
         self.model = None
         self.feature_columns = []  # columns used as features
+        self.train_patients = []
+        self.test_patients = []
+
+    def split_patients(self, type="gene", test_size=0.3, random_state=42):
+        merged_key = "merged_gene_results" if type == "gene" else "merged_variant_results"
+        all_patients = list(getattr(self, merged_key).keys())
+        self.train_patients, self.test_patients = train_test_split(
+            all_patients, test_size=test_size, random_state=random_state
+        )
+
+    def prepare_training_data(self, type="gene", label_col_substring="score"):
+        merged_key = "merged_gene_results" if type == "gene" else "merged_variant_results"
+        merged_results = getattr(self, merged_key)
+
+        train_dfs = [merged_results[p] for p in self.train_patients if not merged_results[p].empty]
+        df = pd.concat(train_dfs, keys=self.train_patients, names=["patient_id"])
+        df = df.reset_index()
+
+        # Identificador por tipo
+        id_col = "gene_symbol" if type == "gene" else "varId"
+
+        # Detectar features numéricas
+        feature_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        feature_cols = [col for col in feature_cols if label_col_substring not in col]
+
+        self.feature_columns = feature_cols
+
+        # Etiqueta: columna que contiene algún score usable
+        label_cols = [col for col in df.columns if label_col_substring in col]
+        if not label_cols:
+            raise ValueError("No se encontró ninguna columna con scores para usar como etiqueta.")
+        y_col = label_cols[0]  
+
+        X = df[feature_cols]
+        y = df[y_col].fillna(0)
+
+        groups = df.groupby("patient_id").size().to_numpy()
+
+        return X, y, groups
+
+    def train_model(self, type="gene"):
+        X, y, groups = self.prepare_training_data(type)
+        model = XGBRanker(objective="rank:pairwise", random_state=42, verbosity=1)
+        model.fit(X, y, group=groups)
+        self.model = model
+
+    def predict_test(self, type="gene"):
+        merged_key = "merged_gene_results" if type == "gene" else "merged_variant_results"
+        id_col = "gene_symbol" if type == "gene" else "varId"
+        merged_results = getattr(self, merged_key)
+
+        ranked_list_per_patient = {}
+
+        for patient in self.test_patients:
+            df = merged_results[patient]
+            if df.empty or not all(col in df.columns for col in self.feature_columns):
+                continue
+
+            X_test = df[self.feature_columns].fillna(0)
+            scores = self.model.predict(X_test)
+
+            df = df.copy()
+            df["predicted_score"] = scores
+            df = df.sort_values("predicted_score", ascending=False)
+
+            ranked_list_per_patient[patient] = df[id_col].tolist()
+
+        return ranked_list_per_patient
 
     def merge_results(self, type="gene"):
         # Mapping type to attributes
-        id_candidates = {"gene": "ensembl_id", "variant": "varId"}
+        id_candidates = {"gene": "gene_symbol", "variant": "varId"}
         results_attr = {"gene": "patient2gene_results", "variant": "patient2variant_results"}
         merged_attr = {"gene": "merged_gene_results", "variant": "merged_variant_results"}
+        features_to_remove = {"gene": ["ensembl_id"], "variant": ["contigName", "start", "end", "ref", "alt"]}
 
         if type not in id_candidates:
             raise ValueError(f"Invalid type: {type}")
@@ -682,41 +770,75 @@ class MetaGenomicPrioritizer:
         id_candidate = id_candidates[type]
         results_key = results_attr[type]
         merged_key = merged_attr[type]
+        feature_to_remove = features_to_remove[type]
 
-        # Collect all patients
-        all_patients = set()
-        for prioritizer in self.prioritizers.values():
-            all_patients.update(getattr(prioritizer, results_key).keys())
-        all_patients = sorted(list(all_patients))
-
-        # Ensure every prioritizer has an entry for every patient
-        for patient in all_patients:
-            for prioritizer in self.prioritizers.values():
-                results_dict = getattr(prioritizer, results_key)
-                if patient not in results_dict:
-                    results_dict[patient] = pd.DataFrame()
+        self.clean_results(results_key, type)
+        print("HOLAAAAAAAAAAA")
+        print(getattr(self.prioritizers[list(self.prioritizers.keys())[0]], results_key))
+        print("ADIOS")
+        all_patients = list(getattr(self.prioritizers[list(self.prioritizers.keys())[0]], results_key).keys())
 
         # Merge per patient
         merged_results = {}
         for patient in all_patients:
-            dfs = [getattr(prioritizer, results_key)[patient] for prioritizer in self.prioritizers.values()]
-            
-            if not dfs or dfs[0].empty:
+            print("the patient is", patient)
+            dfs = []
+            for name, prioritizer in self.prioritizers.items():
+                df = getattr(prioritizer, results_key).get(patient)
+                name = name[0]
+                if df is None or df.empty:
+                    continue
+
+                # Keep only one column for ID + rename the rest with the prioritizer name
+                renamed = df.copy()
+                cols_to_rename = [col for col in df.columns if col != id_candidate and col not in feature_to_remove]
+                renamed = renamed[[id_candidate] + cols_to_rename]
+                renamed.columns = [id_candidate] + [f"{col}_{name}" for col in cols_to_rename]
+                dfs.append(renamed)
+
+            if not dfs:
                 merged_results[patient] = pd.DataFrame()
                 continue
 
-            # find common columns
-            common_cols = set(dfs[0].columns)
+            # Merge all DataFrames on the id_candidate
+            merged = dfs[0]
             for df in dfs[1:]:
-                common_cols &= set(df.columns)
-            dfs_common = [df[list(common_cols)] for df in dfs]
-
-            # merge on id_candidate
-            merged = dfs_common[0]
-            for df in dfs_common[1:]:
-                merged = pd.merge(merged, df, on=id_candidate, how='outer')
-
+                merged = pd.merge(merged, df, on=id_candidate, how="outer")
             merged_results[patient] = merged
 
         # assign to attribute
         setattr(self, merged_key, merged_results)
+    
+    def clean_results(self, results_key, type):
+        # Obtain results with common columns inside each prioritizer
+        for prioritizer in self.prioritizers.values():
+            prio_table, quantitative_feature, qualitative_feature = prioritizer.get_common_results(type)
+            print(prio_table)
+            setattr(prioritizer, results_key, prio_table)
+            prioritizer.quant_features_idx = quantitative_feature
+            prioritizer.qual_features_idx = qualitative_feature
+
+        # Select just patients with results in all prioritizers.
+        prioritizer_names = list(self.prioritizers.keys())
+        all_patients = set(getattr(self.prioritizers[prioritizer_names[0]], results_key).keys())
+        for prioritizer_name in prioritizer_names[1:]:
+            all_patients_for_priotizer = set(getattr(self.prioritizers[prioritizer_name], results_key).keys())
+            all_patients = all_patients.intersection(all_patients_for_priotizer)
+        print("AJAAAAAAAAA")
+        print(all_patients)
+        all_patients = sorted(list(all_patients))
+
+        # Ensure every prioritizer has an entry for every patient
+        for prioritizer in self.prioritizers.values():
+            clean_results = {}
+            results_dict = getattr(prioritizer, results_key)
+            for patient in all_patients:
+                clean_results[patient] = results_dict[patient]
+            setattr(prioritizer, results_key, clean_results)
+        print(getattr(prioritizer, results_key))
+
+        # for patient in all_patients:
+        #     for prioritizer in self.prioritizers.values():
+        #         results_dict = getattr(prioritizer, results_key)
+        #         if patient not in results_dict:
+        #             results_dict[patient] = pd.DataFrame()

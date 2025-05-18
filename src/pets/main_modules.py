@@ -469,8 +469,16 @@ def main_report_prioritizer(opts):
         if options["integrated_report"]:
             if len(prioritizer.keys()) > 1:
                 # Report the maximum comparison
+                print("HOLAAAAAAAAAAAAA")
                 metaprioritizer = MetaGenomicPrioritizer(prioritizer)
                 metaprioritizer.merge_results(type=options["benchmark_type"])
+                # df = metaprioritizer.merged_gene_results["paciente_3"]
+                # rank_cols = [col for col in df.columns if col.startswith("rank_")]
+                # score_cols = [col for col in df.columns if col.startswith("score_")]
+                # # Crea una máscara: True si NO hay NaN en ninguna de las columnas rank + score
+                # complete_rows = df[rank_cols + score_cols].notna().all(axis=1)
+                # df_filtered = df[complete_rows]
+                # print(df_filtered)
                 #prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(options["benchmark_type"])
                 raise "NotImplementedError: integrated report not implemented yet"
             else:
