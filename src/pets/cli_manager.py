@@ -329,3 +329,17 @@ def phenPatMaster(args=None):
     opts = parser.parse_args(args)
 
     main_phenPatMaster(opts)
+
+
+def vcf2effects(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    parser.add_argument("-i", "--input_vcf", dest="input_vcf",
+      help="Vcf file")
+    parser.add_argument("-o", "--output", dest="output",
+      help="output with variant effects")
+    parser.add_argument("-g", "--genome", dest="genome",
+      help="Genome name to use as reference")
+    opts = parser.parse_args(args)
+
+    main_vcf2effects(opts)
