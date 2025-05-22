@@ -19,12 +19,12 @@ ${plotter.create_title("Distribution of quantitative values within patients", id
 <%
     col_subset = [colnames[idx] for idx in all_numeric[1:]] + ["pat_number"]
     pat2median = plotter.hash_vars["prio_table"][col_subset].groupby("pat_number").median().reset_index()
-    pat2median = pd.melt(pat2median, id_vars='pat_number', var_name='quant_variable', value_name='score')
+    pat2median = pd.melt(pat2median, id_vars='pat_number', var_name='quant_variable', value_name='melted_score')
     plotter.hash_vars["pat2median"] = plotter.df_to_list(pat2median)
 %>
 <%
     pat2median = plotter.hash_vars["prio_table_top100"][col_subset].groupby("pat_number").median().reset_index()
-    pat2median = pd.melt(pat2median, id_vars='pat_number', var_name='quant_variable', value_name='score')
+    pat2median = pd.melt(pat2median, id_vars='pat_number', var_name='quant_variable', value_name='melted_score')
     plotter.hash_vars["pat2median_top100"] = plotter.df_to_list(pat2median)
 %>
 <div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">

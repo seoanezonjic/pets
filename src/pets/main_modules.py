@@ -469,7 +469,7 @@ def main_report_prioritizer(opts):
         if options["integrated_report"]:
             if len(prioritizer.keys()) > 1:
                 # Report the maximum comparison
-                print("HOLAAAAAAAAAAAAA")
+                # print("HOLAAAAAAAAAAAAA")
                 metaprioritizer = MetaGenomicPrioritizer(prioritizer)
                 metaprioritizer.get_features(type=options["benchmark_type"])
                 metaprioritizer.model = HeuristicModel()

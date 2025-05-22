@@ -732,10 +732,10 @@ class MetaGenomicPrioritizer:
             dfs = []
             quantitative_idx = []
             qualitative_idx = []
-            n_total_cols = 0 # becasue of the id_candidate
+            n_total_cols = 0
             for name, prioritizer in self.prioritizers.items():
-                print("THE priorittizer is", name)
-                print("THE prioritizer is", prioritizer)
+                # print("THE priorittizer is", name)
+                # print("THE prioritizer is", prioritizer)
                 df = getattr(prioritizer, results_key).get(patient)
                 name = name[0]
                 if df is None or df.empty:
@@ -746,16 +746,13 @@ class MetaGenomicPrioritizer:
                 cols_to_rename = [col for col in df.columns if col != id_candidate and col not in feature_to_remove]
                 renamed = renamed[[id_candidate] + cols_to_rename]
                 renamed.columns = [id_candidate] + [f"{col}_{name}" for col in cols_to_rename]
+                quantitative_idx.extend([n_total_cols + 1, n_total_cols + 2])
                 if prioritizer.quant_features_idx.get(patient): 
-                    all_quants = [1,2] + prioritizer.quant_features_idx[patient]
-                else: 
-                    all_quants = [1,2] 
-                quantitative_idx.extend([val + n_total_cols - len(feature_to_remove) for val in all_quants])
-                print("ASIIIIIIIIIIIIIIIIIISIIIIIIIIIIIIIIIIII")
-                print(quantitative_idx)
+                    quantitative_idx.extend([ idx + n_total_cols -len(feature_to_remove) for idx in prioritizer.quant_features_idx[patient]])
+                # print("ASIIIIIIIIIIIIIIIIIISIIIIIIIIIIIIIIIIII")
+                # print(quantitative_idx)
                 if prioritizer.qual_features_idx.get(patient):
-                    all_quals = prioritizer.qual_features_idx[patient]
-                    qualitative_idx.extend([val + n_total_cols - len(feature_to_remove) for val in all_quals])
+                    qualitative_idx.extend([val + n_total_cols - len(feature_to_remove) for val in prioritizer.qual_features_idx[patient]])
                 n_total_cols += len(cols_to_rename)
                 dfs.append(renamed)
 
@@ -769,8 +766,15 @@ class MetaGenomicPrioritizer:
             for df in dfs[1:]:
                 merged = pd.merge(merged, df, on=id_candidate, how="outer")
             merged_results[patient] = merged
+            print("This is the merged finally")
+            print(merged_results[patient])
+            print("----------------------------")
             self.feature_qual_idx[patient] = qualitative_idx
             self.feature_quant_idx[patient] = quantitative_idx
+            print("THIS IS THE QUALITATIVE INDEX")
+            print(self.feature_qual_idx[patient])
+            print("THIS IS THE QUANTITATIVE INDEX")
+            print(self.feature_quant_idx[patient])
 
 
         # assign to attribute
@@ -781,9 +785,8 @@ class MetaGenomicPrioritizer:
         for prioritizer in self.prioritizers.values():
             prio_table, quantitative_feature, qualitative_feature = prioritizer.get_common_results(type)
             prioritizer.quant_features_idx = quantitative_feature
-            print("aleluya", quantitative_feature)
             prioritizer.qual_features_idx = qualitative_feature
-            print("aleluya", qualitative_feature)
+            setattr(prioritizer, results_key, prio_table)
 
         # Select just patients with results in all prioritizers.
         prioritizer_names = list(self.prioritizers.keys())
@@ -800,7 +803,7 @@ class MetaGenomicPrioritizer:
             for patient in all_patients:
                 clean_features[patient] = results_dict[patient]
             setattr(prioritizer, results_key, clean_features)
-        print(getattr(prioritizer, results_key))
+        # print(getattr(prioritizer, results_key))
 
     # Split and preparing corpus
     ######################
@@ -861,7 +864,6 @@ class MetaGenomicPrioritizer:
 
         if self.test_patients is None:
             self.test_patients = list(merged_results.keys())
-            print("TEST PATIENTS", self.test_patients)
 
         for patient in self.test_patients:
             print("QUE PASAAA TETEEEE")
@@ -886,6 +888,9 @@ class MetaGenomicPrioritizer:
             self.qual_features_idx[patient] = [val + 2 for val in self.feature_qual_idx[patient]]
             print("I AM HERE")
             print(predict_results)
+            print(self.quant_features_idx[patient])
+            print(self.qual_features_idx[patient])
+
     
     def get_combined_results(self, type="gene"):
         common_results = getattr(self, f"patient2{type}_results")
@@ -909,5 +914,5 @@ class HeuristicModel():
 
     def predict(self, X):
         rank_cols = [col for col in X.columns if col.startswith("rank_")]
-        return X[rank_cols].min(axis=1, skipna=True).to_numpy()
+        return -1 * X[rank_cols].min(axis=1, skipna=True).to_numpy()
 
