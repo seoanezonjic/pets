@@ -16,7 +16,7 @@ from pets.io import write_tabulated_data, load_profiles, load_variants, load_evi
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.reference_parser import Reference_parser
 from pets.parsers.coord_parser import Coord_Parser
-from pets.genomic_prioritizer import GenomicPrioritizer, AimarrvelPrioritizer, LiricalPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, ExomiserPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer
+from pets.genomic_prioritizer import GenomicPrioritizer, AimarrvelPrioritizer, LiricalPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, ExomiserPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer, HeuristicModel
 from py_exp_calc.exp_calc import invert_hash, uniq
 from py_semtools.ontology import Ontology
 from py_semtools.sim_handler import similitude_network
@@ -471,25 +471,28 @@ def main_report_prioritizer(opts):
                 # Report the maximum comparison
                 print("HOLAAAAAAAAAAAAA")
                 metaprioritizer = MetaGenomicPrioritizer(prioritizer)
-                metaprioritizer.merge_results(type=options["benchmark_type"])
-                # df = metaprioritizer.merged_gene_results["paciente_3"]
-                # rank_cols = [col for col in df.columns if col.startswith("rank_")]
-                # score_cols = [col for col in df.columns if col.startswith("score_")]
-                # # Crea una máscara: True si NO hay NaN en ninguna de las columnas rank + score
-                # complete_rows = df[rank_cols + score_cols].notna().all(axis=1)
-                # df_filtered = df[complete_rows]
-                # print(df_filtered)
-                #prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(options["benchmark_type"])
-                raise "NotImplementedError: integrated report not implemented yet"
+                metaprioritizer.get_features(type=options["benchmark_type"])
+                metaprioritizer.model = HeuristicModel()
+                metaprioritizer.predict_test(type=options["benchmark_type"])
+                prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
+                print("PRIO TABLE")
+                print(prio_table)
+                print(prio_table.columns)
+                print("QUANTITATIVE")
+                print(quantitative_feature)
+                print("QUALITATIVE")
+                print(qualitative_feature)
+
             else:
                 first_prioritizer = list(prioritizer.values())[0]
                 prio_table, quantitative_feature, qualitative_feature = first_prioritizer.get_combined_results(options["benchmark_type"])
-                container = {
-                    "quantitative": quantitative_feature,
-                    "qualitative": qualitative_feature,
-                    "prio_table": prio_table
-                }
-                template="integrated_by_patient_prioreport.txt"
+
+            container = {
+                "quantitative": quantitative_feature,
+                "qualitative": qualitative_feature,
+                "prio_table": prio_table
+            }
+            template="integrated_by_patient_prioreport.txt"
         else:
             first_prioritizer = list(prioritizer.values())[0]
 
@@ -798,8 +801,11 @@ def main_phenPatMaster(opts):
                 for interp in phenopacket["interpretations"]:
                     genomic_inter = interp['diagnosis']['genomicInterpretations']
                     for gen_interp in genomic_inter:
-                        variant = gen_interp['variantInterpretation']['variationDescriptor']['vcfRecord']
-                        index.append([phenopacket['id'], phens, variant['chrom'], variant['pos'], variant['pos']])
+                        variant = gen_interp['variantInterpretation']['variationDescriptor'].get('vcfRecord')
+                        if variant != None:
+                            index.append([phenopacket['id'], phens, variant['chrom'], variant['pos'], variant['pos']])
+                        else:
+                            index.append([phenopacket['id'], phens, "", "", ""])
 
         if opts.output_file_index != None:
             with open(opts.output_file_index, "w") as outfile:

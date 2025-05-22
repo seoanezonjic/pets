@@ -684,12 +684,126 @@ class ExomiserPrioritizer(GenomicPrioritizer):
 class MetaGenomicPrioritizer:
     def __init__(self, prioritizers):
         self.prioritizers = prioritizers # prioritizer_name -> prioritizer_instance
-        self.merged_gene_results = {}
-        self.merged_variant_results = {}
-        self.model = None
+        # features
+        self.feature_genes = {}
+        self.feature_variant = {}
+        self.feature_quant_idx = {}
+        self.feature_qual_idx = {}
         self.feature_columns = []  # columns used as features
-        self.train_patients = []
-        self.test_patients = []
+        # label
+        self.label = {} # Patient -> Positives ids
+        # corpus split
+        self.train_patients = None
+        self.test_patients = None
+        # model
+        self.model = None
+        # Results
+        # For variant: rank|score|chromosome|start|end|ref|alt
+        self.patient2variant_results = {}
+        # For Gene: rank|score|gene_symbol|gene_identifier(ensbl)
+        self.patient2gene_results = {}
+        self.quant_features_idx = {}
+        self.qual_features_idx = {}
+
+    # Feature extraction
+    ####################
+
+    def get_features(self, type="gene"):
+        # Mapping type to attributes
+        id_candidates = {"gene": "gene_symbol", "variant": "varId"}
+        results_attr = {"gene": "patient2gene_results", "variant": "patient2variant_results"}
+        merged_attr = {"gene": "feature_genes", "variant": "feature_variant"}
+        features_to_remove = {"gene": ["ensembl_id"], "variant": ["contigName", "start", "end", "ref", "alt"]}
+
+        if type not in id_candidates:
+            raise ValueError(f"Invalid type: {type}")
+
+        id_candidate = id_candidates[type]
+        results_key = results_attr[type]
+        merged_key = merged_attr[type]
+        feature_to_remove = features_to_remove[type]
+
+        self.clean_features(results_key, type)
+        all_patients = list(getattr(self.prioritizers[list(self.prioritizers.keys())[0]], results_key).keys())
+
+        # Merge per patient
+        merged_results = {}
+        for patient in all_patients:
+            dfs = []
+            quantitative_idx = []
+            qualitative_idx = []
+            n_total_cols = 0 # becasue of the id_candidate
+            for name, prioritizer in self.prioritizers.items():
+                print("THE priorittizer is", name)
+                print("THE prioritizer is", prioritizer)
+                df = getattr(prioritizer, results_key).get(patient)
+                name = name[0]
+                if df is None or df.empty:
+                    continue
+
+                # Keep only one column for ID + rename the rest with the prioritizer name
+                renamed = df.copy()
+                cols_to_rename = [col for col in df.columns if col != id_candidate and col not in feature_to_remove]
+                renamed = renamed[[id_candidate] + cols_to_rename]
+                renamed.columns = [id_candidate] + [f"{col}_{name}" for col in cols_to_rename]
+                if prioritizer.quant_features_idx.get(patient): 
+                    all_quants = [1,2] + prioritizer.quant_features_idx[patient]
+                else: 
+                    all_quants = [1,2] 
+                quantitative_idx.extend([val + n_total_cols - len(feature_to_remove) for val in all_quants])
+                print("ASIIIIIIIIIIIIIIIIIISIIIIIIIIIIIIIIIIII")
+                print(quantitative_idx)
+                if prioritizer.qual_features_idx.get(patient):
+                    all_quals = prioritizer.qual_features_idx[patient]
+                    qualitative_idx.extend([val + n_total_cols - len(feature_to_remove) for val in all_quals])
+                n_total_cols += len(cols_to_rename)
+                dfs.append(renamed)
+
+            if not dfs:
+                merged_results[patient] = pd.DataFrame()
+                continue
+
+            # Merge all DataFrames on the id_candidate
+            merged = dfs[0]
+            
+            for df in dfs[1:]:
+                merged = pd.merge(merged, df, on=id_candidate, how="outer")
+            merged_results[patient] = merged
+            self.feature_qual_idx[patient] = qualitative_idx
+            self.feature_quant_idx[patient] = quantitative_idx
+
+
+        # assign to attribute
+        setattr(self, merged_key, merged_results)
+    
+    def clean_features(self, results_key, type):
+        # Obtain results with common columns inside each prioritizer
+        for prioritizer in self.prioritizers.values():
+            prio_table, quantitative_feature, qualitative_feature = prioritizer.get_common_results(type)
+            prioritizer.quant_features_idx = quantitative_feature
+            print("aleluya", quantitative_feature)
+            prioritizer.qual_features_idx = qualitative_feature
+            print("aleluya", qualitative_feature)
+
+        # Select just patients with results in all prioritizers.
+        prioritizer_names = list(self.prioritizers.keys())
+        all_patients = set(getattr(self.prioritizers[prioritizer_names[0]], results_key).keys())
+        for prioritizer_name in prioritizer_names[1:]:
+            all_patients_for_priotizer = set(getattr(self.prioritizers[prioritizer_name], results_key).keys())
+            all_patients = all_patients.intersection(all_patients_for_priotizer)
+        all_patients = sorted(list(all_patients))
+
+        # Ensure every prioritizer has an entry for every patient
+        for prioritizer in self.prioritizers.values():
+            clean_features = {}
+            results_dict = getattr(prioritizer, results_key)
+            for patient in all_patients:
+                clean_features[patient] = results_dict[patient]
+            setattr(prioritizer, results_key, clean_features)
+        print(getattr(prioritizer, results_key))
+
+    # Split and preparing corpus
+    ######################
 
     def split_patients(self, type="gene", test_size=0.3, random_state=42):
         merged_key = "merged_gene_results" if type == "gene" else "merged_variant_results"
@@ -727,118 +841,73 @@ class MetaGenomicPrioritizer:
         groups = df.groupby("patient_id").size().to_numpy()
 
         return X, y, groups
-
+    
+    # Training and prediction
+    ######################
+    
+    ## Train the model
     def train_model(self, type="gene"):
         X, y, groups = self.prepare_training_data(type)
         model = XGBRanker(objective="rank:pairwise", random_state=42, verbosity=1)
         model.fit(X, y, group=groups)
         self.model = model
 
+    ## Predict the test set
     def predict_test(self, type="gene"):
-        merged_key = "merged_gene_results" if type == "gene" else "merged_variant_results"
+        merged_key = "feature_genes" if type == "gene" else "feature_variant"
         id_col = "gene_symbol" if type == "gene" else "varId"
         merged_results = getattr(self, merged_key)
+        predict_results = getattr(self, f"patient2{type}_results")
 
-        ranked_list_per_patient = {}
+        if self.test_patients is None:
+            self.test_patients = list(merged_results.keys())
+            print("TEST PATIENTS", self.test_patients)
 
         for patient in self.test_patients:
+            print("QUE PASAAA TETEEEE")
             df = merged_results[patient]
-            if df.empty or not all(col in df.columns for col in self.feature_columns):
-                continue
-
-            X_test = df[self.feature_columns].fillna(0)
+            X_test = df #df[self.feature_columns].fillna(0)
             scores = self.model.predict(X_test)
 
             df = df.copy()
-            df["predicted_score"] = scores
-            df = df.sort_values("predicted_score", ascending=False)
-
-            ranked_list_per_patient[patient] = df[id_col].tolist()
-
-        return ranked_list_per_patient
-
-    def merge_results(self, type="gene"):
-        # Mapping type to attributes
-        id_candidates = {"gene": "gene_symbol", "variant": "varId"}
-        results_attr = {"gene": "patient2gene_results", "variant": "patient2variant_results"}
-        merged_attr = {"gene": "merged_gene_results", "variant": "merged_variant_results"}
-        features_to_remove = {"gene": ["ensembl_id"], "variant": ["contigName", "start", "end", "ref", "alt"]}
-
-        if type not in id_candidates:
-            raise ValueError(f"Invalid type: {type}")
-
-        id_candidate = id_candidates[type]
-        results_key = results_attr[type]
-        merged_key = merged_attr[type]
-        feature_to_remove = features_to_remove[type]
-
-        self.clean_results(results_key, type)
-        print("HOLAAAAAAAAAAA")
-        print(getattr(self.prioritizers[list(self.prioritizers.keys())[0]], results_key))
-        print("ADIOS")
-        all_patients = list(getattr(self.prioritizers[list(self.prioritizers.keys())[0]], results_key).keys())
-
-        # Merge per patient
-        merged_results = {}
-        for patient in all_patients:
-            print("the patient is", patient)
-            dfs = []
-            for name, prioritizer in self.prioritizers.items():
-                df = getattr(prioritizer, results_key).get(patient)
-                name = name[0]
-                if df is None or df.empty:
-                    continue
-
-                # Keep only one column for ID + rename the rest with the prioritizer name
-                renamed = df.copy()
-                cols_to_rename = [col for col in df.columns if col != id_candidate and col not in feature_to_remove]
-                renamed = renamed[[id_candidate] + cols_to_rename]
-                renamed.columns = [id_candidate] + [f"{col}_{name}" for col in cols_to_rename]
-                dfs.append(renamed)
-
-            if not dfs:
-                merged_results[patient] = pd.DataFrame()
-                continue
-
-            # Merge all DataFrames on the id_candidate
-            merged = dfs[0]
-            for df in dfs[1:]:
-                merged = pd.merge(merged, df, on=id_candidate, how="outer")
-            merged_results[patient] = merged
-
-        # assign to attribute
-        setattr(self, merged_key, merged_results)
+            df["score"] = scores
+            df = df.sort_values("score", ascending=False)
+            # adding ranking pos
+            ranking = get_rank_metrics(df["score"], df[id_col])
+            ranking = {row[0]:row[3] for row in ranking}
+            df["rank"] = [ranking[gene] for gene in df[id_col]]
+            cols = ["rank", "score"] + [col for col in df.columns if col not in ["rank", "score"]]
+            predict_results[patient] = df[cols]
+            print(self.feature_quant_idx)
+            print("I AM HERE")
+            print(self.feature_qual_idx)
+            print("I AM HERE")
+            self.quant_features_idx[patient] = [val + 2 for val in self.feature_quant_idx[patient]]
+            self.qual_features_idx[patient] = [val + 2 for val in self.feature_qual_idx[patient]]
+            print("I AM HERE")
+            print(predict_results)
     
-    def clean_results(self, results_key, type):
-        # Obtain results with common columns inside each prioritizer
-        for prioritizer in self.prioritizers.values():
-            prio_table, quantitative_feature, qualitative_feature = prioritizer.get_common_results(type)
-            print(prio_table)
-            setattr(prioritizer, results_key, prio_table)
-            prioritizer.quant_features_idx = quantitative_feature
-            prioritizer.qual_features_idx = qualitative_feature
+    def get_combined_results(self, type="gene"):
+        common_results = getattr(self, f"patient2{type}_results")
+        for i, df in enumerate(common_results.values()):
+            # add a column with the key
+            df["pat_number"] = i
 
-        # Select just patients with results in all prioritizers.
-        prioritizer_names = list(self.prioritizers.keys())
-        all_patients = set(getattr(self.prioritizers[prioritizer_names[0]], results_key).keys())
-        for prioritizer_name in prioritizer_names[1:]:
-            all_patients_for_priotizer = set(getattr(self.prioritizers[prioritizer_name], results_key).keys())
-            all_patients = all_patients.intersection(all_patients_for_priotizer)
-        print("AJAAAAAAAAA")
-        print(all_patients)
-        all_patients = sorted(list(all_patients))
+        # Concatenate only common columns
+        combined_df = pd.concat([df for df in common_results.values()], ignore_index=True)
+        quant_idx = next(iter(self.quant_features_idx.values()))
+        qual_idx = next(iter(self.qual_features_idx.values()))
+        return combined_df, quant_idx, qual_idx
 
-        # Ensure every prioritizer has an entry for every patient
-        for prioritizer in self.prioritizers.values():
-            clean_results = {}
-            results_dict = getattr(prioritizer, results_key)
-            for patient in all_patients:
-                clean_results[patient] = results_dict[patient]
-            setattr(prioritizer, results_key, clean_results)
-        print(getattr(prioritizer, results_key))
+class HeuristicModel():
+    """
+    A heuristic model that ranks items based on the minimum value of a set of columns.
+    """
 
-        # for patient in all_patients:
-        #     for prioritizer in self.prioritizers.values():
-        #         results_dict = getattr(prioritizer, results_key)
-        #         if patient not in results_dict:
-        #             results_dict[patient] = pd.DataFrame()
+    def train(self, X, y=None, groups=None):
+        pass  # no training needed
+
+    def predict(self, X):
+        rank_cols = [col for col in X.columns if col.startswith("rank_")]
+        return X[rank_cols].min(axis=1, skipna=True).to_numpy()
+
