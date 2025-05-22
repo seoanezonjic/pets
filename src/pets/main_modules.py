@@ -472,16 +472,10 @@ def main_report_prioritizer(opts):
                 # print("HOLAAAAAAAAAAAAA")
                 metaprioritizer = MetaGenomicPrioritizer(prioritizer)
                 metaprioritizer.get_features(type=options["benchmark_type"])
-                metaprioritizer.model = HeuristicModel()
-                metaprioritizer.predict_test(type=options["benchmark_type"])
-                prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
-                print("PRIO TABLE")
-                print(prio_table)
-                print(prio_table.columns)
-                print("QUANTITATIVE")
-                print(quantitative_feature)
-                print("QUALITATIVE")
-                print(qualitative_feature)
+                metaprioritizer.split_patients()
+                #metaprioritizer.model = HeuristicModel()
+                #metaprioritizer.predict_test(type=options["benchmark_type"])
+                #prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
 
             else:
                 first_prioritizer = list(prioritizer.values())[0]

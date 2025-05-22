@@ -685,7 +685,7 @@ class MetaGenomicPrioritizer:
     def __init__(self, prioritizers):
         self.prioritizers = prioritizers # prioritizer_name -> prioritizer_instance
         # features
-        self.feature_genes = {}
+        self.feature_gene = {}
         self.feature_variant = {}
         self.feature_quant_idx = {}
         self.feature_qual_idx = {}
@@ -712,7 +712,7 @@ class MetaGenomicPrioritizer:
         # Mapping type to attributes
         id_candidates = {"gene": "gene_symbol", "variant": "varId"}
         results_attr = {"gene": "patient2gene_results", "variant": "patient2variant_results"}
-        merged_attr = {"gene": "feature_genes", "variant": "feature_variant"}
+        merged_attr = {"gene": "feature_gene", "variant": "feature_variant"}
         features_to_remove = {"gene": ["ensembl_id"], "variant": ["contigName", "start", "end", "ref", "alt"]}
 
         if type not in id_candidates:
@@ -797,11 +797,14 @@ class MetaGenomicPrioritizer:
     ######################
 
     def split_patients(self, type="gene", test_size=0.3, random_state=42):
-        merged_key = "merged_gene_results" if type == "gene" else "merged_variant_results"
+        merged_key = "feature_gene" if type == "gene" else "feature_variant"
         all_patients = list(getattr(self, merged_key).keys())
         self.train_patients, self.test_patients = train_test_split(
             all_patients, test_size=test_size, random_state=random_state
         )
+
+    # Training 
+    ######################
 
     def prepare_training_data(self, type="gene", label_col_substring="score"):
         merged_key = "merged_gene_results" if type == "gene" else "merged_variant_results"
@@ -823,7 +826,7 @@ class MetaGenomicPrioritizer:
         # Etiqueta: columna que contiene algún score usable
         label_cols = [col for col in df.columns if label_col_substring in col]
         if not label_cols:
-            raise ValueError("No se encontró ninguna columna con scores para usar como etiqueta.")
+            raise ValueError("No column with this flag.")
         y_col = label_cols[0]  
 
         X = df[feature_cols]
@@ -832,20 +835,17 @@ class MetaGenomicPrioritizer:
         groups = df.groupby("patient_id").size().to_numpy()
 
         return X, y, groups
-    
-    # Training and prediction
-    ######################
-    
-    ## Train the model
-    def train_model(self, type="gene"):
+
+    def train_model(self, type="gene", model=None):
         X, y, groups = self.prepare_training_data(type)
-        model = XGBRanker(objective="rank:pairwise", random_state=42, verbosity=1)
-        model.fit(X, y, group=groups)
-        self.model = model
+        self.model.train(X,y)
+
+    # Prediction
+    ######################
 
     ## Predict the test set
     def predict_test(self, type="gene"):
-        merged_key = "feature_genes" if type == "gene" else "feature_variant"
+        merged_key = "feature_gene" if type == "gene" else "feature_variant"
         id_col = "gene_symbol" if type == "gene" else "varId"
         merged_results = getattr(self, merged_key)
         predict_results = getattr(self, f"patient2{type}_results")
@@ -885,7 +885,7 @@ class MetaGenomicPrioritizer:
 
 class HeuristicModel():
     """
-    A heuristic model that ranks items based on the minimum value of a set of columns.
+    A heuristic model that ranks items based on the minimum rank
     """
 
     def train(self, X, y=None, groups=None):
@@ -895,3 +895,22 @@ class HeuristicModel():
         rank_cols = [col for col in X.columns if col.startswith("rank_")]
         return -1 * X[rank_cols].min(axis=1, skipna=True).to_numpy()
 
+class XGBoostRankerModel:
+
+    def __init__(self, **params):
+        default_params = {
+            "objective": "rank:pairwise",
+            "learning_rate": 0.1,
+            "n_estimators": 100,
+            "max_depth": 6,
+            "random_state": 42
+        }
+        default_params.update(params)
+        self.model = XGBRanker(**default_params)
+
+    def train(self, X, y):
+        self.model.fit(X, y)#, group=groups)
+
+    def predict(self, X):
+        return self.model.predict(X) #Predicted scores (higher means more relevant)
+    
