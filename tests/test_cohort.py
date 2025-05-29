@@ -468,7 +468,8 @@ class CohortTestSuite(unittest.TestCase):
         ont = self.patient_data.get_ontology(Cohort.act_ont)
         ont.load_profiles(ref_profile_dict)
         
-        candidate_sim_matrix, candidates, candidates_ids, similarities = ont.calc_sim_term2term_similarity_matrix(reference_profile, ref_profile_id, self.patient_data.profiles, string_format=True)
+        #TODO: maybe we should check that the similarity matrix and the new two variables are correctly calculated
+        candidate_sim_matrix, candidates, candidates_ids, similarities, _, _ = ont.calc_sim_term2term_similarity_matrix(reference_profile, ref_profile_id, self.patient_data.profiles, string_format=True)
         candidate_sim_matrix.pop(0)
         self.assertEqual(candidate_sim_matrix, [['Intellectual disability', 1.0, 1.0, 1.0, 1.0], ['Hearing impairment', 1.0, 0, 0.002925264157569972, 0.0032651226948571363]])
         self.assertEqual(candidates, [['648', 0.8487148451790173], ['599', 0.6677009703920632], ['647', 0.5015070438334399], ['132', 0.48667053298635815]])
