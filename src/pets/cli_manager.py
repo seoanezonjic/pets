@@ -162,6 +162,8 @@ def cohort_analyzer(args=None):
       help="How many patient clusters are show in detailed phenotype cluster data section. Default 3")
     parser.add_argument("-D","--detailed_clusters", dest="detailed_clusters", default= False, action="store_true",
       help="Show detailed cluster comparation using heatmaps. Default false")
+    parser.add_argument("--detailed_cluster_yaxis", dest="detailed_cluster_yaxis", default= "cluster",
+      help="What to show in heatmap clusters Y axis. 'cluster' for common phenotype in each cluster, 'cohort' for common phenotype in the whole cohort. Default: cluster")
     parser.add_argument("-M", "--minClusterProportion", dest="minClusterProportion", default= 0.01, type=float,
       help="Minimum percentage of patients per cluster")
     parser.add_argument("-f", "--patients_filter", dest="patients_filter", default= 2, type=int,

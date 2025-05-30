@@ -272,8 +272,10 @@ def main_cohort_analyzer(options):
     Cohort.act_ont = "hpo"
     hpo = Cohort.ont['hpo']
 
-    #Temporal Ontology Object to save the common profile for each cluster when --detailed_clusters is active
-    temporal_hpo = Cohort.load_ontology("hpo", hpo_file, opts.get("excluded_hpo"), inplace=False) if opts['detailed_clusters'] else None
+    #Temporal Ontology Object to save the common profile for each cluster when --detailed_clusters is active and detailed_cluster_yaxis is set to 'cluster'
+    temporal_hpo = None
+    if opts['detailed_clusters'] and opts['detailed_cluster_yaxis'] == 'cluster':
+        temporal_hpo = Cohort.load_ontology("hpo", hpo_file, opts.get("excluded_hpo"), inplace=False)
 
     opts['check'] = True
     patient_data, rejected_hpos, rejected_patients = Cohort_Parser.load(opts)
@@ -283,6 +285,7 @@ def main_cohort_analyzer(options):
 
     patient_data.get_profile_redundancy() # GEt term redundancy BEFORE cleaning
     patient_data.check(hard=opts["hard_check"])
+    patient_data.link2ont(Cohort.act_ont) #Now that we have calculate profiles redundancy, we synchronize the cleaned profiles from HPO object
     
     hpo.get_profiles_terms_frequency() # hpo CODE, freq
     with open(hpo_frequency_file, 'w') as f:
