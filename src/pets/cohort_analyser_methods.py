@@ -163,7 +163,7 @@ def get_similarities4boxplot(raw_cls, similarity_matrix):
       sim_table.extend([ [s, 'cls'] for s in cl_similarities] )
     return sim_table
 
-def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path_obj, temporal_hpo):
+def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path_obj, temporal_hpo, ySortFunc=None):
   template = open(template_path_obj).read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
   clustering_data = {}
@@ -187,7 +187,7 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
 
         hpo.load_profiles({'ref': ref_profile}, reset_stored = True)    
         candidate_sim_matrix, _, _, _, _, _ = hpo.calc_sim_term2term_similarity_matrix(ref_profile, 'ref', cluster_profiles, 
-          term_limit = 100, candidate_limit = 100, sim_type = 'lin', bidirectional = False, string_format = True, header_id = "HP")
+          term_limit = 100, candidate_limit = 100, sim_type = 'lin', bidirectional = False, string_format = True, header_id = "HP", ySortFunc = ySortFunc)
         sim_mat4cluster[clID] = candidate_sim_matrix
 
     container = {

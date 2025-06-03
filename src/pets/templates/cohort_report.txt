@@ -9,6 +9,7 @@
 	def add_tip(text, help_text):
 		return f"<div class=\"tooltip\">{text}<span class=\"tooltiptext\">{help_text}</span></div>"
 
+	ontoplot_mode = plotter.hash_vars["ontoplot_mode"]
 	chromosome_lengths = plotter.hash_vars["chr_sizes"]
 	def plot_coverage(data, plotter_list):
 		data["Chr"] = pd.Categorical(data["Chr"], chromosome_lengths.keys())
@@ -44,18 +45,21 @@
 		${plotter.ontodist(ontology="ontology", dist_type=['count', 'perc'], height=800, width=800)}
 	</div>
 
-
 	<p> HPOs frequency distribution. Colour based on the HPO frequency.</p>
 	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;">
-		${plotter.ontoplot(ontology="ontology", root_node="HP:0000118", reference_node="HP:0000118", height=800, width=800)}
+		<div style ="overflow: hidden">
+			${plotter.ontoplot(ontology="ontology", root_node="HP:0000118", reference_node="HP:0000118", mode=ontoplot_mode, height=800, width=800, responsive=False)}
+		</div>
 	</div>
 </div>
 
-<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto; overflow: hidden"> 
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO profile redundancy</h1>
 	<p> For each patient profile size (number of phenotypes, x-axis) it is shown the number of HPO phenotypes that are parent of other terms within the profile (number of parent terms, y-axis). </p>
 
-	${ plotter.plotProfRed(ontology="ontology", height=800, width=800)}
+	<div style="overflow: hidden">
+		${ plotter.plotProfRed(ontology="ontology", height=800, width=800, responsive=False) }
+	</div>
 
 </div>
 

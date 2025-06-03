@@ -4,6 +4,7 @@ import glob, json
 from importlib.resources import files
 import urllib.parse
 import requests
+from collections import Counter
 
 import numpy as np
 from py_report_html import Py_report_html
@@ -338,10 +339,15 @@ def main_cohort_analyzer(options):
     #----------------------------------
     # CLUSTER COHORT ANALYZER REPORT
     #----------------------------------
+    phens_ocurrences = None
+    if opts['detailed_cluster_yaxis'] == 'cohort_sort':
+        phens_ocurrences = Counter()
+        for profile in patient_data.profiles.values(): phens_ocurrences.update([hpo.translate_id(term) for term in profile])
+        def sortByPhens(phen): return phens_ocurrences[phen]
     reference_profiles = None
     if opts.get('reference_profiles') != None: reference_profiles = load_profiles(opts['reference_profiles'], Cohort.get_ontology('hpo'))
     template = str(files('pets.templates').joinpath('cluster_report.txt'))
-    clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, template, temporal_hpo)
+    clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, template, temporal_hpo, ySortFunc=sortByPhens)
 
     #----------------------------------
     # GENERAL COHORT ANALYZER REPORT
@@ -358,7 +364,8 @@ def main_cohort_analyzer(options):
       'dummy_cluster_chr_data' : dummy_cluster_chr_data,
       'dummy_ic_data' : format_cluster_ic_data(all_ics, prof_lengths, opts['clusters2graph']),
       'chr_sizes': chr_sizes,
-      'ontology': Cohort.ont['hpo']
+      'ontology': Cohort.ont['hpo'],
+      'ontoplot_mode': opts['ontoplot_mode']
     }
 
     clust_info = []
