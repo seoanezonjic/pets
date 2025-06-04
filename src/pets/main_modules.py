@@ -339,11 +339,11 @@ def main_cohort_analyzer(options):
     #----------------------------------
     # CLUSTER COHORT ANALYZER REPORT
     #----------------------------------
-    phens_ocurrences = None
+    sortByPhens = None
     if opts['detailed_cluster_yaxis'] == 'cohort_sort':
         phens_ocurrences = Counter()
         for profile in patient_data.profiles.values(): phens_ocurrences.update([hpo.translate_id(term) for term in profile])
-        def sortByPhens(phen): return phens_ocurrences[phen]
+        sortByPhens = sortYaxisByPhens(phens_ocurrences)
     reference_profiles = None
     if opts.get('reference_profiles') != None: reference_profiles = load_profiles(opts['reference_profiles'], Cohort.get_ontology('hpo'))
     template = str(files('pets.templates').joinpath('cluster_report.txt'))
@@ -524,6 +524,12 @@ def main_report_prioritizer(opts):
 #############################################################################################
 ## METHODS
 ############################################################################################
+def sortYaxisByPhens(phens_ocurrences):
+    def sortByPhens(phen):
+        return phens_ocurrences[phen]
+    return sortByPhens
+
+
 def load_pathogenic_scores(path):
     scores = {}
     with open(path) as f:
