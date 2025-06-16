@@ -314,6 +314,31 @@ def report_prioritizer(args=None):
     opts = parser.parse_args(args)
     main_report_prioritizer(opts)
 
+def main_metaPrioritizer(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    add_parser_commom_options(parser)
+    parser.add_argument("--prioritizers", dest="prioritizers", default= None, type=lambda x: loading_dic(x, sep1=";", sep2=","),
+                    help="Format prioritizer:path_to_prioritizer_file")
+    parser.add_argument("--labels", dest="labels") # podemos tomar una lista paciente, id de gen o variante
+    parser.add_argument("--mode", dest="mode", default="both", type=str, help="To select if you want to test and or train a model, the options are 'train', 'predict' or 'both'. Default both")
+    parser.add_argument("--training_options", dest="training_options", default=None, type=lambda x: loading_dic(x, sep1=";", sep2=","),
+                    help="Format option:value for the training model")
+    parser.add_argument("--read_tmp",dest="read_tmp",default=False, action="store_true",
+                        help="Read processed file for report analysis")
+    parser.add_argument("--model_type", dest="model_type", default="xgboost", type=str,
+                    help="Type of model to use. Options: 'heuristic', 'xgboost'. Default xgboost")
+    parser.add_argument("--model_path", dest="model_path", default=None, type=str,
+                    help="Path to the model file. If not provided, a new model will be trained.")
+    parser.add_argument("--write_tmp",dest="write_tmp",default=None, type=str,
+                    help="Write processed file for report analysis. This flag cancel the posterior report analysis")
+    parser.add_argument("--benchmark_type",dest="benchmark_type",default="gene", type=str,
+                    help="Choose type of benchmark. Choose between 'gene' and 'variant', or both. Options: 'variant', 'gene'")
+    parser.add_argument("-o", "--output_file", dest="output_file", default= "report_prioritizer", 
+                    help="Path to the output file to write results")
+    opts = parser.parse_args(args)
+    main_meta_prioritizer(opts)
+
 def phenPatMaster(args=None):
     if args == None: args = sys.argv[1:]
     parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
