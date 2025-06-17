@@ -66,8 +66,23 @@ def test_cohort_analyzer():
     
     #Testing second time to check if files can be loaded (instead of doing the calculations again) without errors
     cohort_analyzer(list_of_args)
-
     shutil.rmtree(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer')}")
+
+    #Testing it can generate static, dynamic and canvas ontoplots
+    for plot_type in ["static", "dynamic", "canvas"]:
+        os.makedirs(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer')}", exist_ok=True)
+        cohort_analyzer(list_of_args + ["--ontoplot_mode", plot_type])
+        assert os.path.exists(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer', 'cohort_analyzer.html')}")
+        assert os.path.exists(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer', 'cohort_analyzer_lin_clusters.html')}")
+        shutil.rmtree(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer')}")
+
+    #Testing it can generate detailed clusters heatmap with cluster, cohort and cohort_sort phenotypes on the y-axis
+    for ySortFunc in ["cluster", "cohort", "cohort_sort"]:
+        os.makedirs(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer')}", exist_ok=True)
+        cohort_analyzer(list_of_args + ["--detailed_cluster_yaxis", ySortFunc])
+        assert os.path.exists(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer', 'cohort_analyzer.html')}")
+        assert os.path.exists(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer', 'cohort_analyzer_lin_clusters.html')}")
+        shutil.rmtree(f"{os.path.join(RETURNED_PATH, 'cohort_analyzer')}")
 
 def test_profiles2phenopacket():
     os.environ["hpo_file"] = HPO_FILE

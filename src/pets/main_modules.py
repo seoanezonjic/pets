@@ -17,7 +17,7 @@ from pets.io import write_tabulated_data, load_profiles, load_variants, load_evi
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.reference_parser import Reference_parser
 from pets.parsers.coord_parser import Coord_Parser
-from pets.genomic_prioritizer import GenomicPrioritizer, AimarrvelPrioritizer, LiricalPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, ExomiserPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer, HeuristicModel
+from pets.genomic_prioritizer import GenomicPrioritizer, AimarrvelPrioritizer, LiricalPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, ExomiserPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer, HeuristicModel, XGBoostRankerModel
 from py_exp_calc.exp_calc import invert_hash, uniq
 from py_semtools.ontology import Ontology
 from py_semtools.sim_handler import similitude_network
@@ -486,9 +486,9 @@ def main_report_prioritizer(opts):
                 metaprioritizer = MetaGenomicPrioritizer(prioritizer)
                 metaprioritizer.get_features(type=options["benchmark_type"])
                 metaprioritizer.split_patients()
-                #metaprioritizer.model = HeuristicModel()
-                #metaprioritizer.predict_test(type=options["benchmark_type"])
-                #prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
+                metaprioritizer.model = HeuristicModel()
+                metaprioritizer.predict_test(type=options["benchmark_type"])
+                prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
 
             else:
                 first_prioritizer = list(prioritizer.values())[0]
@@ -521,7 +521,61 @@ def main_report_prioritizer(opts):
         report.build(open(str(files('pets.templates').joinpath(template))).read())
         report.write(options["output_file"] + '.html')
 
-        
+def main_meta_prioritizer(opts):
+    options = vars(opts)
+    
+    # loading every prioritizer
+    prioritizer = {}
+    for prioritizer_type, path2folder_results in options["prioritizers"].items():
+        print("ST 1 - Pass to process step\n--------------------------\n---------------------------")
+        if prioritizer_type == "phen2gene":
+            prioritizer[(prioritizer_type, path2folder_results)] = Phen2GenePrioritizer()
+        elif prioritizer_type == "gado":
+            prioritizer[(prioritizer_type, path2folder_results)] = GadoPrioritizer()
+        elif prioritizer_type == "phenogenius":
+            prioritizer[(prioritizer_type, path2folder_results)] = PhenogeniusPrioritizer()
+        elif prioritizer_type == "exomiser":
+            prioritizer[(prioritizer_type, path2folder_results)] = ExomiserPrioritizer()
+        elif prioritizer_type == "aimarrvel":
+            prioritizer[(prioritizer_type, path2folder_results)] = AimarrvelPrioritizer()
+        elif prioritizer_type == "lirical":
+            prioritizer[(prioritizer_type, path2folder_results)] = LiricalPrioritizer()
+        elif prioritizer_type == "default":
+            prioritizer[(prioritizer_type, path2folder_results)] = DefaultGenomicPrioritizer()
+        else:
+            raise Exception(f"Unknown prioritizer: {prioritizer}")
+        if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
+            prioritizer[(prioritizer_type, path2folder_results)].post_process_results_genes(path2folder_results, 
+                             write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+        elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
+            prioritizer[(prioritizer_type, path2folder_results)].post_process_results_variants(path2folder_results, 
+                             write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+    # Create MetaPrioritizer and getting the features
+    metaprioritizer = MetaGenomicPrioritizer(prioritizer)
+    metaprioritizer.get_features(type=options["benchmark_type"])
+    # load the model
+    if options["model_type"] == "heuristic":
+        metaprioritizer.model = HeuristicModel()
+    elif options["model_type"] == "xgboost":
+        metaprioritizer.model = XGBoostRankerModel()
+    else:
+        if options["model_path"] != None:
+            metaprioritizer.model = HeuristicModel.load_model(options["model_path"])
+        else:
+            raise Exception("No model path provided. Please provide a model path with --model_path option.")
+    if options["mode"] == "predict":
+        metaprioritizer.predict_test(type=options["benchmark_type"])
+    elif options["mode"] == "train":
+        pass
+    elif options["mode"] == "train_predict":
+        pass
+    # if training is needed 
+    if options["train"]:
+        metaprioritizer.split_patients()
+        print("ST 3 - Pass to train step\n--------------------------\n---------------------------")
+        metaprioritizer.train(type=options["benchmark_type"])
+
+    metaprioritizer.predict_test(type=options["benchmark_type"])
     
 
 #############################################################################################
