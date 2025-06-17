@@ -909,4 +909,89 @@ def main_vcf2effects(opts):
 
     with open(opts.output, 'w') as f:
         for contig, start, ref, alt, t_name, effect in var_effects:
-            f.write(f"{contig}\t{start}\t{ref}\t{alt}\t{t_name}\t{effect}\n")    
+            f.write(f"{contig}\t{start}\t{ref}\t{alt}\t{t_name}\t{effect}\n")
+
+def main_pheno_geno(opts):
+    import hpotk
+
+    store = hpotk.configure_ontology_store()
+    hpo = store.load_minimal_hpo(release='v2024-07-01')
+
+    from gpsea.preprocessing import configure_caching_cohort_creator, load_phenopacket_folder
+    cohort_creator = configure_caching_cohort_creator(hpo)
+    cohort, validation = load_phenopacket_folder(opts.phenopacket_folder, cohort_creator)
+
+    validation.summarize()
+
+    from gpsea.view import CohortViewer
+    viewer = CohortViewer(hpo)
+    report = viewer.process(cohort=cohort, transcript_id=opts.transcript_id)
+    report.write(fh='./variant.html')
+
+    import matplotlib.pyplot as plt
+    from gpsea.view import configure_default_cohort_artist
+    cohort_artist = configure_default_cohort_artist()
+    fig, ax = plt.subplots(figsize=(15, 8))
+    cohort_artist.draw_protein(
+        cohort=cohort,
+        protein_id=opts.protein_id,
+        ax=ax,
+    )
+    plt.savefig("protein.pdf", format="pdf")
+
+    from gpsea.model import VariantEffect
+    from gpsea.analysis.predicate import variant_effect, anyof
+    from gpsea.analysis.clf import monoallelic_classifier
+
+    is_missense = variant_effect(VariantEffect.MISSENSE_VARIANT, opts.transcript_id)
+    truncating_effects = (
+       VariantEffect.TRANSCRIPT_ABLATION,
+       VariantEffect.TRANSCRIPT_TRANSLOCATION,
+       VariantEffect.FRAMESHIFT_VARIANT,
+       VariantEffect.START_LOST,
+       VariantEffect.STOP_GAINED,
+       VariantEffect.SPLICE_DONOR_VARIANT,
+       VariantEffect.SPLICE_ACCEPTOR_VARIANT,
+       # more effects could be listed here ...
+    )
+
+    is_truncating = anyof(variant_effect(e, opts.transcript_id) for e in truncating_effects)
+
+    gt_clf = monoallelic_classifier(
+        a_predicate=is_missense,
+        b_predicate=is_truncating,
+        a_label="Missense", b_label="Truncating",
+    )
+
+
+    from gpsea.analysis.clf import prepare_classifiers_for_terms_of_interest
+
+    pheno_clfs = prepare_classifiers_for_terms_of_interest(
+        cohort=cohort,
+        hpo=hpo,
+    )
+
+    from gpsea.analysis.pcats import configure_hpo_term_analysis
+    analysis = configure_hpo_term_analysis(hpo)
+
+    result = analysis.compare_genotype_vs_phenotypes(
+        cohort=cohort,
+        gt_clf=gt_clf,
+        pheno_clfs=pheno_clfs,
+    )
+
+    result.total_tests
+    from gpsea.view import MtcStatsViewer
+
+    mtc_viewer = MtcStatsViewer()
+    mtc_report = mtc_viewer.process(result)
+    mtc_report.write(fh='./mtc_report.html')
+
+
+    from gpsea.view import summarize_hpo_analysis
+    summary_df = summarize_hpo_analysis(hpo, result)
+    html = summary_df.to_html()
+    # write html to file
+    text_file = open("./summary.html", "w")
+    text_file.write(html)
+    text_file.close()    

@@ -376,3 +376,18 @@ def vcf2effects(args=None):
     opts = parser.parse_args(args)
 
     main_vcf2effects(opts)
+
+def pheno_geno(args = None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    parser.add_argument("-g", "--gene_id", dest="gene_id", default= None,
+        help="Gene id as gene symbol.")
+    parser.add_argument("-t", "--transcript_id", dest="transcript_id", default= None,
+        help="Transcript id as MANE.")
+    parser.add_argument("-p", "--protein_id", dest="protein_id", default= None,
+        help="Protein id as NP NCBI type corresponding to specified transcript.")
+    parser.add_argument("-f", "--phenopacket_folder", dest="phenopacket_folder", default= None,
+        help="Path to folder with patient phenopackets to analyse.")    
+    opts = parser.parse_args(args)
+
+    main_pheno_geno(opts)
