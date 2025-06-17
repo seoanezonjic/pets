@@ -244,8 +244,11 @@ def main_profiles2phenopacket(opts):
     patient_data.link2ont(Cohort.act_ont)
 
     vcf_index = None
+    attr_index = None
     if options.get("vcf_index"): vcf_index = load_index(options["vcf_index"])
-    patient_data.export_phenopackets(options["output_folder"], options["genome_assembly"], vcf_index= vcf_index)
+    if options.get("attr_index"): attr_index = load_index(options["attr_index"])
+    patient_data.export_phenopackets(options["output_folder"], options["genome_assembly"], 
+        vcf_index= vcf_index, attr_index=attr_index, attr_name = options.get("attr_name"), v2=options['v2'])
 
 
 def main_cohort_analyzer(options):

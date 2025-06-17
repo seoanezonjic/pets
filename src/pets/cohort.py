@@ -222,7 +222,7 @@ class Cohort():
                         raise Exception('Wrong save mode option, please try default or paco')
     
     #TODO: test the method
-    def export_phenopackets(self, output_folder, genome_assembly, vcf_index= None):
+    def export_phenopackets(self, output_folder, genome_assembly, vcf_index= None, attr_index=None, attr_name = None, v2= False):
         ont = Cohort.ont[Cohort.act_ont]
         metaData = {
             "createdBy": "PETS",
@@ -248,10 +248,9 @@ class Cohort():
             phenotypicFeatures = []
             for term in terms:
                 term_name = ont.translate_id(term)
-                phenotypicFeatures.append({
-                    "type": { "id": term, "label": term_name},
-                    "classOfOnset": {"id": "HP:0003577", "label": "Congenital onset"}
-                })
+                phen = {"type": { "id": term, "label": term_name}}
+                if not v2: phen["classOfOnset"] = {"id": "HP:0003577", "label": "Congenital onset"}
+                phenotypicFeatures.append(phen)
 
             phenopacket["phenotypicFeatures"] = phenotypicFeatures
             if vcf_index and id in vcf_index:
@@ -264,6 +263,33 @@ class Cohort():
                     "individualToSampleIdentifiers": { "patient1": id }
                 })
                 phenopacket["htsFiles"] = htsFiles
+    
+            #attr_name 
+            if attr_index and id in attr_index:
+                if attr_name == 'hgvsc':
+                    interpretation = {
+                        'id': id,
+                        'diagnosis': {
+                            'genomicInterpretations': [{
+                                'subjectOrBiosampleId': id,
+                                "interpretationStatus": "CAUSATIVE",
+                                "variantInterpretation": {
+                                    "variationDescriptor": {
+                                        "expressions": [
+                                            {"syntax": "hgvs.c", "value": attr_index[id]}
+                                        ],
+                                        "moleculeContext": "genomic",
+                                        "allelicState": { # needed for GPSEA
+                                          "id": "GENO:0000135",
+                                          "label": "heterozygous"
+                                        }
+                                    }
+                                }
+                            }]
+                        }
+                    }
+
+                    phenopacket["interpretations"] = [interpretation]
 
             with open(os.path.join(output_folder, str(id) + ".json"), "w") as f:
                 f.write(json.dumps(phenopacket, indent=4))

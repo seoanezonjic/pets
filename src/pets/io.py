@@ -34,15 +34,15 @@ def load_index(path_index, multivalue = False):
     index = {}
     with open(path_index) as f:
         for line in f:
-            id, val = line.strip().split("\t")
-            if multivalue:
-              query = index.get(id)
-              if query is None:
-                index[id] = [val]
-              else:
-                query.append(val)
+          id, val = line.strip().split("\t")
+          if multivalue:
+            query = index.get(id)
+            if query is None:
+              index[id] = [val]
             else:
-              index[id] = val
+              query.append(val)
+          else:
+            index[id] = val
     return index
 
 def load_variants(variant_folder):

@@ -135,10 +135,14 @@ def profiles2phenopacket(args=None):
 
     parser.add_argument("-I", "--vcf_index", dest="vcf_index", default= None,
                         help="VCF file with patient id pointing to vcf path")
-                        
+    parser.add_argument("-A", "--attr_index", dest="attr_index", default= None,
+                        help="File with patient id and attribute in tabulated columns")
+    parser.add_argument("--attr_name", dest="attr_name", default= None,
+                        help="Attribute name to insert in phenopacket data")                        
     parser.add_argument("-o", "--output_file", dest="output_folder", default= None,
                         help="Output folder")
-    
+    parser.add_argument("--v2", dest="v2", default= False, action="store_true",
+                        help="Use v2 phenopacket definition")
     parser.add_argument("-n","--hpo_names", dest="names", default= False, action="store_true",
                         help="Define if the input HPO are human readable names. Default false")
     
