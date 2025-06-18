@@ -917,11 +917,21 @@ def main_pheno_geno(opts):
     store = hpotk.configure_ontology_store()
     hpo = store.load_minimal_hpo(release='v2024-07-01')
 
-    from gpsea.preprocessing import configure_caching_cohort_creator, load_phenopacket_folder
-    cohort_creator = configure_caching_cohort_creator(hpo)
-    cohort, validation = load_phenopacket_folder(opts.phenopacket_folder, cohort_creator)
-
-    validation.summarize()
+    serialized_cohort_file = './cohort.json'
+    import json
+    if os.path.exists(serialized_cohort_file):
+        from gpsea.io import GpseaJSONDecoder
+        encoded = None
+        with open(serialized_cohort_file, 'r') as f: encoded = f.read()
+        cohort = json.loads(encoded, cls=GpseaJSONDecoder)
+    else:
+        from gpsea.preprocessing import configure_caching_cohort_creator, load_phenopacket_folder
+        cohort_creator = configure_caching_cohort_creator(hpo)
+        cohort, validation = load_phenopacket_folder(opts.phenopacket_folder, cohort_creator)
+        validation.summarize()
+        from gpsea.io import GpseaJSONEncoder
+        encoded = json.dumps(cohort, cls=GpseaJSONEncoder)
+        with open(serialized_cohort_file, "w") as outfile: outfile.write(encoded)
 
     from gpsea.view import CohortViewer
     viewer = CohortViewer(hpo)
