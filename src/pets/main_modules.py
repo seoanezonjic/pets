@@ -1,4 +1,3 @@
-
 import os
 import glob, json
 from importlib.resources import files
@@ -7,6 +6,7 @@ import requests
 from collections import Counter
 
 import numpy as np
+import pandas as pd
 from py_report_html import Py_report_html
 import pets
 import pets.report_pets
@@ -21,8 +21,6 @@ from pets.genomic_prioritizer import GenomicPrioritizer, AimarrvelPrioritizer, L
 from py_exp_calc.exp_calc import invert_hash, uniq
 from py_semtools.ontology import Ontology
 from py_semtools.sim_handler import similitude_network
-from NetAnalyzer import NetAnalyzer
-import pandas as pd
 from py_cmdtabs.cmdtabs import CmdTabs
 
 # https://setuptools.pypa.io/en/latest/userguide/datafiles.html
@@ -659,6 +657,8 @@ def generate_prediction(similarity_matrixs, all_genomic_coordinates, prof_vars):
 #####################
 
 def generate_tripartite_diseasome(adj_list, ontology, layers=["disease","group","parentals"]):
+    from NetAnalyzer import NetAnalyzer
+
     # Create network
     net = NetAnalyzer(layers)
     for disease, group in adj_list:
@@ -914,10 +914,12 @@ def main_vcf2effects(opts):
 def main_pheno_geno(opts):
     import hpotk
 
+    if not os.path.exists(opts.output_folder): os.mkdir(opts.output_folder)
+
     store = hpotk.configure_ontology_store()
     hpo = store.load_minimal_hpo(release='v2024-07-01')
 
-    serialized_cohort_file = './cohort.json'
+    serialized_cohort_file = os.path.join(opts.output_folder, './cohort.json')
     import json
     if os.path.exists(serialized_cohort_file):
         from gpsea.io import GpseaJSONDecoder
@@ -936,8 +938,12 @@ def main_pheno_geno(opts):
     from gpsea.view import CohortViewer
     viewer = CohortViewer(hpo)
     report = viewer.process(cohort=cohort, transcript_id=opts.transcript_id)
-    report.write(fh='./variant.html')
+    report.write(fh=os.path.join(opts.output_folder,'./variant.html'))
 
+    # Default anlysis
+    #----------------------------------------------------------------------
+    output_folder = os.path.join(opts.output_folder, 'annot_default')
+    if not os.path.exists(output_folder): os.mkdir(output_folder)
     import matplotlib.pyplot as plt
     from gpsea.view import configure_default_cohort_artist
     cohort_artist = configure_default_cohort_artist()
@@ -947,61 +953,106 @@ def main_pheno_geno(opts):
         protein_id=opts.protein_id,
         ax=ax,
     )
-    plt.savefig("protein.pdf", format="pdf")
+    plt.savefig(os.path.join(output_folder,"prot.pdf"), format="pdf")
 
+    from gpsea.preprocessing import configure_default_protein_metadata_service
+    pm_service = configure_default_protein_metadata_service()
+    protein_metaUni = pm_service.annotate(opts.protein_id)
+    
+    from gpsea.view import ProteinVariantViewer
+    cpd_viewer = ProteinVariantViewer(protein_metadata=protein_metaUni, tx_id=opts.transcript_id)
+    report = cpd_viewer.process(cohort)
+    report.write(fh=os.path.join(output_folder,'variants_per_region.html'))
+    
+    perform_pheno_geno_analysis(protein_metaUni, cohort, hpo, output_folder)
+
+    # Using other annotations
+    #----------------------------------------------------------------------
+    from gpsea.view import ProteinVisualizer
+    for prot_annot in opts.protein_annotation:
+        output_folder = os.path.join(opts.output_folder, os.path.basename(prot_annot).split('.')[0])
+        if not os.path.exists(output_folder): os.mkdir(output_folder)
+        features = []
+        with open(prot_annot) as f:
+            for line in f:
+                feat_id, category, start, stop = line.strip().split("\t")
+                features.append({'region': feat_id ,'category': category , 'start': int(start), 'end': int(stop) })
+        df = pd.DataFrame(features)
+
+        from gpsea.model import ProteinMetadata
+        protein_meta = ProteinMetadata.from_feature_frame(protein_id=opts.protein_id, features=df, protein_length=opts.protein_length, label='prot')
+
+        visualizer = ProteinVisualizer()
+        fig, ax = plt.subplots(figsize=(15, 8))
+        visualizer.draw_protein(
+            cohort=cohort,
+            protein_id=opts.protein_id,
+            ax=ax,
+            protein_metadata=protein_meta
+        )
+        plt.savefig(os.path.join(output_folder, "prot.pdf"), format="pdf")
+
+        cpd_viewer = ProteinVariantViewer(protein_metadata=protein_meta, tx_id=opts.transcript_id)
+        report = cpd_viewer.process(cohort)
+        report.write(fh=os.path.join(output_folder, "variants_per_region.html"))
+
+        perform_pheno_geno_analysis(protein_meta, cohort, hpo, output_folder)
+
+
+def perform_pheno_geno_analysis(protein_meta, cohort, hpo, output_folder):
     from gpsea.model import VariantEffect
-    from gpsea.analysis.predicate import variant_effect, anyof
+    from gpsea.analysis.predicate import variant_effect, protein_feature, anyof
     from gpsea.analysis.clf import monoallelic_classifier
 
-    is_missense = variant_effect(VariantEffect.MISSENSE_VARIANT, opts.transcript_id)
-    truncating_effects = (
-       VariantEffect.TRANSCRIPT_ABLATION,
-       VariantEffect.TRANSCRIPT_TRANSLOCATION,
-       VariantEffect.FRAMESHIFT_VARIANT,
-       VariantEffect.START_LOST,
-       VariantEffect.STOP_GAINED,
-       VariantEffect.SPLICE_DONOR_VARIANT,
-       VariantEffect.SPLICE_ACCEPTOR_VARIANT,
-       # more effects could be listed here ...
-    )
+    out_reports = os.path.join(output_folder, 'analysis_per_region')
+    if not os.path.exists(out_reports): os.mkdir(out_reports)
 
-    is_truncating = anyof(variant_effect(e, opts.transcript_id) for e in truncating_effects)
+    count = 1
+    for feature in protein_meta.protein_features:
+        # Genotype
+        reg_name = feature.info.name
+        analysis_reg = f"{reg_name}_{count}"
+        is_reg = protein_feature(reg_name, protein_meta)
+        gt_clf = monoallelic_classifier(
+            a_predicate=is_reg,
+            a_label="Is in prot feature", b_label="Not",
+        )
 
-    gt_clf = monoallelic_classifier(
-        a_predicate=is_missense,
-        b_predicate=is_truncating,
-        a_label="Missense", b_label="Truncating",
-    )
+        # Phenotype
+        from gpsea.analysis.clf import prepare_classifiers_for_terms_of_interest
+        pheno_clfs = prepare_classifiers_for_terms_of_interest(
+            cohort=cohort,
+            hpo=hpo,
+        )
 
+        from gpsea.analysis.mtc_filter import IfHpoFilter
+        from gpsea.analysis.pcats.stats import FisherExactTest
+        from gpsea.analysis.pcats import HpoTermAnalysis
+        analysis = HpoTermAnalysis(
+            count_statistic = FisherExactTest(),
+            mtc_filter = IfHpoFilter.default_filter(hpo, annotation_frequency_threshold=0.05),
+            mtc_correction = 'fdr_bh',
+            mtc_alpha = 0.05,
+        )
 
-    from gpsea.analysis.clf import prepare_classifiers_for_terms_of_interest
+        # Analysis geno and pheno
+        result = analysis.compare_genotype_vs_phenotypes(
+            cohort=cohort,
+            gt_clf=gt_clf,
+            pheno_clfs=pheno_clfs,
+        )
 
-    pheno_clfs = prepare_classifiers_for_terms_of_interest(
-        cohort=cohort,
-        hpo=hpo,
-    )
+        from gpsea.view import MtcStatsViewer
+        mtc_viewer = MtcStatsViewer()
+        mtc_report = mtc_viewer.process(result)
+        mtc_report.write(fh=os.path.join(out_reports, f"mtc_report_{analysis_reg}.html"))
 
-    from gpsea.analysis.pcats import configure_hpo_term_analysis
-    analysis = configure_hpo_term_analysis(hpo)
-
-    result = analysis.compare_genotype_vs_phenotypes(
-        cohort=cohort,
-        gt_clf=gt_clf,
-        pheno_clfs=pheno_clfs,
-    )
-
-    result.total_tests
-    from gpsea.view import MtcStatsViewer
-
-    mtc_viewer = MtcStatsViewer()
-    mtc_report = mtc_viewer.process(result)
-    mtc_report.write(fh='./mtc_report.html')
-
-
-    from gpsea.view import summarize_hpo_analysis
-    summary_df = summarize_hpo_analysis(hpo, result)
-    html = summary_df.to_html()
-    # write html to file
-    text_file = open("./summary.html", "w")
-    text_file.write(html)
-    text_file.close()    
+        from gpsea.view import summarize_hpo_analysis
+        summary_df = summarize_hpo_analysis(hpo, result)
+        html = summary_df.to_html()
+        # write html to file
+        text_file = open(os.path.join(out_reports,f"summary_{analysis_reg}.html"), "w")
+        text_file.write(html)
+        text_file.close()
+        break
+        count += 1

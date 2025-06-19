@@ -6,7 +6,7 @@ class Cohort_Parser(File_Parser):
     
     @classmethod
     def load(cls, options):
-        valid_fields = ["id_col", "ont_col", "chromosome_col", "start_col", "end_col", "sex_col"]
+        valid_fields = ["id_col", "ont_col", "chromosome_col", "start_col", "end_col", "sex_col", "neg_ont_col"]
         fields2extract, records = cls.get_records(valid_fields, options)
         options["extracted_fields"] = list(fields2extract.keys())
         cohort, rejected_terms, rejected_recs = cls.create_cohort(records, options)
@@ -38,7 +38,8 @@ class Cohort_Parser(File_Parser):
                     else:
                         record[0] = []
                     if options.get("start_col"): record[2] = int(record[2])
-                    if options.get("end_col"): record[3] = int(record[3]) 
+                    if options.get("end_col"): record[3] = int(record[3])
+                    if options.get("neg_ont_col"): record[5] = record[5].split(options["separator"])
                     query = records.get(id)
                     if query == None:
                         records[id] = [record]
@@ -75,7 +76,9 @@ class Cohort_Parser(File_Parser):
             other_attr = {}
             if "sex_col" in options["extracted_fields"]: # Check for additional attributes. -1 is applied to ignore :id in extracted fields
                 other_attr["sex"] = record[0][options["extracted_fields"].index("sex_col") -1]
-
+            if "neg_ont_col" in options["extracted_fields"]: # Check for additional attributes. -1 is applied to ignore :id in extracted fields
+                other_attr["neg_hpo"] = record[0][options["extracted_fields"].index("neg_ont_col") -1]
+            
             cohort.add_record([id, terms, Cohort_Parser.check_variants(variants)], other_attr)
 
         return cohort, list(set(rejected_terms)), rejected_recs

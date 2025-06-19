@@ -132,7 +132,6 @@ def profiles2phenopacket(args=None):
 
     parser.add_argument("-i", "--input_file", dest="input_file", default= None,
                         help="Input file with patient data")
-
     parser.add_argument("-I", "--vcf_index", dest="vcf_index", default= None,
                         help="VCF file with patient id pointing to vcf path")
     parser.add_argument("-A", "--attr_index", dest="attr_index", default= None,
@@ -148,6 +147,8 @@ def profiles2phenopacket(args=None):
     
     parser.add_argument("-p", "--hpo_term_col", dest="ont_col", default= None,
                         help="Column name if header true or 0-based position of the column with the HPO terms")
+    parser.add_argument("--neg_hpo_term_col", dest="neg_ont_col", default= None,
+                        help="Column name if header true or 0-based position of the column with the EXCLUDED HPO terms fora specific record")
     parser.add_argument("-e", "--end_col", dest="end_col", default= None,
                         help="Column name if header is true, otherwise 0-based position of the column with the end mutation coordinate")
     opts =  parser.parse_args(args)
@@ -380,14 +381,20 @@ def vcf2effects(args=None):
 def pheno_geno(args = None):
     if args == None: args = sys.argv[1:]
     parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    parser.add_argument("-o", "--output_folder", dest="output_folder", default= 'results',
+        help="Output folder in which the results will be saved.")
     parser.add_argument("-g", "--gene_id", dest="gene_id", default= None,
         help="Gene id as gene symbol.")
     parser.add_argument("-t", "--transcript_id", dest="transcript_id", default= None,
         help="Transcript id as MANE.")
     parser.add_argument("-p", "--protein_id", dest="protein_id", default= None,
         help="Protein id as NP NCBI type corresponding to specified transcript.")
+    parser.add_argument("-P", "--protein_annotation", dest="protein_annotation", default= None, type=tolist,
+        help="Path to tabulated files (Id, region_type, aa start, aa_stop). Can be specified several paths comma separated")    
     parser.add_argument("-f", "--phenopacket_folder", dest="phenopacket_folder", default= None,
-        help="Path to folder with patient phenopackets to analyse.")    
+        help="Path to folder with patient phenopackets to analyse.")
+    parser.add_argument("--protein_length", dest="protein_length", default= None, type=int,
+        help="Protein length in aminocids. Must be used with -P")            
     opts = parser.parse_args(args)
 
     main_pheno_geno(opts)
