@@ -256,7 +256,7 @@ class Cohort():
                 neg_hpos = extra_attr.get("neg_hpo")
                 for term in neg_hpos:
                     term_name = ont.translate_id(term)
-                    phen = {"type": { "id": term, "label": term_name, "excluded": True}}
+                    phen = {"type": { "id": term, "label": term_name}, "excluded": True}
                     if not v2: phen["classOfOnset"] = {"id": "HP:0003577", "label": "Congenital onset"}
                     phenotypicFeatures.append(phen)
 
