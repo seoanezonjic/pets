@@ -37,9 +37,9 @@ class Cohort_Parser(File_Parser):
                         record[0] = record[0].split(options["separator"])
                     else:
                         record[0] = []
-                    if options.get("start_col"): record[2] = int(record[2])
-                    if options.get("end_col"): record[3] = int(record[3])
-                    if options.get("neg_ont_col"): record[5] = record[5].split(options["separator"])
+                    if options.get("start_col"): record[fields2extract['start_col']-1] = int(record[fields2extract['start_col']-1])
+                    if options.get("end_col"): record[fields2extract['end_col']-1] = int(record[fields2extract['end_col']-1])
+                    if options.get("neg_ont_col"): record[fields2extract['neg_ont_col']-1] = record[fields2extract['neg_ont_col']-1].split(options["separator"])
                     query = records.get(id)
                     if query == None:
                         records[id] = [record]
