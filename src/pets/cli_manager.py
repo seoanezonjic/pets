@@ -377,24 +377,3 @@ def vcf2effects(args=None):
     opts = parser.parse_args(args)
 
     main_vcf2effects(opts)
-
-def pheno_geno(args = None):
-    if args == None: args = sys.argv[1:]
-    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
-    parser.add_argument("-o", "--output_folder", dest="output_folder", default= 'results',
-        help="Output folder in which the results will be saved.")
-    parser.add_argument("-g", "--gene_id", dest="gene_id", default= None,
-        help="Gene id as gene symbol.")
-    parser.add_argument("-t", "--transcript_id", dest="transcript_id", default= None,
-        help="Transcript id as MANE.")
-    parser.add_argument("-p", "--protein_id", dest="protein_id", default= None,
-        help="Protein id as NP NCBI type corresponding to specified transcript.")
-    parser.add_argument("-P", "--protein_annotation", dest="protein_annotation", default= None, type=tolist,
-        help="Path to tabulated files (Id, region_type, aa start, aa_stop). Can be specified several paths comma separated")    
-    parser.add_argument("-f", "--phenopacket_folder", dest="phenopacket_folder", default= None,
-        help="Path to folder with patient phenopackets to analyse.")
-    parser.add_argument("--protein_length", dest="protein_length", default= None, type=int,
-        help="Protein length in aminocids. Must be used with -P")            
-    opts = parser.parse_args(args)
-
-    main_pheno_geno(opts)
