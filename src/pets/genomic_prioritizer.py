@@ -543,9 +543,9 @@ class LiricalPrioritizer(GenomicPrioritizer):
                 # For change: (?P<transcript>NM_[\d\.]+)
                 # Instead of: (?P<transcript>[A-Z]{2}_[\d\.]+)
                 match = re.match(
-                    r"(?P<chr>[^\s:]+):(?P<pos>\d+)(?P<ref>[ACGT]+)>(?P<alt>[ACGT]+|[A-Z]+)?\s+"
+                    r"(?P<chr>[^\s:]+):(?P<pos>\d+)(?P<ref>[ACGT]+)>(?P<alt>[A-Z*]+)?\s+"
                     r"(?P<transcript>[A-Z]{2}_[\d\.]+)(?::(?P<annotation>.*?))?\s+"
-                    r"pathogenicity:(?P<pathogenicity>[\d\.]+)\s+\[(?P<genotype>[0-9/]+)\]",
+                    r"pathogenicity:(?P<pathogenicity>[\d\.]+)\s+\[(?P<genotype>[0-9./]+)\]",
                     variant
                 )
                 # if not match:
@@ -799,9 +799,12 @@ class MetaGenomicPrioritizer:
     def split_patients(self, type="gene", test_size=0.3, random_state=42):
         merged_key = "feature_gene" if type == "gene" else "feature_variant"
         all_patients = list(getattr(self, merged_key).keys())
-        self.train_patients, self.test_patients = train_test_split(
-            all_patients, test_size=test_size, random_state=random_state
-        )
+        if len(all_patients) > 1:
+            self.train_patients, self.test_patients = train_test_split(
+                all_patients, test_size=test_size, random_state=random_state
+            )
+        else:
+            self.test_patients = all_patients
 
     # Training 
     ######################
@@ -893,6 +896,7 @@ class HeuristicModel():
 
     def predict(self, X):
         rank_cols = [col for col in X.columns if col.startswith("rank_")]
+        X[rank_cols] = X[rank_cols].apply(pd.to_numeric, errors='coerce')
         return -1 * X[rank_cols].min(axis=1, skipna=True).to_numpy()
 
 class XGBoostRankerModel:
