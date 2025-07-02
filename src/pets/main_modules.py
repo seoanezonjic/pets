@@ -450,6 +450,7 @@ def main_evidence_profiler(opts):
 
 def main_report_prioritizer(opts):
     options = vars(opts)
+    print("AQUI ESTOY CHAVAL"*30)
     
     prioritizer = {}
     for prioritizer_type, path2folder_results in options["prioritizers"].items():
@@ -479,11 +480,10 @@ def main_report_prioritizer(opts):
     if not options["write_tmp"]:
         if options["integrated_report"]:
             if len(prioritizer.keys()) > 1:
-                # Report the maximum comparison
-                # print("HOLAAAAAAAAAAAAA")
                 metaprioritizer = MetaGenomicPrioritizer(prioritizer)
                 metaprioritizer.get_features(type=options["benchmark_type"])
-                metaprioritizer.split_patients()
+                metaprioritizer.test_patients = metaprioritizer.get_all_patients()
+                print(metaprioritizer.test_patients)
                 metaprioritizer.model = HeuristicModel()
                 metaprioritizer.predict_test(type=options["benchmark_type"])
                 prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
@@ -548,9 +548,16 @@ def main_meta_prioritizer(opts):
         elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
             prioritizer[(prioritizer_type, path2folder_results)].post_process_results_variants(path2folder_results, 
                              write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+
+
     # Create MetaPrioritizer and getting the features
     metaprioritizer = MetaGenomicPrioritizer(prioritizer)
     metaprioritizer.get_features(type=options["benchmark_type"])
+
+    if options["labels"]:
+        patient_labels = CmdTabs.load_input_data(options["labels"])
+        metaprioritizer.load_patient_labels(patient_labels)
+    
     # load the model
     if options["model_type"] == "heuristic":
         metaprioritizer.model = HeuristicModel()
@@ -561,19 +568,20 @@ def main_meta_prioritizer(opts):
             metaprioritizer.model = HeuristicModel.load_model(options["model_path"])
         else:
             raise Exception("No model path provided. Please provide a model path with --model_path option.")
+    
     if options["mode"] == "predict":
+        metaprioritizer.test_patients = metaprioritizer.get_all_patients(type=options["benchmark_type"])
         metaprioritizer.predict_test(type=options["benchmark_type"])
     elif options["mode"] == "train":
-        pass
+        metaprioritizer.train_patients = metaprioritizer.get_all_patients(type=options["benchmark_type"])
+        metaprioritizer.train_model(type=options["benchmark_type"])
     elif options["mode"] == "train_predict":
-        pass
-    # if training is needed 
-    if options["train"]:
-        metaprioritizer.split_patients()
-        print("ST 3 - Pass to train step\n--------------------------\n---------------------------")
-        metaprioritizer.train(type=options["benchmark_type"])
+        metaprioritizer.split_patients(type="gene", test_size=0.3, random_state=42)
+        metaprioritizer.train_model(type=options["benchmark_type"])
+        metaprioritizer.predict_test(type=options["benchmark_type"])
 
-    metaprioritizer.predict_test(type=options["benchmark_type"])
+    if options["mode"] == "predict" or options["mode"] == "train_predict":
+        prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
     
 
 #############################################################################################
