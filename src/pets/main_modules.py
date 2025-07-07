@@ -60,9 +60,9 @@ def main_collapse_terms(opts):
 
     parent_to_childs_terms = get_parent_and_childs_nodes_dict(terms2collapse, ontology)
     parent_to_childs_txt = {parent: [term_to_txt[child] for child in childs] for parent, childs in parent_to_childs_terms.items()}
-    similarities = get_txt_to_txt_similarities(parent_to_childs_txt, rm_char=options["rm_char"])
+    similarities = get_txt_to_txt_similarities(parent_to_childs_txt, rm_char=options["rm_char"], algorithm = options['sim_algorithm'])
     terms_to_parents_collapsed = get_thresholded_childs_to_parents_dict(similarities, threshold = options.get("threshold"),
-     ontology=ontology, rm_char = options["rm_char"], txt_to_term = txt_to_term, uniq_parent = options["uniq_parent"])
+     ontology=ontology, rm_char = options["rm_char"], txt_to_term = txt_to_term, uniq_parent = options["uniq_parent"], algorithm = options['sim_algorithm'])
 
     with open(options["output_file"], "w") as f:
         # Wath out: This is implying that all term which are not leafs would be added!
@@ -770,13 +770,13 @@ def get_parent_and_childs_nodes_dict(mondo_terms, ontology):
     parent_to_childs_dict = {parent: childs for parent, childs in parent_to_childs_dict.items() if len(childs) > 1}
     return parent_to_childs_dict
 
-def get_txt_to_txt_similarities(parent_to_childs_txt, rm_char = ""):
+def get_txt_to_txt_similarities(parent_to_childs_txt, rm_char = "", algorithm = 'white'):
     similarities = {}
     for parent, txts in parent_to_childs_txt.items():
-        if len(txts) > 1: similarities[parent] = similitude_network(txts, charsToRemove = rm_char)
+        if len(txts) > 1: similarities[parent] = similitude_network(txts, charsToRemove = rm_char, algorithm = algorithm)
     return similarities
 
-def get_thresholded_childs_to_parents_dict(similarities, threshold, ontology, rm_char = "", txt_to_term = None, uniq_parent = False):
+def get_thresholded_childs_to_parents_dict(similarities, threshold, ontology, rm_char = "", txt_to_term = None, uniq_parent = False, algorithm = 'white'):
     terms_to_parents_collapsed = {}
 
     for parent, childs in similarities.items():
@@ -799,14 +799,14 @@ def get_thresholded_childs_to_parents_dict(similarities, threshold, ontology, rm
                     else:
                         terms_to_parents_collapsed[child2_term].append(parent)
     if uniq_parent: 
-        terms_to_parents_collapsed = get_collapsed_with_unique_parents(ontology, terms_to_parents_collapsed, rm_char)
+        terms_to_parents_collapsed = get_collapsed_with_unique_parents(ontology, terms_to_parents_collapsed, rm_char, algorithm = algorithm)
     else:
         terms_to_parents_collapsed = { child: list(set(parents)) for child, parents in terms_to_parents_collapsed.items() }
 
     return terms_to_parents_collapsed
 
 
-def get_collapsed_with_unique_parents(ontology, terms_to_parents_collapsed, rm_char = ""):
+def get_collapsed_with_unique_parents(ontology, terms_to_parents_collapsed, rm_char = "", algorithm = 'white'):
     collapsed_with_unique_parents = {}
     for child, parents in terms_to_parents_collapsed.items():
         parents = list(set(parents))
@@ -818,7 +818,7 @@ def get_collapsed_with_unique_parents(ontology, terms_to_parents_collapsed, rm_c
             deepest_parents = [parents[i] for i in max_depth_indexes]
             translated_child = ontology.translate_id(child)
             translated_parents = [ontology.translate_id(parent) for parent in deepest_parents]
-            similarities = similitude_network([translated_child] + translated_parents, charsToRemove = rm_char)
+            similarities = similitude_network([translated_child] + translated_parents, charsToRemove = rm_char, algorithm = algorithm)
             collapsed_with_unique_parents[child] = [ontology.translate_name(max(similarities[translated_child].items(), key=lambda x: x[1])[0])]
     return collapsed_with_unique_parents
 

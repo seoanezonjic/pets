@@ -284,6 +284,8 @@ def collapse_terms(args=None):
                     help="Path to the ontology file")
     parser.add_argument("-o", "--output_file", dest="output_file", default= None, 
                     help="Path to the output file to write results")
+    parser.add_argument("--sim_algorithm", dest="sim_algorithm", default= 'white',
+                    help="Similarity algorithm")
     parser.add_argument("-r", "--remove_chars", dest="rm_char", default="", 
                     help="Chars to be excluded from comparissons.")
     parser.add_argument("-t", "--threshold", dest="threshold", default=0.70, type=float,
