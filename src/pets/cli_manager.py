@@ -321,13 +321,14 @@ def report_prioritizer(args=None):
     opts = parser.parse_args(args)
     main_report_prioritizer(opts)
 
-def main_metaPrioritizer(args=None):
+def meta_prioritizer(args=None):
     if args == None: args = sys.argv[1:]
     parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
     add_parser_commom_options(parser)
     parser.add_argument("--prioritizers", dest="prioritizers", default= None, type=lambda x: loading_dic(x, sep1=";", sep2=","),
                     help="Format prioritizer:path_to_prioritizer_file")
-    parser.add_argument("--labels", dest="labels") # podemos tomar una lista paciente, id de gen o variante
+    parser.add_argument("--labels", dest="labels", help="""path to file with format in three columns: 
+                        patient\tcandidateId""") 
     parser.add_argument("--mode", dest="mode", default="both", type=str, help="To select if you want to test and or train a model, the options are 'train', 'predict' or 'both'. Default both")
     parser.add_argument("--training_options", dest="training_options", default=None, type=lambda x: loading_dic(x, sep1=";", sep2=","),
                     help="Format option:value for the training model")

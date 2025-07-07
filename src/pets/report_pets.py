@@ -39,6 +39,8 @@ def get_top_rank(self, table, top):
 def get_corr_table(self, table, columns, method="spearman"):
     df = table.iloc[:,columns]
     corr = df.corr(method=method)
+    corr = corr.dropna(axis=1, how='all')
+    corr = corr.dropna(axis=0, how='all')
     corr_table = corr.values.tolist()
     corr_table = [[corr.index[i]] + row for i, row in enumerate(corr_table)]
     corr_table.insert(0, [" "] + corr.columns.tolist())

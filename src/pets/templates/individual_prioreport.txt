@@ -1,6 +1,7 @@
 <%
         import pandas as pd
         import numpy as np
+        import math
 %>
 <% 
     all_numeric = [0,1]
@@ -46,8 +47,10 @@ ${plotter.create_title("Distribution for each categorical variable", id='top_can
         plot_top = plotter.pie(id='pie_table_top', header=False, text= True, title="B", row_names = True)
         txt += f"<p>Category: {categorical_name}</p>" + "\n"
         txt += """<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">""" + "\n"
+        txt += "<div>" + "\n"
         txt += plot_all + "\n"
         txt += plot_top + "\n"
+        txt += "</div>" + "\n"
         txt += "</div>" + "\n"
         txt += title + "\n"
     %>
@@ -55,10 +58,18 @@ ${plotter.create_title("Distribution for each categorical variable", id='top_can
 
         plotter.hash_vars["scores_boxplot"] = [["Score", "Group"]]
         plotter.hash_vars["scores_boxplot"].extend([[score, "All"] for score in plotter.hash_vars["prio_table"]["score"]])
-        plotter.hash_vars["scores_boxplot"].extend([[row[0], row[1]] for row in plotter.hash_vars["prio_table"][["score", categorical_name]].values])
+        for row in plotter.hash_vars["prio_table"][["score", categorical_name]].values:
+                if type(row[1]) is float:
+                        if math.isnan(row[1]):
+                                continue
+                plotter.hash_vars["scores_boxplot"].append([row[0],row[1]])
         plotter.hash_vars["scores_boxplot_top100"] = [["Score", "Group"]]
         plotter.hash_vars["scores_boxplot_top100"].extend([[score, "All"] for score in plotter.hash_vars["prio_table_top100"]["score"]])
-        plotter.hash_vars["scores_boxplot_top100"].extend([[row[0], row[1]] for row in plotter.hash_vars["prio_table_top100"][["score", categorical_name]].values])
+        for row in plotter.hash_vars["prio_table_top100"][["score", categorical_name]].values:
+                if type(row[1]) is float:
+                        if math.isnan(row[1]):
+                                continue
+                plotter.hash_vars["scores_boxplot_top100"].append([row[0],row[1]])
         title = plotter.make_title("figure", "boxplot", f"Distribution of the scores of {categorical_name} associated with each gene. A) All genes; B) Top 100 genes.")
         plot_all = plotter.boxplot(id="scores_boxplot", row_names = False, title="A",
         header = True, fields=[0], smp_attr=[1], x_label="Score", group="Group",
@@ -75,8 +86,10 @@ ${plotter.create_title("Distribution for each categorical variable", id='top_can
                 "xAxisTextScaleFontFactor":1.3,
                 'smpTextScaleFontFactor':1.3})
         txt += """<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">""" + "\n"
+        txt += "<div>" + "\n"
         txt += plot_all + "\n"
         txt += plot_top + "\n"
+        txt += "</div>" + "\n"
         txt += "</div>" + "\n"
         txt += title + "\n"  
     %>
@@ -93,7 +106,8 @@ ${plotter.create_title("Quantitative correlation", id='top_gene', hlevel=2, inde
         plotter.hash_vars["scores_corr_top100"] = plotter.get_corr_table(plotter.hash_vars["prio_table_top100"], [0,1]+plotter.hash_vars["quantitative"])
         print(plotter.hash_vars["scores_corr_top100"])
 %>
-<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">
+<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center" >
+<div >
         ${ plotter.heatmap(id = 'scores_corr', title="A",header = True, row_names = True, 
                 config= {"setMinX":-1,
                 "setMaxX":1, 
@@ -106,6 +120,7 @@ ${plotter.create_title("Quantitative correlation", id='top_gene', hlevel=2, inde
                 "xAxisTitle": "Spearman-corr", 
                 "samplesClustered": False,
                 "showSmpDendrogram": False}) }
+</div>
 </div>
 ${plotter.make_title("figure", "corr", "Spearman correlation between the quantitative features. A) All genes; B) Top 100 genes.")}
 % endif

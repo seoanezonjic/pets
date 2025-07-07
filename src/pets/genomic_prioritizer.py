@@ -12,7 +12,7 @@ from py_exp_calc.exp_calc import get_rank_metrics
 
 logger = logging.getLogger(__name__)
 
-def parse_hgnc_data() -> pd.DataFrame:
+def parse_hgnc_data():
     base_path = os.path.dirname(__file__) 
     hgnc_path = os.path.join(base_path, "external_data", "hgnc_complete_set.txt")
 
@@ -36,15 +36,12 @@ def parse_hgnc_data() -> pd.DataFrame:
 
 
 class GenomicPrioritizer:
-    #identifier_map = create_gene_identifier_map()
     identifier_map = parse_hgnc_data()
     gene_identifiers = ["gene_symbol", "ensembl_id"]
 
     def __init__(self):
-        # For variant: rank|score|chromosome|start|end|ref|alt
-        self.patient2variant_results = {}
-        # For Gene: rank|score|gene_symbol|gene_identifier(ensbl)
-        self.patient2gene_results = {}
+        self.patient2variant_results = {} # rank    score   chromosome  start   end ref alt
+        self.patient2gene_results = {} # rank   score   gene_symbol gene_identifier(ensbl)
         self.priot_type = ["gene", "variant"]
         self.identifier_translator = {}
         self.quant_features_idx = {}
@@ -543,9 +540,9 @@ class LiricalPrioritizer(GenomicPrioritizer):
                 # For change: (?P<transcript>NM_[\d\.]+)
                 # Instead of: (?P<transcript>[A-Z]{2}_[\d\.]+)
                 match = re.match(
-                    r"(?P<chr>[^\s:]+):(?P<pos>\d+)(?P<ref>[ACGT]+)>(?P<alt>[ACGT]+|[A-Z]+)?\s+"
+                    r"(?P<chr>[^\s:]+):(?P<pos>\d+)(?P<ref>[ACGT]+)>(?P<alt>[A-Z*]+)?\s+"
                     r"(?P<transcript>[A-Z]{2}_[\d\.]+)(?::(?P<annotation>.*?))?\s+"
-                    r"pathogenicity:(?P<pathogenicity>[\d\.]+)\s+\[(?P<genotype>[0-9/]+)\]",
+                    r"pathogenicity:(?P<pathogenicity>[\d\.]+)\s+\[(?P<genotype>[0-9./]+)\]",
                     variant
                 )
                 # if not match:
@@ -698,10 +695,8 @@ class MetaGenomicPrioritizer:
         # model
         self.model = None
         # Results
-        # For variant: rank|score|chromosome|start|end|ref|alt
-        self.patient2variant_results = {}
-        # For Gene: rank|score|gene_symbol|gene_identifier(ensbl)
-        self.patient2gene_results = {}
+        self.patient2variant_results = {} # rank    score  chromosome   start end ref alt
+        self.patient2gene_results = {} # rank   score gene_symbol gene_identifier(ensbl)
         self.quant_features_idx = {}
         self.qual_features_idx = {}
 
@@ -785,7 +780,7 @@ class MetaGenomicPrioritizer:
             all_patients = all_patients.intersection(all_patients_for_priotizer)
         all_patients = sorted(list(all_patients))
 
-        # Ensure every prioritizer has an entry for every patient
+        # Update with just the common patients
         for prioritizer in self.prioritizers.values():
             clean_features = {}
             results_dict = getattr(prioritizer, results_key)
@@ -793,52 +788,67 @@ class MetaGenomicPrioritizer:
                 clean_features[patient] = results_dict[patient]
             setattr(prioritizer, results_key, clean_features)
 
+    # labels
+    ##################
+
+    def load_patient_labels(self, patient_labels):
+        for patient_label in patient_labels:
+            patient = patient_label[0]
+            candidateID = patient_label[1]
+            if not self.label.get(patient):
+                self.label[patient] = [candidateID]
+            else:
+                self.label[patient].append(candidateID)
+
     # Split and preparing corpus
     ######################
 
-    def split_patients(self, type="gene", test_size=0.3, random_state=42):
+    def get_all_patients(self, type="gene"):
         merged_key = "feature_gene" if type == "gene" else "feature_variant"
         all_patients = list(getattr(self, merged_key).keys())
+        return all_patients
+
+    def split_patients(self, type="gene", test_size=0.3, random_state=42):
+        all_patients = self.get_all_patients(type)
         self.train_patients, self.test_patients = train_test_split(
-            all_patients, test_size=test_size, random_state=random_state
+            all_patients, test_size=1, random_state=random_state
         )
 
     # Training 
     ######################
 
     def prepare_training_data(self, type="gene", label_col_substring="score"):
-        merged_key = "merged_gene_results" if type == "gene" else "merged_variant_results"
+        merged_key = "feature_gene" if type == "gene" else "feature_variant"
         merged_results = getattr(self, merged_key)
 
         train_dfs = [merged_results[p] for p in self.train_patients if not merged_results[p].empty]
         df = pd.concat(train_dfs, keys=self.train_patients, names=["patient_id"])
         df = df.reset_index()
 
-        # Identificador por tipo
+        # identifier by type
         id_col = "gene_symbol" if type == "gene" else "varId"
 
-        # Detectar features numéricas
+        # numerical features
         feature_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         feature_cols = [col for col in feature_cols if label_col_substring not in col]
+        self.feature_columns = feature_cols[1:] # TODo check this
 
-        self.feature_columns = feature_cols
+        X = df[self.feature_columns]
 
-        # Etiqueta: columna que contiene algún score usable
-        label_cols = [col for col in df.columns if label_col_substring in col]
-        if not label_cols:
-            raise ValueError("No column with this flag.")
-        y_col = label_cols[0]  
-
-        X = df[feature_cols]
-        y = df[y_col].fillna(0)
+        # Obtain labels
+        y = []
+        for row in zip(df["patient_id"], df[id_col]):
+            if row[1] in self.label[row[0]]:
+                y.append(1)
+            else:
+                y.append(0)
 
         groups = df.groupby("patient_id").size().to_numpy()
-
         return X, y, groups
 
-    def train_model(self, type="gene", model=None):
-        X, y, groups = self.prepare_training_data(type)
-        self.model.train(X,y)
+    def train_model(self, type="gene"):
+        X, y, groups = self.prepare_training_data(type="gene")
+        self.model.train(X,y, groups)
 
     # Prediction
     ######################
@@ -855,7 +865,10 @@ class MetaGenomicPrioritizer:
 
         for patient in self.test_patients:
             df = merged_results[patient]
-            X_test = df #df[self.feature_columns].fillna(0)
+            if self.feature_columns:
+                X_test = df[self.feature_columns]
+            else:
+                X_test = df
             scores = self.model.predict(X_test)
 
             df = df.copy()
@@ -893,13 +906,14 @@ class HeuristicModel():
 
     def predict(self, X):
         rank_cols = [col for col in X.columns if col.startswith("rank_")]
+        X[rank_cols] = X[rank_cols].apply(pd.to_numeric, errors='coerce')
         return -1 * X[rank_cols].min(axis=1, skipna=True).to_numpy()
 
 class XGBoostRankerModel:
 
     def __init__(self, **params):
         default_params = {
-            "objective": "rank:pairwise",
+            "objective": "rank:pairwise", 
             "learning_rate": 0.1,
             "n_estimators": 100,
             "max_depth": 6,
@@ -908,8 +922,8 @@ class XGBoostRankerModel:
         default_params.update(params)
         self.model = XGBRanker(**default_params)
 
-    def train(self, X, y):
-        self.model.fit(X, y)#, group=groups)
+    def train(self, X, y, group):
+        self.model.fit(X, y, group=group)
 
     def predict(self, X):
         return self.model.predict(X) #Predicted scores (higher means more relevant)
