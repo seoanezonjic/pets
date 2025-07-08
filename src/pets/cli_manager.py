@@ -335,7 +335,7 @@ def meta_prioritizer(args=None):
     parser.add_argument("--read_tmp",dest="read_tmp",default=False, action="store_true",
                         help="Read processed file for report analysis")
     parser.add_argument("--model_type", dest="model_type", default="xgboost", type=str,
-                    help="Type of model to use. Options: 'heuristic', 'xgboost'. Default xgboost")
+                        help="Type of model to use. Options: 'heuristic', 'xgboost', 'logistic_regression' . Default xgboost")
     parser.add_argument("--model_path", dest="model_path", default=None, type=str,
                     help="Path to the model file. If not provided, a new model will be trained.")
     parser.add_argument("--write_tmp",dest="write_tmp",default=None, type=str,
@@ -344,6 +344,8 @@ def meta_prioritizer(args=None):
                     help="Choose type of benchmark. Choose between 'gene' and 'variant', or both. Options: 'variant', 'gene'")
     parser.add_argument("-o", "--output_file", dest="output_file", default= "report_prioritizer", 
                     help="Path to the output file to write results")
+    parser.add_argument("--dropna", dest="dropna", default= False, action="store_true",
+                    help="Select this flag if model do not tolerate NaNs values")
     opts = parser.parse_args(args)
     main_meta_prioritizer(opts)
 

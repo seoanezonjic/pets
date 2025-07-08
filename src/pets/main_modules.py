@@ -17,11 +17,25 @@ from pets.io import write_tabulated_data, load_profiles, load_variants, load_evi
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.reference_parser import Reference_parser
 from pets.parsers.coord_parser import Coord_Parser
-from pets.genomic_prioritizer import GenomicPrioritizer, AimarrvelPrioritizer, LiricalPrioritizer, Phen2GenePrioritizer, GadoPrioritizer, ExomiserPrioritizer, PhenogeniusPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer, HeuristicModel, XGBoostRankerModel
+from pets.genomic_prioritizer import (
+    GenomicPrioritizer,
+    AimarrvelPrioritizer,
+    LiricalPrioritizer,
+    Phen2GenePrioritizer,
+    GadoPrioritizer,
+    ExomiserPrioritizer,
+    PhenogeniusPrioritizer,
+    DefaultGenomicPrioritizer,
+    MetaGenomicPrioritizer,
+    HeuristicModel,
+    XGBoostRankerModel,
+    LogisticRegressionModel
+)
 from py_exp_calc.exp_calc import invert_hash, uniq
 from py_semtools.ontology import Ontology
 from py_semtools.sim_handler import similitude_network
 from py_cmdtabs.cmdtabs import CmdTabs
+import pickle
 
 # https://setuptools.pypa.io/en/latest/userguide/datafiles.html
 HPO_FILE = str(files('pets.external_data').joinpath('hp.json'))
@@ -552,7 +566,7 @@ def main_meta_prioritizer(opts):
 
     # Create MetaPrioritizer and getting the features
     metaprioritizer = MetaGenomicPrioritizer(prioritizer)
-    metaprioritizer.get_features(type=options["benchmark_type"])
+    #metaprioritizer.get_features(type=options["benchmark_type"])
 
     if options["labels"]:
         patient_labels = CmdTabs.load_input_data(options["labels"])
@@ -563,11 +577,14 @@ def main_meta_prioritizer(opts):
         metaprioritizer.model = HeuristicModel()
     elif options["model_type"] == "xgboost":
         metaprioritizer.model = XGBoostRankerModel()
+    elif options["model_type"] == "logistic_regression":
+        metaprioritizer.model = LogisticRegressionModel()
     else:
-        if options["model_path"] != None:
-            metaprioritizer.model = HeuristicModel.load_model(options["model_path"])
-        else:
-            raise Exception("No model path provided. Please provide a model path with --model_path option.")
+        if options["model_type"] is not None:
+            with open(options["model_type"], "rb") as f:
+                metaprioritizer.model = pickle.load(f)
+
+    metaprioritizer.get_features(type=options["benchmark_type"], dropna=options["dropna"])
     
     if options["mode"] == "predict":
         metaprioritizer.test_patients = metaprioritizer.get_all_patients(type=options["benchmark_type"])
@@ -581,8 +598,14 @@ def main_meta_prioritizer(opts):
         metaprioritizer.predict_test(type=options["benchmark_type"])
 
     if options["mode"] == "predict" or options["mode"] == "train_predict":
-        prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
-    
+        results_id = "patient2gene_results" if options["benchmark_type"] == "gene" else "patient2variant_results"
+        os.makedirs(options["output_file"], exist_ok=True)
+        for patient, results in getattr(metaprioritizer, results_id).items():
+            results.to_csv(os.path.join(options["output_file"],patient), index=False, sep="\t")
+
+    if options["mode"] == "train":
+        with open(os.path.join(options["output_file"],f"trained_{options["model_type"]}_model.pkl"), "wb") as f:
+            pickle.dump(metaprioritizer.model, f)
 
 #############################################################################################
 ## METHODS

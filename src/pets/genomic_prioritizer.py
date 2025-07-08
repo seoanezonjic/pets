@@ -8,6 +8,7 @@ import json
 import numpy as np
 from xgboost import XGBRanker
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
 from py_exp_calc.exp_calc import get_rank_metrics
 
 logger = logging.getLogger(__name__)
@@ -703,7 +704,7 @@ class MetaGenomicPrioritizer:
     # Feature extraction
     ####################
 
-    def get_features(self, type="gene"):
+    def get_features(self, type="gene", dropna=False):
         # Mapping type to attributes
         id_candidates = {"gene": "gene_symbol", "variant": "varId"}
         results_attr = {"gene": "patient2gene_results", "variant": "patient2variant_results"}
@@ -756,7 +757,12 @@ class MetaGenomicPrioritizer:
             
             for df in dfs[1:]:
                 merged = pd.merge(merged, df, on=id_candidate, how="outer")
-            merged_results[patient] = merged
+            
+            if dropna:
+                merged_results[patient] = merged.dropna() # merged
+            else:
+                merged_results[patient] = merged
+
             self.feature_qual_idx[patient] = qualitative_idx
             self.feature_quant_idx[patient] = quantitative_idx
 
@@ -829,8 +835,10 @@ class MetaGenomicPrioritizer:
         id_col = "gene_symbol" if type == "gene" else "varId"
 
         # numerical features
-        feature_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        feature_cols = [col for col in feature_cols if label_col_substring not in col]
+        #feature_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        #feature_cols = [col for col in feature_cols if label_col_substring not in col]
+        feature_cols = df.iloc[:, self.quant_features_idx.values()[0]]#.select_dtypes(include=[np.number]).columns.tolist()
+        #feature_cols = [col for col in feature_cols if label_col_substring not in col]
         self.feature_columns = feature_cols[1:] # TODo check this
 
         X = df[self.feature_columns]
@@ -865,17 +873,18 @@ class MetaGenomicPrioritizer:
 
         for patient in self.test_patients:
             df = merged_results[patient]
-            if self.feature_columns:
-                X_test = df[self.feature_columns]
-            else:
-                X_test = df
+            if not self.feature_columns:
+                feature_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+                feature_cols = [col for col in feature_cols if "score" not in col]
+                self.feature_columns = feature_cols #[1:] # TODo check this Aqui esta pasando algo incoherente con respecto al training
+            X_test = df[self.feature_columns]
             scores = self.model.predict(X_test)
 
             df = df.copy()
             df["score"] = scores
             df = df.sort_values("score", ascending=False)
             # adding ranking pos
-            ranking = get_rank_metrics(df["score"], df[id_col])
+            ranking = get_rank_metrics(df["score"].tolist(), df[id_col].tolist())
             ranking = {row[0]:row[3] for row in ranking}
             df["rank"] = [ranking[gene] for gene in df[id_col]]
             cols = ["rank", "score"] + [col for col in df.columns if col not in ["rank", "score"]]
@@ -927,4 +936,16 @@ class XGBoostRankerModel:
 
     def predict(self, X):
         return self.model.predict(X) #Predicted scores (higher means more relevant)
-    
+
+class LogisticRegressionModel:
+
+    def __init__(self, **params):
+        default_params = {}
+        default_params.update(params)
+        self.model = LogisticRegression()
+
+    def train(self, X, y, group):
+        self.model.fit(X, y)
+
+    def predict(self,X):
+        return self.model.predict_proba(X)[:,1]
