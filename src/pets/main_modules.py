@@ -896,27 +896,34 @@ def main_phenPatMaster(opts):
                 phenopacket['phenotypicFeatures'] = pp_phens
 
             if opts.output_file_index != None:
+                metaData = phenopacket.get("metaData")
+                bib_refs = []
+                if metaData != None:
+                    refs = metaData.get("externalReferences")
+                    if refs != None:
+                        for ref in refs: bib_refs.append(ref["id"])
                 for interp in phenopacket["interpretations"]:
                     genomic_inter = interp['diagnosis']['genomicInterpretations']
                     for gen_interp in genomic_inter:
                         variant = gen_interp['variantInterpretation']['variationDescriptor'].get('vcfRecord')
                         if variant != None:
-                            index.append([phenopacket['id'], phens, variant['chrom'], variant['pos'], variant['pos']])
+                            index.append([phenopacket['id'], phens, variant['chrom'], variant['pos'], variant['pos'], ",".join(bib_refs)])
                         else:
-                            index.append([phenopacket['id'], phens, "", "", ""])
+                            index.append([phenopacket['id'], phens, "", "", "", ""])
 
         if opts.output_file_index != None:
             with open(opts.output_file_index, "w") as outfile:
-                for p_id, phens, chrom, start,stop in index: outfile.write(f"{p_id}\t{','.join(phens)}\t{chrom}\t{start}\t{stop}\n")
+                for p_id, phens, chrom, start,stop, refs in index: outfile.write(f"{p_id}\t{','.join(phens)}\t{chrom}\t{start}\t{stop}\t{refs}\n")
 
         json_object = json.dumps(phenopacket, indent=4)
         if opts.overwrite_file_name:
             pp_name = phenopacket['id'] + '.json'
         else:
             pp_name = os.path.basename(pp_path)
-        with open(os.path.join(opts.output_folder, pp_name), "w") as outfile: outfile.write(json_object)
+        if opts.only_index == False:
+            with open(os.path.join(opts.output_folder, pp_name), "w") as outfile: outfile.write(json_object)
 
-    if opts.overwrite_id:
+    if opts.overwrite_id and opts.only_index == False:
         with open(os.path.join(opts.output_folder, 'pp_dict.txt'), "w") as outfile:
             for old_id, new_id in pp_dict.items():
                 outfile.write(old_id+"\t"+new_id+"\n")

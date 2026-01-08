@@ -364,6 +364,8 @@ def phenPatMaster(args=None):
                     help="When used, check HP terms, update obsolete and remove parental relations.")
     parser.add_argument("--output_file_index", dest="output_file_index", default= None,
                     help="Generate a index with phenotypical and genomical features described in phenopackets.")
+    parser.add_argument("--only_index", dest="only_index", default= False, action = 'store_true',
+                    help="Generate the phenopacket data index only without wtirte the edited phenopacket files")
 
     opts = parser.parse_args(args)
 
