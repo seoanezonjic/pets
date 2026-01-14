@@ -904,16 +904,17 @@ def main_phenPatMaster(opts):
                         for ref in refs: bib_refs.append(ref["id"])
                 for interp in phenopacket["interpretations"]:
                     genomic_inter = interp['diagnosis']['genomicInterpretations']
+                    disease_id = interp['diagnosis']['disease']['id']
                     for gen_interp in genomic_inter:
                         variant = gen_interp['variantInterpretation']['variationDescriptor'].get('vcfRecord')
                         if variant != None:
-                            index.append([phenopacket['id'], phens, variant['chrom'], variant['pos'], variant['pos'], ",".join(bib_refs)])
+                            index.append([phenopacket['id'], phens, variant['chrom'], variant['pos'], variant['pos'], ",".join(bib_refs), disease_id])
                         else:
-                            index.append([phenopacket['id'], phens, "", "", "", ""])
+                            index.append([phenopacket['id'], phens, "", "", "", "", ""])
 
         if opts.output_file_index != None:
             with open(opts.output_file_index, "w") as outfile:
-                for p_id, phens, chrom, start,stop, refs in index: outfile.write(f"{p_id}\t{','.join(phens)}\t{chrom}\t{start}\t{stop}\t{refs}\n")
+                for p_id, phens, chrom, start,stop, refs, dis_id in index: outfile.write(f"{p_id}\t{','.join(phens)}\t{chrom}\t{start}\t{stop}\t{refs}\t{dis_id}\n")
 
         json_object = json.dumps(phenopacket, indent=4)
         if opts.overwrite_file_name:
