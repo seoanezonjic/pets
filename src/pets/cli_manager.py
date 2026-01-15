@@ -101,13 +101,13 @@ def paco_translator(args=None):
                         help="Input file with PACO extension")
 
     parser.add_argument("--n_phens", dest="n_phens", default= None, type=int,
-                        help="Remove records with N or less phenotypes")
+                        help="Keep records only with N or more phenotypes")
 
     parser.add_argument("-m","--save_mode", dest="save_mode", default= "default",
                         help="Set output data mode")
 
     parser.add_argument("-t","--translate", dest="translate", default= False, action="store_true",
-                        help="Set to translate from hpo codes to names. By default, ther is not translation")
+                        help="Set to translate from hpo codes to names. By default, there is no translation")
 
     parser.add_argument("-C", "--clean_PACO", dest="clean_PACO", default= False, action="store_true",
                         help="Clean PACO files")
