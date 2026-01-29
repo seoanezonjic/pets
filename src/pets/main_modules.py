@@ -685,7 +685,7 @@ def generate_prediction(similarity_matrixs, all_genomic_coordinates, prof_vars):
 #####################
 
 def generate_tripartite_diseasome(adj_list, ontology, layers=["disease","group","parentals"]):
-    from NetAnalyzer import NetAnalyzer
+    from NetAnalyzer.netanalyzer import NetAnalyzer
 
     # Create network
     net = NetAnalyzer(layers)
