@@ -1,8 +1,6 @@
-import sys, os, json, unittest 
+import os, unittest 
 from importlib.resources import files
 
-import subprocess
-from pets.genomic_features import Genomic_Feature
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
 

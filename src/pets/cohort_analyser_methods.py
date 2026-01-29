@@ -2,9 +2,8 @@ import numpy as np
 from collections import defaultdict
 
 from py_exp_calc import exp_calc
-from py_report_html import Py_report_html
+from py_report_html.py_report_html import Py_report_html
 from pets.cohort import Cohort
-from pets.parsers.cohort_parser import Cohort_Parser
 
 
 def get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms_specific_childs, rejected_hpos):

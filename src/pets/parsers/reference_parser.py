@@ -1,4 +1,4 @@
-from pets import Genomic_Feature
+from pets.genomic_features import Genomic_Feature
 import warnings, gzip
 class Reference_parser():
     

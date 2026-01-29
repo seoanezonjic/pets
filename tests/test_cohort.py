@@ -1,13 +1,10 @@
-import sys, os, json, unittest, shutil, copy
-from importlib.resources import files
-import subprocess
+import os, json, unittest, shutil, copy, subprocess, warnings
 from subprocess import PIPE
+
 from pets.genomic_features import Genomic_Feature
 from pets.parsers.cohort_parser import Cohort_Parser
 from pets.cohort import Cohort
-from pets import HPO_FILE
-import warnings
-import numpy as np
+from pets.main_modules import HPO_FILE
 
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')

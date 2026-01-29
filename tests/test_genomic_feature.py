@@ -1,6 +1,4 @@
-import sys 
-import unittest
-import os
+import unittest, os
 from pets.genomic_features import Genomic_Feature
 ROOT_PATH=os.path.dirname(__file__)
 DATA_TEST_PATH = os.path.join(ROOT_PATH, 'data')

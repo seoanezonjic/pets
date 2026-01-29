@@ -1,6 +1,5 @@
-import os, sys, glob, gzip
+import os, sys, glob, gzip, re
 from pets.genomic_features import Genomic_Feature
-import re
 
 def list2dic(table):
   table_dic = {}

@@ -1,9 +1,5 @@
-import json
-import os, sys
-import re
-import numpy as np
+import json, os, sys, re, csv
 from collections import defaultdict
-import csv
 from py_exp_calc import exp_calc
 from py_exp_calc.exp_calc import intersection
 from py_semtools.ontology import Ontology

@@ -1,6 +1,6 @@
-import sys
-from collections import defaultdict
+
 import copy
+from collections import defaultdict
 
 class Genomic_Feature:
     ref = None

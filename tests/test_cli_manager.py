@@ -1,18 +1,9 @@
-import sys, os, json, unittest 
-import subprocess
+import os, json, shutil 
 from importlib.resources import files
-
 from subprocess import PIPE
-from pets.genomic_features import Genomic_Feature
-from pets.parsers.cohort_parser import Cohort_Parser
-from pets.cohort import Cohort
-from pets import get_gen_features, paco_translator, profiles2phenopacket, cohort_analyzer, evidence_profiler, diseasome_generator, collapse_terms, filter_omim, MONDO_FILE, HPO_FILE, GENCODE
-import warnings
-import numpy as np
-import pytest
-from io import StringIO
-import json
-import shutil
+
+from pets.cli_manager import get_gen_features, paco_translator, profiles2phenopacket, cohort_analyzer, evidence_profiler, diseasome_generator, collapse_terms, filter_omim
+from pets.main_modules import MONDO_FILE, HPO_FILE, GENCODE
 
 
 ROOT_PATH=os.path.dirname(__file__)

@@ -1,14 +1,7 @@
 
-import os
+import os, pickle, logging, re, json
 import pandas as pd
-import pickle
-import logging
-import re
-import json
 import numpy as np
-from xgboost import XGBRanker
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
 from py_exp_calc.exp_calc import get_rank_metrics
 
 logger = logging.getLogger(__name__)
@@ -815,6 +808,7 @@ class MetaGenomicPrioritizer:
         return all_patients
 
     def split_patients(self, type="gene", test_size=0.3, random_state=42):
+        from sklearn.model_selection import train_test_split
         all_patients = self.get_all_patients(type)
         self.train_patients, self.test_patients = train_test_split(
             all_patients, test_size=1, random_state=random_state
@@ -940,6 +934,7 @@ class XGBoostRankerModel:
 class LogisticRegressionModel:
 
     def __init__(self, **params):
+        from sklearn.linear_model import LogisticRegression
         default_params = {}
         default_params.update(params)
         self.model = LogisticRegression()

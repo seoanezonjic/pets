@@ -1,5 +1,18 @@
 import argparse, inspect, sys
-from pets.main_modules import * 
+from pets.main_modules import (
+    main_monarch_entities,
+    main_get_gen_features,
+    main_paco_translator,
+    main_profiles2phenopacket,
+    main_cohort_analyzer,
+    main_evidence_profiler,
+    main_diseasome_generator,
+    main_filter_omim,
+    main_collapse_terms,
+    main_report_prioritizer,
+    main_meta_prioritizer,
+    main_phenPatMaster,
+    main_vcf2effects) 
 
 ## TYPES
 def tolist(string): 

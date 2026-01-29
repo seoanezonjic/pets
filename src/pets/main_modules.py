@@ -1,13 +1,11 @@
-import os
-import glob, json
+import os, glob, json, requests, pickle
 from importlib.resources import files
 import urllib.parse
-import requests
 from collections import Counter
 
 import numpy as np
 import pandas as pd
-from py_report_html import Py_report_html
+from py_report_html.py_report_html import Py_report_html
 import pets
 import pets.report_pets
 from pets.cohort_analyser_methods import *
@@ -35,7 +33,6 @@ from py_exp_calc.exp_calc import invert_hash, uniq
 from py_semtools.ontology import Ontology
 from py_semtools.sim_handler import similitude_network
 from py_cmdtabs.cmdtabs import CmdTabs
-import pickle
 
 # https://setuptools.pypa.io/en/latest/userguide/datafiles.html
 HPO_FILE = str(files('pets.external_data').joinpath('hp.json'))
