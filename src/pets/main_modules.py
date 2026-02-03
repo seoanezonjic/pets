@@ -3,36 +3,17 @@ from importlib.resources import files
 import urllib.parse
 from collections import Counter
 
-import numpy as np
 import pandas as pd
-from py_report_html.py_report_html import Py_report_html
-import pets
-import pets.report_pets
-from pets.cohort_analyser_methods import *
-from pets.parsers.cohort_parser import Cohort_Parser
-from pets.cohort import Cohort
-from pets.io import write_tabulated_data, load_profiles, load_variants, load_evidences, load_index, parse_morbid_omim, list2dic
-from pets.genomic_features import Genomic_Feature
-from pets.parsers.reference_parser import Reference_parser
-from pets.parsers.coord_parser import Coord_Parser
-from pets.genomic_prioritizer import (
-    GenomicPrioritizer,
-    AimarrvelPrioritizer,
-    LiricalPrioritizer,
-    Phen2GenePrioritizer,
-    GadoPrioritizer,
-    ExomiserPrioritizer,
-    PhenogeniusPrioritizer,
-    DefaultGenomicPrioritizer,
-    MetaGenomicPrioritizer,
-    HeuristicModel,
-    XGBoostRankerModel,
-    LogisticRegressionModel
-)
+from py_cmdtabs.cmdtabs import CmdTabs
 from py_exp_calc.exp_calc import invert_hash, uniq
+from py_report_html.py_report_html import Py_report_html
 from py_semtools.ontology import Ontology
 from py_semtools.sim_handler import similitude_network
-from py_cmdtabs.cmdtabs import CmdTabs
+import pets.report_pets
+from pets.parsers.cohort_parser import Cohort_Parser
+from pets.cohort import Cohort
+from pets.io import load_profiles, load_variants, load_evidences, load_index, parse_morbid_omim, list2dic
+from pets.genomic_features import Genomic_Feature
 
 # https://setuptools.pypa.io/en/latest/userguide/datafiles.html
 HPO_FILE = str(files('pets.external_data').joinpath('hp.json'))
@@ -204,6 +185,8 @@ def main_diseasome_generator(opts):
                 f.write("\t".join(line)+"\n")
 
 def main_get_gen_features(opts):
+    from pets.parsers.coord_parser import Coord_Parser
+    from pets.parsers.reference_parser import Reference_parser
     options = vars(opts)
     regions = Coord_Parser.load(options)
     reference = options["reference_file"] if options.get("reference_file") else GENCODE
@@ -261,6 +244,8 @@ def main_profiles2phenopacket(opts):
 
 
 def main_cohort_analyzer(options):
+    import numpy as np
+    from pets.cohort_analyser_methods import *
     opts = vars(options)
     if opts['genome_assembly'] == 'hg19' or opts['genome_assembly'] == 'hg37':
       CHR_SIZE = str(files('pets.external_data').joinpath('chromosome_sizes_hg19.txt'))
@@ -531,6 +516,20 @@ def main_report_prioritizer(opts):
         report.write(options["output_file"] + '.html')
 
 def main_meta_prioritizer(opts):
+    from pets.genomic_prioritizer import (
+    GenomicPrioritizer,
+    AimarrvelPrioritizer,
+    LiricalPrioritizer,
+    Phen2GenePrioritizer,
+    GadoPrioritizer,
+    ExomiserPrioritizer,
+    PhenogeniusPrioritizer,
+    DefaultGenomicPrioritizer,
+    MetaGenomicPrioritizer,
+    HeuristicModel,
+    XGBoostRankerModel,
+    LogisticRegressionModel
+    )
     options = vars(opts)
     
     # loading every prioritizer
