@@ -245,7 +245,12 @@ def main_profiles2phenopacket(opts):
 
 def main_cohort_analyzer(options):
     import numpy as np
-    from pets.cohort_analyser_methods import *
+    from pets.cohort_analyser_methods import (
+        get_summary_stats, calculate_coverage, get_final_coverage, 
+        get_sor_length_distribution, get_cluster_chromosome_data, get_top_dummy_clusters_stats, 
+        format_cluster_ic_data, translate_codes, parse_clusters_data, get_similarities4boxplot,
+        get_semantic_similarity_clustering
+    )
     opts = vars(options)
     if opts['genome_assembly'] == 'hg19' or opts['genome_assembly'] == 'hg37':
       CHR_SIZE = str(files('pets.external_data').joinpath('chromosome_sizes_hg19.txt'))
