@@ -12,7 +12,9 @@ from pets.main_modules import (
     main_report_prioritizer,
     main_meta_prioritizer,
     main_phenPatMaster,
-    main_vcf2effects) 
+    main_vcf2effects,
+    main_hpoa_get_filter_phen
+    ) 
 
 ## TYPES
 def tolist(string): 
@@ -397,3 +399,18 @@ def vcf2effects(args=None):
     opts = parser.parse_args(args)
 
     main_vcf2effects(opts)
+
+
+def hpoa_get_filter_phen(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+
+    parser.add_argument("-i", "--input_file", dest="input_file", default= None,
+                        help="hpoa.txt file from https://hpo.jax.org/data/annotations web")
+    parser.add_argument("-c", "--column", dest="column", default= 7, type=int,
+                        help="Column (0-based) with the evidence to filter")
+    parser.add_argument("-t", "--threshold", dest="threshold", default=0.3, type=float,
+                        help="Threshold to keep the evidence between a disease and a phenotype (default: 0.3). If there is no frequency data the phenotype is retained")
+    opts = parser.parse_args(args)
+    opts = vars(opts)
+    main_hpoa_get_filter_phen(opts)

@@ -950,3 +950,39 @@ def main_vcf2effects(opts):
     with open(opts.output, 'w') as f:
         for contig, start, ref, alt, t_name, effect in var_effects:
             f.write(f"{contig}\t{start}\t{ref}\t{alt}\t{t_name}\t{effect}\n")
+
+def main_hpoa_get_filter_phen(options):
+    tag_frequency_hpos = {"HP:0040280": [1],
+                      "HP:0040281": [0.8, 0.99],
+                      "HP:0040282": [0.30, 0.79],
+                      "HP:0040283": [0.05, 0.29],
+                      "HP:0040284": [0.01, 0.04],
+                      "HP:0040285": [0.0]}
+
+
+    with open(options["input_file"]) as file:
+        for idx, line in enumerate(file):
+            if line.startswith("#"): continue
+            fields = line.split("\t")
+            evidence_field = fields[options["column"]]
+
+            if evidence_field == "frequency": continue
+            elif evidence_field in ["-"," ",""]:
+                print(line.strip())
+
+            elif "/" in evidence_field:
+                up, down = evidence_field.split("/")
+                if int(down) >= 5 and (float(up)/float(down) < options["threshold"]): continue
+                print(line.strip())
+
+            elif "%" in evidence_field:
+                if (float(evidence_field.replace("%", ""))/100) < float(options["threshold"]): continue
+                print(line.strip())
+
+            elif evidence_field in tag_frequency_hpos.keys():
+                if tag_frequency_hpos[evidence_field][0] < float(options["threshold"]): continue
+                print(line.strip())
+
+            else:
+                raise Exception(f"Unknown evidence format: {evidence_field}\n")
+
