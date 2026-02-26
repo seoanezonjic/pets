@@ -450,8 +450,12 @@ def main_evidence_profiler(opts):
         )
 
 def main_report_prioritizer(opts):
+    from pets.genomic_prioritizer import (
+        Phen2GenePrioritizer, GadoPrioritizer, PhenogeniusPrioritizer, ExomiserPrioritizer,
+        AimarrvelPrioritizer, LiricalPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer, 
+        HeuristicModel
+    )
     options = vars(opts)
-    print("AQUI ESTOY CHAVAL"*30)
     
     prioritizer = {}
     for prioritizer_type, path2folder_results in options["prioritizers"].items():

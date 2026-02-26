@@ -616,19 +616,19 @@ class ExomiserPrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
                         pickle.dump(self.patient2variant_results[f_name], pf)
-            self.quant_features_idx[f_name] =  [8,9,10,11]
+            self.quant_features_idx[f_name] =  [8,9,10]
             self.qual_features_idx[f_name] = None  
 
     def get_result_variant(self, json_results):
         data = {"gene_symbol": [], "ensembl_id": [], "score": [], "priorityScore": [], "pValue": [], "hiphive_score": [], "omim_score": [], 
                 "gene_variant_score": [], "gene_phenotype_score": [], 
-                "varId": [], "varIdUniq": [], "pathogenicityScore": [], "contigName": [], "start": [], "end": [], "ref": [], "alt": []}
+                "varId": [], "varIdUniq": [], "contigName": [], "start": [], "end": [], "ref": [], "alt": []}
         for rank, row in enumerate(json_results):
             if not row.get("combinedScore"): continue
             for variants in row["variantEvaluations"]:
-                for var_feature in ["pathogenicityScore", "contigName", "start", "end", "ref", "alt"]: # 'phredScore',  "contributingInheritanceModes"
-                    data[var_feature].append(variants[var_feature])
                 varId = f"{variants['contigName']}:{variants['start']}-{variants['end']}:{variants['ref']}/{variants['alt']}"
+                for var_feature in ["contigName", "start", "end", "ref", "alt"]: # pathogenicityScore, 'phredScore',  "contributingInheritanceModes"
+                    data[var_feature].append(variants[var_feature])
                 data["varId"].append(varId)
                 data["varIdUniq"].append(varId+str(rank))
                 # data['clinVarDataInterpretation'].append(variants['pathogenicityData']['clinVarData']['interpretation'])
@@ -646,7 +646,7 @@ class ExomiserPrioritizer(GenomicPrioritizer):
         data["rank"] = [ranking[gene] for gene in data["varIdUniq"]]
 
         processed_data = pd.DataFrame()
-        for key in ["rank", "score", "varId", "contigName", "start", "end", "ref", "alt", "pathogenicityScore", "pValue", "hiphive_score", "omim_score"]:
+        for key in ["rank", "score", "varId", "contigName", "start", "end", "ref", "alt", "pValue", "hiphive_score", "omim_score"]:
             processed_data[key] = data[key]
         return processed_data
 
