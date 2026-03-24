@@ -494,7 +494,6 @@ def main_report_prioritizer(opts):
     if not options["write_tmp"]:
         if options["integrated_report"]:
             if len(prioritizer.keys()) > 1:
-                print("holaaaaaaaaaaaaaaaaaaa")
                 metaprioritizer = MetaGenomicPrioritizer(prioritizer)
                 metaprioritizer.get_features(type=options["benchmark_type"])
                 metaprioritizer.test_patients = metaprioritizer.get_all_patients()
