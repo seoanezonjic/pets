@@ -452,11 +452,13 @@ def main_evidence_profiler(opts):
 def main_report_prioritizer(opts):
     from pets.genomic_prioritizer import (
         Phen2GenePrioritizer, GadoPrioritizer, PhenogeniusPrioritizer, ExomiserPrioritizer,
-        AimarrvelPrioritizer, LiricalPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer, 
+        AimarrvelPrioritizer, LiricalPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer, XrarePrioritizer,
         HeuristicModel
     )
     options = vars(opts)
     
+    print("The options are:")
+    print(options["prioritizers"])
     prioritizer = {}
     for prioritizer_type, path2folder_results in options["prioritizers"].items():
         if prioritizer_type == "phen2gene":
@@ -473,6 +475,8 @@ def main_report_prioritizer(opts):
             prioritizer[(prioritizer_type, path2folder_results)] = LiricalPrioritizer()
         elif prioritizer_type == "default":
             prioritizer[(prioritizer_type, path2folder_results)] = DefaultGenomicPrioritizer()
+        elif prioritizer_type == "xrare":
+            prioritizer[(prioritizer_type, path2folder_results)] = XrarePrioritizer()
         else:
             raise Exception(f"Unknown prioritizer: {prioritizer}")
         if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
@@ -485,6 +489,7 @@ def main_report_prioritizer(opts):
     if not options["write_tmp"]:
         if options["integrated_report"]:
             if len(prioritizer.keys()) > 1:
+                print("holaaaaaaaaaaaaaaaaaaa")
                 metaprioritizer = MetaGenomicPrioritizer(prioritizer)
                 metaprioritizer.get_features(type=options["benchmark_type"])
                 metaprioritizer.test_patients = metaprioritizer.get_all_patients()
@@ -539,6 +544,7 @@ def main_meta_prioritizer(opts):
     XGBoostRankerModel,
     LogisticRegressionModel
     )
+
     options = vars(opts)
     
     # loading every prioritizer
