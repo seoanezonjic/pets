@@ -608,7 +608,6 @@ class ExomiserPrioritizer(GenomicPrioritizer):
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
                     self.patient2variant_results[f_name] = pickle.load(pf)
             else:
-                json_results = pd.read_csv(os.path.join(raw_results_dir, f), sep="\t")
                 with open(os.path.join(raw_results_dir, f)) as file:
                     json_results = json.load(file)
                 self.patient2variant_results[f_name] = self.get_result_variant(json_results)
@@ -671,6 +670,117 @@ class ExomiserPrioritizer(GenomicPrioritizer):
             processed_data[key] = data[key]
 
         return processed_data
+
+class XrarePrioritizer(GenomicPrioritizer):
+
+
+    def __init__(self):
+        super().__init__() 
+        self.priot_type = ["gene", "variant"] 
+        self.quant_features_idx = {}
+        self.qual_features_idx = {}
+
+    def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
+        """
+        Post-process the gene results from the raw results directory.
+        """
+        files = os.listdir(raw_results_dir)
+        if write_tmp: os.makedirs(write_tmp, exist_ok=True)
+        for f in files:
+            # Load the data
+            f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
+            if read_tmp:
+                with open(os.path.join(raw_results_dir, f), 'rb') as pf:
+                    self.patient2gene_results[f_name] = pickle.load(pf)
+            else:
+                json_results = pd.read_csv(os.path.join(raw_results_dir, f), sep="\t")
+                with open(os.path.join(raw_results_dir, f)) as file:
+                    json_results = json.load(file)
+                self.patient2gene_results[f_name] = self.get_result_gene(json_results)
+                # Save the processed data
+                if write_tmp:
+                    with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
+                        pickle.dump(self.patient2gene_results[f_name], pf)
+            self.quant_features_idx[f_name] = [4,5,6,7]
+            self.qual_features_idx[f_name] = None
+    
+    def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
+        files = os.listdir(raw_results_dir)
+        if write_tmp: os.makedirs(write_tmp, exist_ok=True)
+        for f in files:
+            # Load the data
+            f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
+            if read_tmp:
+                with open(os.path.join(raw_results_dir, f), 'rb') as pf:
+                    self.patient2variant_results[f_name] = pickle.load(pf)
+            else:
+                json_results = pd.read_csv(os.path.join(raw_results_dir, f), sep="\t")
+                with open(os.path.join(raw_results_dir, f)) as file:
+                    json_results = json.load(file)
+                self.patient2variant_results[f_name] = self.get_result_variant(json_results)
+                # Save the processed data
+                if write_tmp:
+                    with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
+                        pickle.dump(self.patient2variant_results[f_name], pf)
+            self.quant_features_idx[f_name] =  [8,9,10]
+            self.qual_features_idx[f_name] = None  
+
+    def get_result_gene(self, json_results):
+        data = {"gene_symbol": [], "ensembl_id": [], "score": [], "priorityScore": [], "pValue": [], "hiphive_score": [], "omim_score": []}
+        for rank, row in enumerate(json_results):
+            if not row.get("combinedScore"): continue
+            data["gene_symbol"].append(row["geneIdentifier"]["geneSymbol"])
+            data["ensembl_id"].append(row["geneIdentifier"]["geneId"])
+            data["score"].append(row["combinedScore"])
+            data["priorityScore"].append(row.get("priorityScore",None))
+            data["pValue"].append(row["pValue"])
+            data["hiphive_score"].append(row["priorityResults"]["HIPHIVE_PRIORITY"].get("score"))
+            data["omim_score"].append(row["priorityResults"]["OMIM_PRIORITY"].get("score"))
+        ranking = get_rank_metrics(data["score"], data["ensembl_id"])
+        genes = [row[0] for row in ranking]
+        ranking = {row[0]:row[3] for row in ranking}
+        data["rank"] = [ranking[gene] for gene in data["ensembl_id"]]
+
+        processed_data = pd.DataFrame()
+        for key in ["rank","score","gene_symbol", "ensembl_id", "priorityScore", "pValue", "hiphive_score", "omim_score"]:
+            processed_data[key] = data[key]
+
+        return processed_data
+
+    def get_result_variant(self, json_results):
+        data = {"gene_symbol": [], "ensembl_id": [], "score": [], "priorityScore": [], "pValue": [], "hiphive_score": [], "omim_score": [], 
+                "gene_variant_score": [], "gene_phenotype_score": [], 
+                "varId": [], "varIdUniq": [], "contigName": [], "start": [], "end": [], "ref": [], "alt": []}
+        for rank, row in enumerate(json_results):
+            if not row.get("combinedScore"): continue
+            for variants in row["variantEvaluations"]:
+                varId = f"{variants['contigName']}:{variants['start']}-{variants['end']}:{variants['ref']}/{variants['alt']}"
+                for var_feature in ["contigName", "start", "end", "ref", "alt"]: # pathogenicityScore, 'phredScore',  "contributingInheritanceModes"
+                    data[var_feature].append(variants[var_feature])
+                data["varId"].append(varId)
+                data["varIdUniq"].append(varId+str(rank))
+                # data['clinVarDataInterpretation'].append(variants['pathogenicityData']['clinVarData']['interpretation'])
+                # 'pathogenicityData': {'clinVarData': {'primaryInterpretation': 'LIKELY_BENIGN', 'variantEffect': 'MISSENSE_VARIANT'}}
+                # data["gene_variant_score"].append(row["geneScores"][2]["variantScore"])
+                # data["gene_phenotype_score"].append(row["geneScores"]["phenotypeScore"])
+                data["gene_symbol"].append(row["geneIdentifier"]["geneSymbol"])
+                data["ensembl_id"].append(row["geneIdentifier"]["geneId"])
+                data["score"].append(row["combinedScore"])
+                data["pValue"].append(row["pValue"])
+                data["hiphive_score"].append(row["priorityResults"]["HIPHIVE_PRIORITY"].get("score"))
+                data["omim_score"].append(row["priorityResults"]["OMIM_PRIORITY"].get("score"))
+        ranking = get_rank_metrics(data["score"], data["varIdUniq"])
+        ranking = {row[0]:row[3] for row in ranking}
+        data["rank"] = [ranking[gene] for gene in data["varIdUniq"]]
+
+        processed_data = pd.DataFrame()
+        for key in ["rank", "score", "varId", "contigName", "start", "end", "ref", "alt", "pValue", "hiphive_score", "omim_score"]:
+            processed_data[key] = data[key]
+        return processed_data
+
+    
 
 class MetaGenomicPrioritizer:
     def __init__(self, prioritizers):
