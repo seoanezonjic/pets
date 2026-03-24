@@ -132,7 +132,7 @@ def main_diseasome_generator(opts):
     # Loading and parsing inputs
     options = vars(opts)
     ontology_file = options["ontology"] if options["ontology"] else MONDO_FILE
-    ontology = Ontology(file= options["ontology"], load_file = True, extra_dicts=[['xref', {'select_regex': "OMIM:[0-9]*", 'store_tag': 'tag', 'multiterm': False}]])
+    ontology = Ontology(file=ontology_file, load_file = True, extra_dicts=[['xref', {'select_regex': "OMIM:[0-9]*", 'store_tag': 'tag', 'multiterm': False}]])
     ontology.dicts['tag']["byTerm"] = {value: key for key, value in ontology.dicts['tag']["byValue"].items()}
 
     if options["disorder_class"]:
@@ -145,15 +145,18 @@ def main_diseasome_generator(opts):
     diseasome = None
     if options["diseasome"]:
         diseasome = load_index(options["diseasome"])
-        diseasome = {ontology.dicts["tag"]["byValue"][omim]: group for omim, group in diseasome.items() if ontology.dicts["tag"]["byValue"].get(omim)}
+        if options["term_id_type"] == "omim":
+            diseasome = {ontology.dicts["tag"]["byValue"][omim]: group for omim, group in diseasome.items() if ontology.dicts["tag"]["byValue"].get(omim)}
 
     # Execution modes
     if options["generate"] and not diseasome:
         diseases =  CmdTabs.load_input_data(options["input_file"])
         disease_annotation = {}
         if len(diseases[0]) > 1: disease_annotation = list2dic(diseases)
-        omim_diseases = list(set([disease[0] for disease in diseases])) 
-        mondo_diseases = [ontology.dicts['tag']["byValue"][omim] for omim in omim_diseases if ontology.dicts['tag']["byValue"].get(omim)]
+        mondo_diseases = sorted(list(set([disease[0] for disease in diseases])))
+        if options["term_id_type"] == "omim":
+            omim_diseases =  mondo_diseases
+            mondo_diseases = [ontology.dicts['tag']["byValue"][omim] for omim in omim_diseases if ontology.dicts['tag']["byValue"].get(omim)]
 
         disease2disclass = get_dis2dclass(mondo_diseases, disorder_class, ontology)
         dependency_map = get_dependency_map(set(disorder_class.keys()), ontology)
@@ -163,12 +166,14 @@ def main_diseasome_generator(opts):
             for disease in mondo_diseases:
                 if diseasome.get(disease):
                         # Pasamos a omim -> mondo -> annotations -> mondo parent
-                        omim = ontology.dicts['tag']["byTerm"][disease]
+                        row = [disease, diseasome[disease]]
+                        if options["term_id_type"] == "omim":
+                            omim = ontology.dicts['tag']["byTerm"][disease]
+                            row.insert(0, omim)
                         if disease_annotation:
-                            annotations = "\t".join(disease_annotation[omim])
-                            f.write(f"{omim}\t{disease}\t{annotations}\t{diseasome[disease]}\n")
-                        else:
-                            f.write(f"{omim}\t{disease}\t{diseasome[disease]}\n")
+                            annotations = "\t".join(disease_annotation[row[0]])
+                            row.insert(2, annotations)
+                        f.write("\t".join(row)+"\n")
 
     if options["analyze"]:
         tripartite = generate_tripartite_diseasome(list(diseasome.items()), ontology, ["disease","group","parentals"])

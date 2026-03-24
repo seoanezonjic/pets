@@ -269,6 +269,8 @@ def diseasome_generator(args=None):
         help = "a path for a file conatining a diseasome following the next TABULATED format: MONDO_disease_term, disorder_class")
     parser.add_argument("-o", "--output_file", dest="output_file", default= None, 
                     help="Path to the output file to write results")
+    parser.add_argument("--term_id_type", dest="term_id_type", default="omim",
+                        help="Define the type of id used in input file. Choose between 'omim' and 'mondo'. Default omim")
 
     opts = parser.parse_args(args)
     main_diseasome_generator(opts)
