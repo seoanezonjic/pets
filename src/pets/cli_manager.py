@@ -13,6 +13,7 @@ from pets.main_modules import (
     main_meta_prioritizer,
     main_phenPatMaster,
     main_vcf2effects,
+    main_hgvs_val,
     main_hpoa_get_filter_phen
     ) 
 
@@ -401,6 +402,17 @@ def vcf2effects(args=None):
     opts = parser.parse_args(args)
 
     main_vcf2effects(opts)
+
+def hgvs_val(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    parser.add_argument('-i', '--input', dest='input',
+      help='Variant file to validate')
+    parser.add_argument('-c', '--column', type=int, default=0, dest='column',
+      help='Column base 0 position that contains the hgvs data to validate.')
+    opts = parser.parse_args()
+
+    main_hgvs_val(opts)
 
 
 def hpoa_get_filter_phen(args=None):

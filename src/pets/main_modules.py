@@ -965,6 +965,29 @@ def main_vcf2effects(opts):
         for contig, start, ref, alt, t_name, effect in var_effects:
             f.write(f"{contig}\t{start}\t{ref}\t{alt}\t{t_name}\t{effect}\n")
 
+def main_hgvs_val(opts):
+    import hgvs.validator
+    from hgvs.exceptions import HGVSError
+    import hgvs.dataproviders.uta
+    import hgvs.parser
+
+    hp = hgvs.parser.Parser()
+    hdp = hgvs.dataproviders.uta.connect()
+    hv = hgvs.validator.Validator(hdp)
+    with open(opts.input, 'r') as f:
+        for line in f:
+            fields = line.rstrip().split("\t")
+            var = fields[opts.column]
+            try:
+                v = hp.parse_hgvs_variant(var)
+                hv.validate(v)
+                fields[opts.column] = str(v)
+                fields.append('-')
+            except HGVSError as e:
+                fields.append(str(e))
+
+            print("\t".join(fields))
+
 def main_hpoa_get_filter_phen(options):
     tag_frequency_hpos = {"HP:0040280": [1],
                       "HP:0040281": [0.8, 0.99],
