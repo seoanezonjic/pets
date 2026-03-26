@@ -356,11 +356,12 @@ def main_cohort_analyzer(options):
     template = str(files('pets.templates').joinpath('cluster_report.txt'))
     clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, template, temporal_hpo, ySortFunc=sortByPhens)
 
+    hpo.add_observed_terms_from_profiles(reset = True, expand_ancestor = False) # Restore patient count for general report 
+
     #----------------------------------
     # GENERAL COHORT ANALYZER REPORT
     #----------------------------------
     new_cluster_phenotypes = get_top_dummy_clusters_stats(top_clust_phen)
-
     container = {
       'temp_folder' : temp_folder,
       'summary_stats' : summary_stats,
