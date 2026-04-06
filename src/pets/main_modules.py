@@ -724,7 +724,7 @@ def get_dis2dclass(diseases, disorder_class, ontology):
     for disease in diseases:
         parents = ontology.get_ancestors(disease)
         parents = set(parents) & dis_class
-        disease2disclass[disease] = list(parents)
+        disease2disclass[disease] = parents
     return disease2disclass
 
 def clean_dis2dclass(disease2disclass, ontology, dependency_map, disorder_class):
