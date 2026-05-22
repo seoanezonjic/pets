@@ -5,10 +5,20 @@
 %>
 <% 
     all_numeric = [0,1]
+    print("AJAJ por aqui siempre wey")
+    print(plotter.hash_vars["prio_table"].head())
+##     print("The quantitative features are:", plotter.hash_vars["quantitative"])
     if plotter.hash_vars["quantitative"]: all_numeric += plotter.hash_vars["quantitative"]
-    plotter.hash_vars["prio_table"] = plotter.df_to_numeric(plotter.hash_vars["prio_table"], all_numeric)
+##     print("ori")
+##     #plotter.hash_vars["prio_table"] = plotter.df_to_numeric(plotter.hash_vars["prio_table"], all_numeric)
+##     print("ajaj"*40)
+    print("prio_table", plotter.hash_vars["prio_table"].head())
+##     print("ohoh"*40)
     plotter.hash_vars["prio_table_top100"] = plotter.get_top_rank(plotter.hash_vars["prio_table"], 100) 
     colnames = list(plotter.hash_vars["prio_table_top100"].columns)
+    print("hola"*40)
+    print("prio_table_top100", plotter.hash_vars["prio_table_top100"].head())
+
 %>
 <% plotter.set_header() %>
 ${plotter.create_title("Individual Report", id='main_title', hlevel=2, indexable=True, clickable=False)}
@@ -101,10 +111,10 @@ ${plotter.create_title("Distribution for each categorical variable", id='top_can
 % if plotter.hash_vars["quantitative"]:
 ${plotter.create_title("Quantitative correlation", id='top_gene', hlevel=2, indexable=True, clickable=False)}
 <%
-        plotter.hash_vars["scores_corr"] = plotter.get_corr_table(plotter.hash_vars["prio_table"], [0,1]+plotter.hash_vars["quantitative"])
-        print(plotter.hash_vars["scores_corr"])
-        plotter.hash_vars["scores_corr_top100"] = plotter.get_corr_table(plotter.hash_vars["prio_table_top100"], [0,1]+plotter.hash_vars["quantitative"])
-        print(plotter.hash_vars["scores_corr_top100"])
+        plotter.hash_vars["scores_corr"] = plotter.get_corr_table(plotter.hash_vars["prio_table"], plotter.hash_vars["quantitative"])
+        ## print(plotter.hash_vars["scores_corr"])
+        plotter.hash_vars["scores_corr_top100"] = plotter.get_corr_table(plotter.hash_vars["prio_table_top100"], plotter.hash_vars["quantitative"])
+        ## print(plotter.hash_vars["scores_corr_top100"])
 %>
 <div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center" >
 <div >
@@ -127,7 +137,7 @@ ${plotter.make_title("figure", "corr", "Spearman correlation between the quantit
 
 % if plotter.hash_vars["qualitative"] or plotter.hash_vars["quantitative"]:
 ${plotter.create_title("Detailed information top candidates", id='top_gene', hlevel=2, indexable=True, clickable=False)}
-% for i in range(0,25):
+% for i in range(0,min(25, len(plotter.hash_vars["prio_table_top100"]))):
     <%
         txt = f""
         if plotter.hash_vars["quantitative"]:

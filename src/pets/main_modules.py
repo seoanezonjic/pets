@@ -476,18 +476,22 @@ def main_report_prioritizer(opts):
         elif prioritizer_type == "exomiser":
             prioritizer[(prioritizer_type, path2folder_results)] = ExomiserPrioritizer()
         elif prioritizer_type == "aimarrvel":
+            print("AIMARRVEL Prioritizer loading...")
             prioritizer[(prioritizer_type, path2folder_results)] = AimarrvelPrioritizer()
         elif prioritizer_type == "lirical":
             prioritizer[(prioritizer_type, path2folder_results)] = LiricalPrioritizer()
         elif prioritizer_type == "default":
             prioritizer[(prioritizer_type, path2folder_results)] = DefaultGenomicPrioritizer()
         elif prioritizer_type == "xrare":
+            print("··· Loading Xrare Prioritizer ···")
+            print("miramiraquemiramira")
             prioritizer[(prioritizer_type, path2folder_results)] = XrarePrioritizer()
         else:
             raise Exception(f"Unknown prioritizer: {prioritizer}")
         if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
             prioritizer[(prioritizer_type, path2folder_results)].post_process_results_genes(path2folder_results, 
                              write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+            print(prioritizer[(prioritizer_type, path2folder_results)].patient2gene_results)
         elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
             prioritizer[(prioritizer_type, path2folder_results)].post_process_results_variants(path2folder_results, 
                              write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
@@ -495,10 +499,14 @@ def main_report_prioritizer(opts):
     if not options["write_tmp"]:
         if options["integrated_report"]:
             if len(prioritizer.keys()) > 1:
+                print("Prioritizers:")
+                print(prioritizer)
+                print("-----------------------")
                 metaprioritizer = MetaGenomicPrioritizer(prioritizer)
                 metaprioritizer.get_features(type=options["benchmark_type"])
+                print(".................")
                 metaprioritizer.test_patients = metaprioritizer.get_all_patients()
-                print(metaprioritizer.test_patients)
+                # print(metaprioritizer.test_patients)
                 metaprioritizer.model = HeuristicModel()
                 metaprioritizer.predict_test(type=options["benchmark_type"])
                 prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
@@ -523,6 +531,13 @@ def main_report_prioritizer(opts):
             elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
                 prio_table = list(first_prioritizer.patient2variant_results.values())[0] 
 
+
+            print("----")
+            print("AQUI ESTAMOS")
+            print("LALALLALA")
+            print("prio_table", prio_table.head())
+            print("quantitative_feature", quantitative_feature)
+            print("qualitative_feature", qualitative_feature)
             container = {
                 "quantitative": quantitative_feature,
                 "qualitative": qualitative_feature,
@@ -530,7 +545,7 @@ def main_report_prioritizer(opts):
             }
             template="individual_prioreport.txt"
 
-        report = Py_report_html(container)
+        report = Py_report_html(container, "MetaPrioritaizer", False, False)
         report.build(open(str(files('pets.templates').joinpath(template))).read())
         report.write(options["output_file"] + '.html')
 
