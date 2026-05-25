@@ -219,6 +219,9 @@ def cohort_analyzer(args=None):
       help="Column name if header is true, otherwise 0-based position of the column with the end mutation coordinate")
     parser.add_argument("--ontoplot_mode", dest="ontoplot_mode", default='static',
       help="Use to set the mode for the ontoplot. Options: 'static','dynamic' or 'canvas'. Default is 'static'.")
+    parser.add_argument("--ic_method", dest="ic_method", default='resnik', 
+      help="IC method used with similarity clustering")
+
     opts =  parser.parse_args(args)
     main_cohort_analyzer(opts)
 
