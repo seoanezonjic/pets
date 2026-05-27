@@ -1,6 +1,9 @@
 <%
 	import os
 	hpo = plotter.hash_vars["hpo"]
+	all_heatmap_factors = ['cl_id']
+	all_heatmap_factors.extend(plotter.hash_vars["extra_attr_list"])
+	
 	def get_hpo_link(hpo_code):
 		link = '-'
 		if hpo_code != '-':
@@ -22,6 +25,7 @@
 		data.clear()
 		data.extend(patient_list) 
 		data.insert(0, ["Cluster ID","Patients in Cluster","Patient IDs", "HPO codes", "Phenotypes"])	
+
 %>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
@@ -32,6 +36,11 @@
 		}
 </div>
 
+<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+	<h1 style="text-align: center; background-color:#d6eaf8">General representation</h1>
+		${ plotter.heatmap(id="full_sim_matrix", header= False, row_names= False, text= True, var_attr = list(range(0, len(all_heatmap_factors))), tree = plotter.hash_vars['full_sim_tree'],
+							config= {"varOverlays" : all_heatmap_factors}, treeBy = 'variables'  ) }
+</div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8"> Cluster detailed view.</h1>

@@ -6,10 +6,15 @@ class Cohort_Parser(File_Parser):
     
     @classmethod
     def load(cls, options):
-        valid_fields = ["id_col", "ont_col", "chromosome_col", "start_col", "end_col", "sex_col", "neg_ont_col"]
+        valid_fields = ["id_col", "ont_col", "chromosome_col", "start_col", "end_col", "sex_col", "neg_ont_col", "hgvsc_col"]
+        extra_fields = []
+        for field_name, field_id in options['extra_cols']:
+            extra_fields.append(field_name)
+            valid_fields.append(field_name)
+            options[field_name] = field_id
         fields2extract, records = cls.get_records(valid_fields, options)
         options["extracted_fields"] = list(fields2extract.keys())
-        cohort, rejected_terms, rejected_recs = cls.create_cohort(records, options)
+        cohort, rejected_terms, rejected_recs = cls.create_cohort(records, options, extra_attr = extra_fields)
         if options.get('check'): 
             rejected_terms_C, rejected_recs_C = cohort.check()
             rejected_terms = list(set(rejected_terms).union(rejected_terms_C))
@@ -49,11 +54,12 @@ class Cohort_Parser(File_Parser):
         return records
 
     @classmethod
-    def create_cohort(cls, records, options):
+    def create_cohort(cls, records, options, extra_attr = []):
         ont = Cohort.get_ontology(Cohort.act_ont)
         rejected_terms = []
         rejected_recs = []
         cohort = Cohort()
+        cohort.extra_attr_list = [ re.sub('_col', '', ea) for ea in extra_attr ]
         for id, record in records.items():
             rec = record[0]
             terms = rec[0]
@@ -78,6 +84,9 @@ class Cohort_Parser(File_Parser):
                 other_attr["sex"] = record[0][options["extracted_fields"].index("sex_col") -1]
             if "neg_ont_col" in options["extracted_fields"]: # Check for additional attributes. -1 is applied to ignore :id in extracted fields
                 other_attr["neg_hpo"] = record[0][options["extracted_fields"].index("neg_ont_col") -1]
+            for ea in extra_attr:
+                if ea in options["extracted_fields"]: # Check for additional attributes. -1 is applied to ignore :id in extracted fields
+                    other_attr[re.sub('_col','', ea)] = record[0][options["extracted_fields"].index(ea) -1]
             
             cohort.add_record([id, terms, Cohort_Parser.check_variants(variants)], other_attr)
 

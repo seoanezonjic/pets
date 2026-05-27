@@ -47,6 +47,7 @@ class Cohort():
         self.profiles = {}
         self.vars = {}
         self.extra_attr = {}
+        self.extra_attr_list = []
         self.var_idx = Genomic_Feature([])
 
     def add_record(self, rec, extra_attr = None): #rec= [id, [profile], [[chr1, start1, stop1],[chr1, start1, stop1]]]

@@ -170,6 +170,11 @@ def profiles2phenopacket(args=None):
     opts =  parser.parse_args(args)
     main_profiles2phenopacket(opts)
 
+def pairs(string):
+    attr = string.split(',')
+    pairs = [ at.split(':') for at in attr ]
+    return pairs
+
 def cohort_analyzer(args=None):
     if args == None: args = sys.argv[1:]
     parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
@@ -217,6 +222,10 @@ def cohort_analyzer(args=None):
       help="Column name if header true or 0-based position of the column with the HPO terms")
     parser.add_argument("-e", "--end_col", dest="end_col", default= None,
       help="Column name if header is true, otherwise 0-based position of the column with the end mutation coordinate")
+    parser.add_argument("--hgvsc_col", dest="hgvsc_col", default= None,
+      help="Column name if header is true, otherwise 0-based position of the column with the hgvsc variant description")
+    parser.add_argument("--extra_cols", dest="extra_cols", default= [], type=pairs,
+      help="To add extra attributes to patient records. Must be attr_name1:col1,attr_name2:col2... 'colN' is column name if header true or 0-based position ")
     parser.add_argument("--ontoplot_mode", dest="ontoplot_mode", default='static',
       help="Use to set the mode for the ontoplot. Options: 'static','dynamic' or 'canvas'. Default is 'static'.")
     parser.add_argument("--ic_method", dest="ic_method", default='resnik', 

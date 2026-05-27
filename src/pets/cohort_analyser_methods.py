@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.cluster import hierarchy
 from collections import defaultdict
 
 from py_exp_calc import exp_calc
@@ -141,17 +142,21 @@ def translate_codes(clusters, hpo):
         ])
   return translated_clusters
 
+def get_cl_index(vector_index):
+  index = {}
+  for i, item in enumerate(vector_index): 
+    cl_id = item[0]
+    query = index.get(cl_id)
+    if query is None:
+      index[cl_id] = [i]
+    else:
+      query.append(i)
+  return index
+
 def get_similarities4boxplot(raw_cls, similarity_matrix):
     sim_table = [['Sims', 'group'] ]
     if raw_cls is not None:
-      cl= {}
-      for i, item in enumerate(raw_cls): 
-        cl_id = item[0]
-        query = cl.get(cl_id)
-        if query is None:
-          cl[cl_id] = [i]
-        else:
-          query.append(i)
+      cl = get_cl_index(raw_cls)
       cl_similarities = []
       for c_id, idxs in cl.items():
         np_ids = np.array(idxs)
@@ -162,6 +167,13 @@ def get_similarities4boxplot(raw_cls, similarity_matrix):
       sim_table.extend([ [s, 'cls'] for s in cl_similarities] )
     return sim_table
 
+def get_pat_clust_index(vector_index):
+    index = {}
+    for i, item in enumerate(vector_index): 
+      cl_id = item[0]
+      index[i] = cl_id
+    return index
+
 def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path_obj, temporal_hpo, ySortFunc=None):
   template = open(template_path_obj).read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
@@ -170,9 +182,9 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
   for method_name in options['clustering_methods']:
     hpo.get_similarity_clusters(method_name, options, temp_folder = temp_folder, reference_profiles = reference_profiles)
     semantic_clust = hpo.clustering[method_name]
+   
     clusters_codes, clusters_info = parse_clusters_data(semantic_clust['cls'], patient_data)
     clustering_data[method_name] = {'boxplot_sims': get_similarities4boxplot(semantic_clust['raw_cls'], semantic_clust['sim'])}
-
     sim_mat4cluster = {}
     if options['detailed_clusters']:
       for clID, patient_number, patient_ids, hpo_codes in clusters_codes:
@@ -189,7 +201,46 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
           term_limit = 100, candidate_limit = 100, sim_type = 'lin', bidirectional = False, string_format = True, header_id = "HP", ySortFunc = ySortFunc)
         sim_mat4cluster[clID] = candidate_sim_matrix
 
+    full_sim_matrix = []   
+    tree = exp_calc.transform_tree(semantic_clust['link'], 'python', 'newick')
+
+    #inject cluster ids
+    pat_cl_mat = get_pat_clust_index(semantic_clust['raw_cls'])
+    cl_ids = [ int(cl_id) for cl_id in pat_cl_mat.values() ]
+    cl_ids.insert(0, 'cl_id')
+    full_sim_matrix.append(cl_ids)
+
+    #inject  extra attr
+    raw_cls_index = {}
+    mat_pat_index = {}
+    if len(patient_data.extra_attr_list) > 0:
+      raw_cls_index = get_cl_index(semantic_clust['raw_cls'])
+      for cl_id, mat_ids in raw_cls_index.items():
+        pat_ids = semantic_clust['cls'][cl_id]
+        for i, mat_id in enumerate(mat_ids):
+          mat_pat_index[mat_id] = pat_ids[i]
+
+    for ext_attr_name in patient_data.extra_attr_list:
+      extra_attr = []
+      for mat_id, pat_id in mat_pat_index.items():
+        var = '-'
+        attr_data = patient_data.extra_attr.get(pat_id)
+        if attr_data != None:
+          var = attr_data.get(ext_attr_name)
+          if var == None: var = '-'
+          extra_attr.append([mat_id, var])
+      extra_attr = sorted(extra_attr, key=lambda x: x[0])
+      extra_attr = [ at[1] for at in extra_attr ]
+      extra_attr.insert(0, ext_attr_name)
+      full_sim_matrix.append(extra_attr)
+
+    for x in semantic_clust['sim']:
+      full_sim_matrix.append(list(x))
+
     container = {
+      'extra_attr_list' : patient_data.extra_attr_list,
+      'full_sim_matrix' : full_sim_matrix, 
+      'full_sim_tree' : tree,
       'temp_folder' : temp_folder,
       'cluster_name' : method_name,
       'clusters' : translate_codes(clusters_codes, hpo),
