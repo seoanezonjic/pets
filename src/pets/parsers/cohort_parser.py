@@ -8,10 +8,12 @@ class Cohort_Parser(File_Parser):
     def load(cls, options):
         valid_fields = ["id_col", "ont_col", "chromosome_col", "start_col", "end_col", "sex_col", "neg_ont_col", "hgvsc_col"]
         extra_fields = []
-        for field_name, field_id in options['extra_cols']:
-            extra_fields.append(field_name)
-            valid_fields.append(field_name)
-            options[field_name] = field_id
+        extra_col = options.get('extra_cols')
+        if extra_col != None:
+            for field_name, field_id in extra_col:
+                extra_fields.append(field_name)
+                valid_fields.append(field_name)
+                options[field_name] = field_id
         fields2extract, records = cls.get_records(valid_fields, options)
         options["extracted_fields"] = list(fields2extract.keys())
         cohort, rejected_terms, rejected_recs = cls.create_cohort(records, options, extra_attr = extra_fields)
