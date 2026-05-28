@@ -3,7 +3,6 @@
 	hpo = plotter.hash_vars["hpo"]
 	all_heatmap_factors = ['cl_id']
 	all_heatmap_factors.extend(plotter.hash_vars["extra_attr_list"])
-	
 	def get_hpo_link(hpo_code):
 		link = '-'
 		if hpo_code != '-':
@@ -35,12 +34,27 @@
 			func = format_data)
 		}
 </div>
+% if plotter.hash_vars["full_sim_matrix"] != []:
+	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+		<h1 style="text-align: center; background-color:#d6eaf8">General representation</h1>
+			${ plotter.heatmap(id="full_sim_matrix", header= True, row_names= True, text= True, 
+								var_attr = list(range(1, len(all_heatmap_factors) + 1)), 
+								config= {"varOverlays" : all_heatmap_factors},
+								tree = plotter.hash_vars['full_sim_tree'], treeBy = 'variables', 
+								height = 800, width =800) }
+	</div>
+% endif
 
-<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
-	<h1 style="text-align: center; background-color:#d6eaf8">General representation</h1>
-		${ plotter.heatmap(id="full_sim_matrix", header= False, row_names= False, text= True, var_attr = list(range(0, len(all_heatmap_factors))), tree = plotter.hash_vars['full_sim_tree'],
-							config= {"varOverlays" : all_heatmap_factors}, treeBy = 'variables'  ) }
-</div>
+% if plotter.hash_vars["hpo_pat_matrix"] != []:
+	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
+		<h1 style="text-align: center; background-color:#d6eaf8">Patient-HPO representation</h1>
+			${ plotter.heatmap(id="hpo_pat_matrix", header= True, row_names= True, text= True, height = 800, width =1000,
+								var_attr = list(range(1, len(all_heatmap_factors) + 1)), 
+								tree = plotter.hash_vars['full_sim_tree'], treeBy = 'variables',
+								config= {"varOverlays" : all_heatmap_factors}
+								)}
+	</div>
+% endif
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8"> Cluster detailed view.</h1>
