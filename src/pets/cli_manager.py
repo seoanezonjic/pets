@@ -14,7 +14,8 @@ from pets.main_modules import (
     main_phenPatMaster,
     main_vcf2effects,
     main_hgvs_val,
-    main_hpoa_get_filter_phen
+    main_hpoa_get_filter_phen,
+    main_var2effects
     ) 
 
 ## TYPES
@@ -400,6 +401,21 @@ def phenPatMaster(args=None):
     opts = parser.parse_args(args)
 
     main_phenPatMaster(opts)
+
+def var2effects(args=None):
+    if args == None: args = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
+    parser.add_argument("-i", "--input", dest="input",
+      help="Vcf file")
+    parser.add_argument("-o", "--output", dest="output",
+      help="output with variant effects")
+    parser.add_argument("-n", "--nomenclature", dest="nomenclature",
+      help="Define which nomenclature is used to describe input variants")
+    parser.add_argument("-g", "--genome", dest="genome",
+      help="Genome name to use as reference")
+    opts = parser.parse_args(args)
+
+    main_var2effects(opts)
 
 
 def vcf2effects(args=None):

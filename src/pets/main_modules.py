@@ -961,6 +961,45 @@ def main_phenPatMaster(opts):
                 outfile.write(old_id+"\t"+new_id+"\n")
 
 
+def main_var2effects(opts):
+    import hgvs.validator
+    from hgvs.exceptions import HGVSError
+    import hgvs.dataproviders.uta
+    import hgvs.parser
+    import hgvs.assemblymapper
+    import re
+
+    hp = hgvs.parser.Parser()
+    hdp = hgvs.dataproviders.uta.connect()
+    hv = hgvs.validator.Validator(hdp)
+    am38 = hgvs.assemblymapper.AssemblyMapper(hdp, assembly_name='GRCh38')
+
+    varEffect = [] 
+    with open(opts.input, 'r') as f:
+        for line in f:
+            fields = line.rstrip().split("\t")
+            var = fields[0]
+            var = re.sub(':C.', ':c.', var)
+            if opts.nomenclature == 'hgvsc':
+                try:
+                    v = hp.parse_hgvs_variant(var)
+                    hv.validate(v)
+#                   var_g = am38.c_to_g(v)
+#                   chrm = re.sub('NC_00000','', var_g.ac )
+#                   start = var_g.posedit.pos
+#                   edit = var_g.posedit.edit
+                    var_p = am38.c_to_p(v)
+                    ac = var_p.ac
+                    start = var_p.posedit.pos
+                    edit = var_p.posedit.edit
+                    varEffect.append([ac, start, edit])
+                except HGVSError as e:
+                    print(f"error: {var} => {e}")
+                    varEffect.append(['-', '-', '-'])
+    with open(opts.output, 'w') as f:
+        for ac, start, edit in varEffect:
+            f.write(f"{ac}\t{start}\t{edit}\n")
+
 def main_vcf2effects(opts):
     import logging
     from varcode import load_vcf
