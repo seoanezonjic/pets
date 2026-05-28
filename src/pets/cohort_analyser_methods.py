@@ -213,15 +213,7 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
           term_limit = 100, candidate_limit = 100, sim_type = 'lin', bidirectional = False, string_format = True, header_id = "HP", ySortFunc = ySortFunc)
         sim_mat4cluster[clID] = candidate_sim_matrix
 
-      # CREATE INDEXES
-      raw_cls_index = {}
-      mat_pat_index = {}
-      if len(patient_data.extra_attr_list) > 0:
-        raw_cls_index = get_cl_index(semantic_clust['raw_cls'])
-        for cl_id, mat_ids in raw_cls_index.items():
-          pat_ids = semantic_clust['cls'][cl_id]
-          for i, mat_id in enumerate(mat_ids):
-            mat_pat_index[mat_id] = pat_ids[i]
+      mat_pat_index = semantic_clust['x_index']
             
       # HPO-PATIENT HEATMAP
       header = ['hpo']
@@ -250,7 +242,6 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
       hpo_pat_matrix.insert(1, cl_ids)
 
       #inject  extra attr
-
       for i, ext_attr_name in enumerate(patient_data.extra_attr_list):
         extra_attr = []
         for mat_id, pat_id in mat_pat_index.items():
