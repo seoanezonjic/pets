@@ -117,7 +117,9 @@ class Cohort():
         rejected_recs = []
         for id, terms in self.profiles.items():
             if hard:
+                print(f'1) {id} : {terms}')
                 terms = ont.clean_profile_hard(terms)
+                print(f'2) {id} : {terms}')
                 rejec_terms = []
             else:
                 terms, rejec_terms = ont.check_ids(terms)

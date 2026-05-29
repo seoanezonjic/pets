@@ -1,6 +1,7 @@
 import os, glob, json, requests, pickle
 from importlib.resources import files
 import urllib.parse
+import warnings
 from collections import Counter
 
 import pandas as pd
@@ -293,6 +294,10 @@ def main_cohort_analyzer(options):
 
     patient_data.get_profile_redundancy() # GEt term redundancy BEFORE cleaning
     patient_data.check(hard=opts["hard_check"])
+    print('==============')
+    print(patient_data.profiles['1006284'])
+    print('==============')
+
     patient_data.link2ont(Cohort.act_ont) #Now that we have calculate profiles redundancy, we synchronize the cleaned profiles from HPO object
     
     hpo.get_profiles_terms_frequency() # hpo CODE, freq
@@ -962,43 +967,66 @@ def main_phenPatMaster(opts):
 
 
 def main_var2effects(opts):
-    import hgvs.validator
-    from hgvs.exceptions import HGVSError
-    import hgvs.dataproviders.uta
-    import hgvs.parser
-    import hgvs.assemblymapper
-    import re
+    #import hgvs.validator
+    #from hgvs.exceptions import HGVSError
+    #import hgvs.dataproviders.uta
+    #import hgvs.parser
+    #import hgvs.assemblymapper
+    #import vvhgvs.parser
+    #import vvhgvs.dataproviders.uta
+    #import vvhgvs.validator
+    #import vvhgvs.assemblymapper
+    #from vvhgvs.exceptions import HGVSError
 
-    hp = hgvs.parser.Parser()
-    hdp = hgvs.dataproviders.uta.connect()
-    hv = hgvs.validator.Validator(hdp)
-    am38 = hgvs.assemblymapper.AssemblyMapper(hdp, assembly_name='GRCh38')
 
+
+    #import re
+
+    #hp = hgvs.parser.Parser()
+    #hdp = hgvs.dataproviders.uta.connect()
+    #hp = vvhgvs.parser.Parser()
+    #hdp = vvhgvs.dataproviders.uta.connect()
+    #am38 = vvhgvs.assemblymapper.AssemblyMapper(hdp, assembly_name='GRCh38')
+    #hv = vvhgvs.validator.Validator(hdp)
+    url = "https://rest.variantvalidator.org/VariantValidator/variantvalidator" #/%s/%s/%s
     varEffect = [] 
     with open(opts.input, 'r') as f:
         for line in f:
             fields = line.rstrip().split("\t")
             var = fields[0]
-            var = re.sub(':C.', ':c.', var)
+            transcript, v = var.split(':')
             if opts.nomenclature == 'hgvsc':
-                try:
-                    v = hp.parse_hgvs_variant(var)
-                    hv.validate(v)
-#                   var_g = am38.c_to_g(v)
-#                   chrm = re.sub('NC_00000','', var_g.ac )
-#                   start = var_g.posedit.pos
-#                   edit = var_g.posedit.edit
-                    var_p = am38.c_to_p(v)
-                    ac = var_p.ac
-                    start = var_p.posedit.pos
-                    edit = var_p.posedit.edit
-                    varEffect.append([ac, start, edit])
-                except HGVSError as e:
-                    print(f"error: {var} => {e}")
-                    varEffect.append(['-', '-', '-'])
+                selected_assembly = 'GRCh38'
+                req_url = f"{url}/{selected_assembly}/{var}/{transcript}"
+                response = requests.get(req_url, headers={"Content-type": "application/json"}, timeout=30)
+                response.raise_for_status()
+                response_json = response.json()
+                match response_json["flag"]:
+                    case "warning":
+                        warnings.warn(f"Cannot find genomic coordinates for {var}. See URL for more info: {req_url}")
+                        varEffect.append(['-', '-', '-', '-', '-', '-'])
+                    case "gene_variant":
+                        variant_identifier = list(response_json.keys())[0]
+                        response_json = response_json[variant_identifier]
+                        selected_assembly = response_json["selected_assembly"]
+                        cons = response_json['hgvs_predicted_protein_consequence']['slr']
+                        refseqgene, hgvsg = response_json['hgvs_refseqgene_variant'].split(':')
+                        var_exonic = response_json['variant_exonic_positions'][refseqgene]
+                        exons = [var_exonic['start_exon'], var_exonic['end_exon']]
+                        variant_data = response_json["primary_assembly_loci"][selected_assembly.lower()]["vcf"]
+                        contig = variant_data["chr"]
+                        pos = int(variant_data["pos"])
+                        ref = variant_data["ref"]
+                        alt = variant_data["alt"]
+                        varEffect.append([contig, pos, ref, alt, cons, exons])
+                    case _:
+                        warnings.warn(f"Got unexpected flag: {response['flag']}. Open a ticket on our issue tracker")                    
+                        varEffect.append(['-', '-', '-', '-', '-', '-'])
     with open(opts.output, 'w') as f:
-        for ac, start, edit in varEffect:
-            f.write(f"{ac}\t{start}\t{edit}\n")
+        for ac, start, ref, alt, cons, ex in varEffect:
+            exons = '0'
+            if ex != '-': exons =f"{ex[0]}-{ex[1]}"
+            f.write(f"{ac}\t{start}\t{ref}\t{alt}\t{cons}\t{exons}\n")
 
 def main_vcf2effects(opts):
     import logging
