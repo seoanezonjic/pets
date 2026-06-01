@@ -40,21 +40,13 @@ class GenomicPrioritizer:
         self.identifier_translator = {}
         self.quant_features_idx = {}
         self.qual_features_idx = {}
+        self.possible_mois = [] # Possible values: "AD", "AR", "XLD", "XLR", "MT", "unknown"
+        self.desired_moi = "unknown" # Possible values: "AD", "AR", "XLD", "XLR", "MT", "unknown"
 
     def load_identifier_tanslator(self, source_id, target_id):
         self.identifier_translator[(source_id, target_id)] = {}
         for _, row in type(self).identifier_map[[source_id, target_id]].iterrows():
             self.identifier_translator[(source_id, target_id)][row[source_id]] = row[target_id]
-    
-    # def post_process(self, raw_results_dir, write_tmp=None, read_tmp=False):
-    #     # Placeholder for the implementation
-    #     # This function will read the raw results, process them, and save the standardized output.
-    #     if "gene" in self.priot_type:
-    #         # Process gene results
-    #         self.post_process_results_genes(raw_results_dir, write_tmp, read_tmp)
-    #     if "variant" in self.priot_type:
-    #         # Process variant results
-    #         self.post_process_results_variants(raw_results_dir, write_tmp, read_tmp)
 
     def get_combined_results(self, type="gene"):
         if type not in self.priot_type:
@@ -87,10 +79,8 @@ class GenomicPrioritizer:
         common_cols = list(common_cols)
 
         quant_features = list(self.quant_features_idx.values())[0]
-        # obtaining the col names
         quant_features = [dfs[0].columns[i] for i in quant_features if dfs[0].columns[i] in common_cols] if quant_features else []
         qual_features = list(self.qual_features_idx.values())[0]
-        # obtaining the col names
         qual_features = [dfs[0].columns[i] for i in qual_features if dfs[0].columns[i] in common_cols] if qual_features else []
         common_results = {patient: result[first_feat+quant_features+qual_features] for patient, result in results_dict.items()}
         # Now we obtain the indexes
@@ -252,9 +242,7 @@ class PhenogeniusPrioritizer(GenomicPrioritizer):
             else:
                 df = pd.read_csv(os.path.join(raw_results_dir, f), sep="\t")
                 self.patient2gene_results[f_name] = df
-                # Process the data
                 self.patient2gene_results[f_name] = self.get_result_gene(df, rank=2, gene={"gene_symbol": 1}, score=3)
-                # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f_name], pf)
@@ -330,6 +318,7 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         self.priot_type = ["gene", "variant"] 
         self.quant_features_idx = {}
         self.qual_features_idx = {}
+        self.possible_mois = ["AD", "AR", "unknown"]
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
@@ -338,7 +327,6 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         files = os.listdir(raw_results_dir)
         if write_tmp: os.makedirs(write_tmp, exist_ok=True)
         for f in files:
-            # Load the data
             f = os.path.basename(f)
             f_name = os.path.splitext(f)[0]
             if read_tmp:
@@ -348,61 +336,12 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
                 file_path = os.path.join(raw_results_dir, f, "prediction", "conf_4Model", "integrated", f"{f}_integrated.csv")
                 df = pd.read_csv(file_path, sep=",")
                 self.patient2gene_results[f_name] = df
-                # Process the data
                 self.patient2gene_results[f_name] = self.get_result_gene(df)
-                # Save the processed data
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f_name], pf)
             self.quant_features_idx[f_name] = None
             self.qual_features_idx[f_name] = None
-
-    def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
-        files = os.listdir(raw_results_dir)
-        if write_tmp: os.makedirs(write_tmp, exist_ok=True)
-        for f in files:
-            # Load the data
-            f = os.path.basename(f)
-            f_name = os.path.splitext(f)[0]
-            if read_tmp:
-                with open(os.path.join(raw_results_dir, f), 'rb') as pf:
-                    self.patient2variant_results[f_name] = pickle.load(pf)
-            else:
-                file_path = os.path.join(raw_results_dir, f, "prediction", "conf_4Model", f"{f}_default_predictions.csv")#"integrated", f"{f}_integrated.csv")
-                df = pd.read_csv(file_path, sep=",")
-                self.patient2variant_results[f_name] = df
-                # Process the data
-                self.patient2variant_results[f_name] = self.get_result_variant(df)
-                # Save the processed data
-                if write_tmp:
-                    with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
-                        pickle.dump(self.patient2variant_results[f_name], pf)
-
-            print("ER CHURUMBELEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE VARIANTAS")
-            print(self.patient2variant_results[f_name].head())
-            # --- AQUÍ EXTRAEMOS TODOS LOS ÍNDICES CUANTITATIVOS Y CUALITATIVOS ---
-            # Obtenemos la lista de todas las columnas de la tabla final
-            all_columns = self.patient2variant_results[f_name].columns.tolist()
-            
-            quant_indices = []
-            qual_indices = []
-            
-            for idx, col in enumerate(all_columns):
-                # Omitimos los identificadores obligatorios que calculamos al principio 
-                # para que no entren como features predictoras en tu modelo
-                if col in ["rank", "score", "varId", "varIdUniq", "contigName", "start", "end", "ref", "alt", "Unnamed: 0", "identifier"]:
-                    continue
-                
-                # Comprobamos si la columna es cuantitativa (numérica: int o float)
-                if pd.api.types.is_numeric_dtype(self.patient2variant_results[f_name][col]):
-                    quant_indices.append(idx)
-                else:
-                    # Si no es numérica, es cualitativa (texto/categoría)
-                    qual_indices.append(idx)
-            
-            # Guardamos las listas de índices en los diccionarios de la clase
-            self.quant_features_idx[f_name] = quant_indices if quant_indices else None
-            self.qual_features_idx[f_name] = qual_indices if qual_indices else None
 
     def get_result_gene(self, df, rank=107, gene={"gene_symbol": 111, "ensemble_id": 112}, score=105, quali_feature=[], quant_feature=[]):
         processed_data = pd.DataFrame()
@@ -414,10 +353,56 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         processed_data = processed_data.drop_duplicates() # This part could be controversial
         return processed_data
 
+    def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
+        files = os.listdir(raw_results_dir)
+        if write_tmp: os.makedirs(write_tmp, exist_ok=True)
+        for f in files:
+            f = os.path.basename(f)
+            f_name = os.path.splitext(f)[0]
+            if read_tmp:
+                with open(os.path.join(raw_results_dir, f), 'rb') as pf:
+                    self.patient2variant_results[f_name] = pickle.load(pf)
+            else:
+                if self.desired_moi == "AD":
+                    file_path = os.path.join(raw_results_dir, f, "prediction", "conf_4Model", f"{f}_default_predictions.csv")
+                elif self.desired_moi == "AR":
+                    file_path = os.path.join(raw_results_dir, f, "prediction", "conf_4Model", f"{f}_recessive_predictions.csv")
+                elif self.desired_moi == "unknown":
+                    file_path = os.path.join(raw_results_dir, f, "prediction", "conf_4Model", "integrated", f"{f}_integrated.csv")
+                df = pd.read_csv(file_path, sep=",")
+                self.patient2variant_results[f_name] = self.get_result_variant(df)
+                if write_tmp:
+                    with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
+                        pickle.dump(self.patient2variant_results[f_name], pf)
+
+            all_columns = self.patient2variant_results[f_name].columns.tolist()
+            
+            quant_indices = []
+            qual_indices = []
+            
+            for idx, col in enumerate(all_columns):
+                if col in ["rank", "score", "varId", "varIdUniq", "contigName", "start", "end", "ref", "alt", "Unnamed: 0", "identifier"]:
+                    continue
+                
+                if pd.api.types.is_numeric_dtype(self.patient2variant_results[f_name][col]):
+                    quant_indices.append(idx)
+                else:
+                    qual_indices.append(idx)
+            
+            self.quant_features_idx[f_name] = quant_indices if quant_indices else None
+            self.qual_features_idx[f_name] = qual_indices if qual_indices else None
+    
     def get_result_variant(self, df):
+        if self.desired_moi == "AD":
+            return self.get_result_variant_ad(df)
+        elif self.desired_moi == "AR":
+            return self.get_result_variant_ar(df)
+        elif self.desired_moi == "unknown":
+            return self.get_result_variant_unknown(df)
+
+    def get_result_variant_ad(self, df):
         processed_data = pd.DataFrame()
         
-        # 1. Reemplazamos los textos nulos para que no confundan a Pandas al detectar números
         null_representations = ['NA', 'nan', 'NaN', 'None', '-', '.']
         df_clean = df.replace(null_representations, np.nan)
         
@@ -438,8 +423,9 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         alt = split_var[3].fillna('').astype(str)
         
         processed_data["contigName"] = chrom
-        processed_data["start"] = pos
-        processed_data["end"] = (pos + ref.str.len() - 1).astype(int)
+        i = np.where(ref.str.len() > alt.str.len(), 1, 0) # IMPORTANT: If it is a deletion, we need to adjust the start and end positions by -1, TODO: Ask AIMARRVEL
+        processed_data["start"] = pos -i
+        processed_data["end"] = (pos + ref.str.len() - 1 -i).astype(int)
         processed_data["ref"] = ref
         processed_data["alt"] = alt
         
@@ -465,6 +451,175 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         
         return processed_data[fixed_prefix + remaining_cols]
     
+    def get_result_variant_ar(self, df):
+        df_exploded = df.copy()
+
+        var_col_name = df_exploded.columns[0]
+        df_exploded[var_col_name] = (
+            df_exploded[var_col_name].astype(str).str.split("_")
+        )
+
+        df_exploded = df_exploded.explode(var_col_name)
+
+        df_exploded = df_exploded.reset_index(drop=True)
+
+        processed_data = pd.DataFrame()
+
+        null_representations = ["NA", "nan", "NaN", "None", "-", "."]
+        df_clean = df_exploded.replace(null_representations, np.nan)
+
+        for col in df_clean.columns:
+            converted_numeric = pd.to_numeric(df_clean[col], errors="coerce")
+
+            if not converted_numeric.isna().all():
+                processed_data[col] = converted_numeric
+            else:
+                processed_data[col] = (
+                    df_clean[col].astype(str).replace(["nan", "<NA>"], "")
+                )
+
+        variant_series = df_exploded.iloc[:, 0].astype(str)
+        split_var = variant_series.str.split("-", expand=True)
+
+        chrom = split_var[0].astype(str)
+        pos = pd.to_numeric(split_var[1], errors="coerce").fillna(0).astype(int)
+        ref = split_var[2].fillna("").astype(str)
+        alt = split_var[3].fillna("").astype(str)
+
+        processed_data["contigName"] = chrom
+        i = np.where(ref.str.len() > alt.str.len(), 1, 0) # IMPORTANT: If it is a deletion, we need to adjust the start and end positions by -1, TODO: Ask AIMARRVEL
+        processed_data["start"] = pos -i
+        processed_data["end"] = (pos + ref.str.len() - 1 -i).astype(int)
+        processed_data["ref"] = ref
+        processed_data["alt"] = alt
+
+        processed_data["varId"] = (
+            processed_data["contigName"]
+            + ":"
+            + processed_data["start"].astype(str)
+            + "-"
+            + processed_data["end"].astype(str)
+            + ":"
+            + processed_data["ref"]
+            + "/"
+            + processed_data["alt"]
+        )
+        processed_data["varIdUniq"] = (
+            processed_data["varId"] + processed_data.index.astype(str)
+        )
+
+        main_score_col = (
+            "predict" if "predict" in df_exploded.columns else df_exploded.columns[1]
+        )
+
+        ranking_metrics = get_rank_metrics(
+            processed_data[main_score_col].tolist(),
+            processed_data["varIdUniq"].tolist(),
+        )
+        ranking_map = {row[0]: row[3] for row in ranking_metrics}
+
+        processed_data["rank"] = [
+            ranking_map[uid] for uid in processed_data["varIdUniq"]
+        ]
+        processed_data["score"] = processed_data[main_score_col]
+
+        fixed_prefix = [
+            "rank",
+            "score",
+            "varId",
+            "varIdUniq",
+            "contigName",
+            "start",
+            "end",
+            "ref",
+            "alt",
+        ]
+        remaining_cols = [
+            col for col in processed_data.columns if col not in fixed_prefix
+        ]
+
+        return processed_data[fixed_prefix + remaining_cols]
+    
+    def get_result_variant_unknown(self, df):
+        df_clean_input = df.copy()
+        first_col = df_clean_input.columns[0]
+
+        processed_data = pd.DataFrame()
+
+        null_representations = ["NA", "nan", "NaN", "None", "-", "."]
+        df_clean = df_clean_input.replace(null_representations, np.nan)
+
+        for col in df_clean.columns:
+            converted_numeric = pd.to_numeric(df_clean[col], errors="coerce")
+
+            if not converted_numeric.isna().all():
+                processed_data[col] = converted_numeric
+            else:
+                processed_data[col] = (
+                    df_clean[col].astype(str).replace(["nan", "<NA>"], "")
+                )
+
+        variant_series = df_clean_input[first_col].astype(str)
+        split_var = variant_series.str.split("-", expand=True)
+
+        chrom = split_var[0].astype(str)
+        pos = pd.to_numeric(split_var[1], errors="coerce").fillna(0).astype(int)
+        ref = split_var[2].fillna("").astype(str)
+        alt = split_var[3].fillna("").astype(str)
+
+        processed_data["contigName"] = chrom
+        i = np.where(ref.str.len() > alt.str.len(), 1, 0) # IMPORTANT: If it is a deletion, we need to adjust the start and end positions by -1, TODO: Ask AIMARRVEL
+        processed_data["start"] = pos -i
+        processed_data["end"] = (pos + ref.str.len() - 1 -i).astype(int)
+        processed_data["ref"] = ref
+        processed_data["alt"] = alt
+
+        processed_data["varId"] = (
+            processed_data["contigName"]
+            + ":"
+            + processed_data["start"].astype(str)
+            + "-"
+            + processed_data["end"].astype(str)
+            + ":"
+            + processed_data["ref"]
+            + "/"
+            + processed_data["alt"]
+        )
+        processed_data["varIdUniq"] = (
+            processed_data["varId"] + processed_data.index.astype(str)
+        )
+
+        main_score_col = (
+            "predict" if "predict" in df_clean_input.columns else df_clean_input.columns[1]
+        )
+
+        ranking_metrics = get_rank_metrics(
+            processed_data[main_score_col].tolist(),
+            processed_data["varIdUniq"].tolist(),
+        )
+        ranking_map = {row[0]: row[3] for row in ranking_metrics}
+
+        processed_data["rank"] = [
+            ranking_map[uid] for uid in processed_data["varIdUniq"]
+        ]
+        processed_data["score"] = processed_data[main_score_col]
+
+        fixed_prefix = [
+            "rank",
+            "score",
+            "varId",
+            "varIdUniq",
+            "contigName",
+            "start",
+            "end",
+            "ref",
+            "alt",
+        ]
+        remaining_cols = [
+            col for col in processed_data.columns if col not in fixed_prefix
+        ]
+
+        return processed_data[fixed_prefix + remaining_cols]
 
 class LiricalPrioritizer(GenomicPrioritizer):
 
@@ -473,6 +628,7 @@ class LiricalPrioritizer(GenomicPrioritizer):
         self.priot_type = ["gene", "variant"] 
         self.quant_features_idx = {}
         self.qual_features_idx = {}
+        self.possible_mois = ["unknown"] # Possible values: "AD", "AR", "XLD", "XLR", "MT", "unknown"
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
@@ -620,6 +776,7 @@ class ExomiserPrioritizer(GenomicPrioritizer):
         self.priot_type = ["gene", "variant"] 
         self.quant_features_idx = {}
         self.qual_features_idx = {}
+        self.possible_mois = ["AD", "AR", "XLD", "XLR", "MT", "unknown"] # Possible values: "AD", "AR", "XLD", "XLR", "MT", "unknown"
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
         """
@@ -664,18 +821,41 @@ class ExomiserPrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
                         pickle.dump(self.patient2variant_results[f_name], pf)
-            self.quant_features_idx[f_name] =  [8,9,10]
-            self.qual_features_idx[f_name] = None  
+
+            df_actual = self.patient2variant_results[f_name]
+            all_columns = df_actual.columns.tolist()
+            
+            quant_indices = []
+            qual_indices = []
+            
+            exclude_cols = ["rank", "score", "varId", "varIdUniq", "contigName", "start", "end", "ref", "alt"]
+            
+            for idx, col in enumerate(all_columns):
+                if col in exclude_cols:
+                    continue
+                
+                if pd.api.types.is_numeric_dtype(df_actual[col]):
+                    quant_indices.append(idx)
+                else:
+                    qual_indices.append(idx)
+            
+            self.quant_features_idx[f_name] = quant_indices if quant_indices else None
+            self.qual_features_idx[f_name] = qual_indices if qual_indices else None
 
     def get_result_variant(self, json_results):
         data = {"gene_symbol": [], "ensembl_id": [], "score": [], "priorityScore": [], "pValue": [], "hiphive_score": [], "omim_score": [], 
                 "gene_variant_score": [], "gene_phenotype_score": [], 
                 "varId": [], "varIdUniq": [], "contigName": [], "start": [], "end": [], "ref": [], "alt": []}
+        moi_mapping = {"AD": "AUTOSOMAL_DOMINANT", "AR": "AUTOSOMAL_RECESSIVE", "XLD": "X_DOMINANT", "XLR": "X_RECESSIVE", "MT": "MITOCHONDRIAL", "unknown": "unknown"}
+        
         for rank, row in enumerate(json_results):
             if not row.get("combinedScore"): continue
             for variants in row["variantEvaluations"]:
                 varId = f"{variants['contigName']}:{variants['start']}-{variants['end']}:{variants['ref']}/{variants['alt']}"
-                for var_feature in ["contigName", "start", "end", "ref", "alt"]: # pathogenicityScore, 'phredScore',  "contributingInheritanceModes"
+                if self.desired_moi is not "unknown":
+                    if moi_mapping.get(self.desired_moi) not in variants.get("compatibleInheritanceModes", []):
+                        continue
+                for var_feature in ["contigName", "start", "end", "ref", "alt"]: # pathogenicityScore, 'phredScore', 
                     data[var_feature].append(variants[var_feature])
                 data["varId"].append(varId)
                 data["varIdUniq"].append(varId+str(rank))
@@ -694,7 +874,7 @@ class ExomiserPrioritizer(GenomicPrioritizer):
         data["rank"] = [ranking[gene] for gene in data["varIdUniq"]]
 
         processed_data = pd.DataFrame()
-        for key in ["rank", "score", "varId", "contigName", "start", "end", "ref", "alt", "pValue", "hiphive_score", "omim_score"]:
+        for key in ["rank", "score", "varId", "contigName", "start", "end", "ref", "alt", "pValue", "hiphive_score", "omim_score", "gene_symbol", "ensembl_id"]:
             processed_data[key] = data[key]
         return processed_data
 
@@ -727,12 +907,11 @@ class XrarePrioritizer(GenomicPrioritizer):
         self.priot_type = ["gene", "variant"] 
         self.quant_features_idx = {}
         self.qual_features_idx = {}
+        self.possible_mois = ["unknown"]
 
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
-        print("··· Processing gene results ···")
         files = [f for f in os.listdir(raw_results_dir)]
         if write_tmp: os.makedirs(write_tmp, exist_ok=True)
-        print("the files are:", files)
         for f in files:
             f_path = os.path.join(raw_results_dir, f)
             f_name = os.path.splitext(f)[0]
@@ -741,16 +920,13 @@ class XrarePrioritizer(GenomicPrioritizer):
                 with open(os.path.join(write_tmp, f+"_processed"), 'rb') as pf:
                     self.patient2gene_results[f_name] = pickle.load(pf)
             else:
-                # Cargamos el archivo tabular
                 df_results = pd.read_csv(f_path, sep="\t")
                 self.patient2gene_results[f_name] = self.get_result_gene(df_results)
-                print(self.patient2gene_results[f_name].head())
                 
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f_name], pf)
             
-            # Índices de columnas numéricas para downstream analysis (ej. score, pvalue)
             self.quant_features_idx[f_name] = [2, 3, 5]  # score, acmg_score, 
             self.qual_features_idx[f_name] = [4]
 
@@ -758,7 +934,6 @@ class XrarePrioritizer(GenomicPrioritizer):
         """
         Extrae y colapsa la información a nivel de gen.
         """
-        # Mapeo de columnas según tu archivo
         data = {
             "gene_symbol": df["symbol"].tolist(),
             "ensembl_id": df["hgnc_id"].tolist(),
@@ -767,30 +942,23 @@ class XrarePrioritizer(GenomicPrioritizer):
             "consequence": df["Consequence"].tolist()
         }
 
-        # Generar ranking (asumiendo que get_rank_metrics existe en tu clase base)
         ranking = get_rank_metrics(data["score"], data["ensembl_id"])
         rank_dict = {row[0]: row[3] for row in ranking}
         
         data["rank"] = [rank_dict.get(eid, 999) for eid in data["ensembl_id"]]
 
         processed_data = pd.DataFrame(data)
-        # Si un gen aparece varias veces por distintas variantes, nos quedamos con el mejor score
         processed_data = processed_data.sort_values("score", ascending=False).drop_duplicates("ensembl_id")
-        print(f"Processed {len(processed_data)} unique genes for patient.")
         
         return processed_data
 
     def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
-        print(f"Processing variant results in {raw_results_dir}...")
         files = [f for f in os.listdir(raw_results_dir) ]
         if write_tmp: os.makedirs(write_tmp, exist_ok=True)
         
         for f in files:
-            print("asdhfgaidyufgorusygfuyfg")
-            print("holahola")
             f_path = os.path.join(raw_results_dir, f)
             f_name = os.path.splitext(f)[0]
-            print("hola churumbele variantas")
             
             if read_tmp:
                 with open(os.path.join(write_tmp, f+"_var_processed"), 'rb') as pf:
@@ -802,63 +970,23 @@ class XrarePrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_var_processed"), 'wb') as pf:
                         pickle.dump(self.patient2variant_results[f_name], pf)
-            print(self.patient2variant_results[f_name].head())
-            # --- AQUÍ EXTRAEMOS TODOS LOS ÍNDICES CUANTITATIVOS Y CUALITATIVOS ---
-            # Obtenemos la lista de todas las columnas de la tabla final
+
             all_columns = self.patient2variant_results[f_name].columns.tolist()
             
             quant_indices = []
             qual_indices = []
             
             for idx, col in enumerate(all_columns):
-                # Omitimos los identificadores obligatorios que calculamos al principio 
-                # para que no entren como features predictoras en tu modelo
                 if col in ["rank", "score", "varId", "varIdUniq", "contigName", "start", "end", "ref", "alt", "INFO"]:
                     continue
                 
-                # Comprobamos si la columna es cuantitativa (numérica: int o float)
                 if pd.api.types.is_numeric_dtype(self.patient2variant_results[f_name][col]):
                     quant_indices.append(idx)
                 else:
-                    # Si no es numérica, es cualitativa (texto/categoría)
                     qual_indices.append(idx)
             
-            # Guardamos las listas de índices en los diccionarios de la clase
             self.quant_features_idx[f_name] = quant_indices if quant_indices else None
             self.qual_features_idx[f_name] = qual_indices if qual_indices else None
-
-    # def get_result_variant(self, df):
-    #     """
-    #     Extrae la información a nivel de variante.
-    #     """
-    #     processed_rows = []
-        
-    #     for idx, row in df.iterrows():
-    #         # Creamos un varId único estilo chr:pos:ref/alt
-    #         var_id = f"{row['CHROM']}:{row['POS']}:{row['REF']}/{row['ALT']}"
-            
-    #         res = {
-    #             "varId": var_id,
-    #             "gene_symbol": row["symbol"],
-    #             "score": row["xrare_score"],
-    #             "acmg_class": row["pathoACMG"],
-    #             "acmg_score": row["ACMG_score"],
-    #             "impact": row["IMPACT"],
-    #             "consequence": row["Consequence"],
-    #             "chrom": row["CHROM"],
-    #             "pos": row["POS"]
-    #         }
-    #         processed_rows.append(res)
-            
-    #     variant_df = pd.DataFrame(processed_rows)
-    #     print(f"Processed {len(variant_df)} variants for patient {f_name}.")
-        
-    #     # Calcular ranking de variantes
-    #     ranking = get_rank_metrics(variant_df["score"].tolist(), variant_df["varId"].tolist())
-    #     rank_dict = {row[0]: row[3] for row in ranking}
-    #     variant_df["rank"] = variant_df["varId"].map(rank_dict)
-        
-    #     return variant_df
 
     def get_result_variant(self, df):
         processed_data = pd.DataFrame()
@@ -937,9 +1065,6 @@ class MetaGenomicPrioritizer:
 
     def get_features(self, type="gene", dropna=False):
         # Mapping type to attributes
-        print("Prioritizers:")
-        print(self.prioritizers)
-        print("jjjjjjjjjjjjjjjjjjjj")
         id_candidates = {"gene": "gene_symbol", "variant": "varId"}
         results_attr = {"gene": "patient2gene_results", "variant": "patient2variant_results"}
         merged_attr = {"gene": "feature_gene", "variant": "feature_variant"}
@@ -953,23 +1078,17 @@ class MetaGenomicPrioritizer:
         merged_key = merged_attr[type]
         feature_to_remove = features_to_remove[type]
 
-        print(f"Cleaning features for type: {type}...")
-        print(f"Initial patients in prioritizer 1: {list(getattr(self.prioritizers[list(self.prioritizers.keys())[0]], results_key).keys())[:3]}")
         self.clean_features(results_key, type)
         all_patients = list(getattr(self.prioritizers[list(self.prioritizers.keys())[0]], results_key).keys())
-        print(f"All patients: {list(getattr(self.prioritizers[list(self.prioritizers.keys())[0]], results_key).keys())}")
         # Merge per patient
         merged_results = {}
         for patient in all_patients:
-            print(f"Processing patient: {patient}")
             dfs = []
             quantitative_idx = []
             qualitative_idx = []
             n_total_cols = 0
             for name, prioritizer in self.prioritizers.items():
                 df = getattr(prioritizer, results_key).get(patient)
-                print(f"Patient {patient} - Prioritizer {name} - DataFrame shape: {df.shape if df is not None else 'None'}")
-                print(df.head() if df is not None else "No DataFrame")
                 name = name[0]
                 if df is None or df.empty:
                     continue
@@ -992,18 +1111,10 @@ class MetaGenomicPrioritizer:
                 continue
 
             # Merge all DataFrames on the id_candidate
-            print(f"Merging {len(dfs)} DataFrames for patient {patient}...")
-            print("First DataFrame:")
-            print(dfs[0].head())
             merged = dfs[0]
             
             for df in dfs[1:]:
-                print("merging with new df:")
-                print(df.head())
                 merged = pd.merge(merged, df, on=id_candidate, how="outer")
-                print("Merged DataFrame:")
-                print(merged.head())
-            
             if dropna:
                 merged_results[patient] = merged.dropna() # merged
             else:
@@ -1012,10 +1123,6 @@ class MetaGenomicPrioritizer:
             self.feature_qual_idx[patient] = qualitative_idx
             self.feature_quant_idx[patient] = quantitative_idx
 
-            print("buajaja")
-            print(merged_results[patient].head())
-            print("buajaja")
-
         id_candidates = {"gene": "gene_symbol", "variant": "varId"}
         results_attr = {"gene": "patient2gene_results", "variant": "patient2variant_results"}
         merged_attr = {"gene": "feature_gene", "variant": "feature_variant"}
@@ -1023,7 +1130,6 @@ class MetaGenomicPrioritizer:
 
         # assign to attribute
         setattr(self, merged_key, merged_results)
-        print(self.feature_variant)
     
     def clean_features(self, results_key, type):
         # Obtain results with common columns inside each prioritizer
@@ -1123,16 +1229,11 @@ class MetaGenomicPrioritizer:
         id_col = "gene_symbol" if type == "gene" else "varId"
         merged_results = getattr(self, merged_key)
         predict_results = getattr(self, f"patient2{type}_results")
-        print("I am i predict test")
-        print("merged results:", self.feature_variant)
 
         if len(self.test_patients) == 0:
             self.test_patients = list(merged_results.keys())
 
-        print("test patients:", self.test_patients)
         for patient in self.test_patients:
-            print("ññññññññññññññññññññ")
-            print(f"Predicting for patient: {patient}")
             df = merged_results[patient]
             if not self.feature_columns:
                 feature_cols = df.select_dtypes(include=[np.number]).columns.tolist()
@@ -1150,19 +1251,12 @@ class MetaGenomicPrioritizer:
             df["rank"] = [ranking[gene] for gene in df[id_col]] # TODO: quitar lo de gene porque debe ser genérico para variante también
             cols = ["rank", "score"] + [col for col in df.columns if col not in ["rank", "score"]]
             predict_results[patient] = df[cols]
-            print(f"Predicted results for patient {patient}:")
-            print(predict_results[patient].head())
             self.quant_features_idx[patient] = [val + 2 for val in self.feature_quant_idx[patient]]
             self.qual_features_idx[patient] = [val + 2 for val in self.feature_qual_idx[patient]]
-        print("I am i predict test final")
-        print("patient2variant_results:", self.patient2variant_results)
 
     
     def get_combined_results(self, type="gene"):
-        print("helo"*20)
-        print(self.patient2variant_results)
         common_results = getattr(self, f"patient2{type}_results")
-        print("common results:", common_results)
         for i, df in enumerate(common_results.values()):
             # add a column with the key
             df["pat_number"] = i
@@ -1172,6 +1266,32 @@ class MetaGenomicPrioritizer:
         quant_idx = next(iter(self.quant_features_idx.values()))
         qual_idx = next(iter(self.qual_features_idx.values()))
         return combined_df, quant_idx, qual_idx
+
+
+class HeuristicModelSimpleMean():
+
+    def train(self, X, y=None, groups=None):
+        pass
+
+    def predict(self, X):
+        rank_cols = [col for col in X.columns if col.startswith("rank_")]
+        df_ranks = X[rank_cols].apply(pd.to_numeric, errors='coerce')
+        return -1 * df_ranks.mean(axis=1, skipna=True).to_numpy()
+
+class HeuristicModelMeanWithPresence:
+
+    def train(self, X, y=None, groups=None):
+        pass 
+
+    def predict(self, X):
+        rank_cols = [col for col in X.columns if col.startswith("rank_")]
+        df_ranks = X[rank_cols].apply(pd.to_numeric, errors='coerce')
+        
+        worst_rank = df_ranks.max().max()
+        penalty_value = worst_rank + 1
+        df_filled = df_ranks.fillna(penalty_value)
+        mean_ranks = df_filled.mean(axis=1)
+        return -1 * mean_ranks.to_numpy()
 
 class HeuristicModel():
     """

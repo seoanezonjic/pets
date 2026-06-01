@@ -38,8 +38,16 @@ def get_corr_table(self, table, columns, method="spearman"):
     corr = corr.dropna(axis=1, how='all')
     corr = corr.dropna(axis=0, how='all')
     corr_table = corr.values.tolist()
+    corr_table = nan_to_null(corr_table)
     corr_table = [[corr.index[i]] + row for i, row in enumerate(corr_table)]
     corr_table.insert(0, [" "] + corr.columns.tolist())
+    return corr_table
+
+def nan_to_null(corr_table):
+    for i in range(len(corr_table)):
+        for j in range(len(corr_table[i])):
+            if pd.isna(corr_table[i][j]):
+                corr_table[i][j] = "null"
     return corr_table
 
 def df_to_numeric(self, table, numeric_cols):

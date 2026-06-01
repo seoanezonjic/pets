@@ -349,6 +349,10 @@ def report_prioritizer(args=None):
                     help="Choose type of benchmark. Choose between 'gene' and 'variant', or both. Options: 'variant', 'gene'")
     parser.add_argument("-o", "--output_file", dest="output_file", default= "report_prioritizer", 
                     help="Path to the output file to write results")
+    parser.add_argument("--desired_moi", dest="desired_moi", default="unknown", type=str,
+                    help="Keep only variants with this mode of inheritance. Choose between 'AD', 'AR', 'XLD', 'XLR', 'MT', 'unknown'. Default unknown")
+    parser.add_argument("--type_of_info_to_show", dest="type_of_info_to_show", default="both", type=str,
+                    help="Select the type of report to generate. Choose between 'both', technical' and 'clinical'. Default both")
     opts = parser.parse_args(args)
     main_report_prioritizer(opts)
 

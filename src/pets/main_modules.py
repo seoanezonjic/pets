@@ -464,7 +464,7 @@ def main_report_prioritizer(opts):
     from pets.genomic_prioritizer import (
         Phen2GenePrioritizer, GadoPrioritizer, PhenogeniusPrioritizer, ExomiserPrioritizer,
         AimarrvelPrioritizer, LiricalPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer, XrarePrioritizer,
-        HeuristicModel
+        HeuristicModel, HeuristicModelMeanWithPresence
     )
     options = vars(opts)
     
@@ -493,6 +493,9 @@ def main_report_prioritizer(opts):
             prioritizer[(prioritizer_type, path2folder_results)] = XrarePrioritizer()
         else:
             raise Exception(f"Unknown prioritizer: {prioritizer}")
+        
+        prioritizer[(prioritizer_type, path2folder_results)].desired_moi = options["desired_moi"]
+
         if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
             prioritizer[(prioritizer_type, path2folder_results)].post_process_results_genes(path2folder_results, 
                              write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
@@ -512,7 +515,8 @@ def main_report_prioritizer(opts):
                 print(".................")
                 metaprioritizer.test_patients = metaprioritizer.get_all_patients()
                 # print(metaprioritizer.test_patients)
-                metaprioritizer.model = HeuristicModel()
+                # metaprioritizer.model = HeuristicModel()
+                metaprioritizer.model = HeuristicModelMeanWithPresence()
                 metaprioritizer.predict_test(type=options["benchmark_type"])
                 prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
 
@@ -523,7 +527,8 @@ def main_report_prioritizer(opts):
             container = {
                 "quantitative": quantitative_feature,
                 "qualitative": qualitative_feature,
-                "prio_table": prio_table
+                "prio_table": prio_table,
+                "type_of_info_to_show": options["type_of_info_to_show"]
             }
             template="integrated_by_patient_prioreport.txt"
         else:
@@ -537,16 +542,17 @@ def main_report_prioritizer(opts):
                 prio_table = list(first_prioritizer.patient2variant_results.values())[0] 
 
 
-            print("----")
-            print("AQUI ESTAMOS")
-            print("LALALLALA")
-            print("prio_table", prio_table.head())
-            print("quantitative_feature", quantitative_feature)
-            print("qualitative_feature", qualitative_feature)
+            # print("----")
+            # print("AQUI ESTAMOS")
+            # print("LALALLALA")
+            # print("prio_table", prio_table.head())
+            # print("quantitative_feature", quantitative_feature)
+            # print("qualitative_feature", qualitative_feature)
             container = {
                 "quantitative": quantitative_feature,
                 "qualitative": qualitative_feature,
-                "prio_table": prio_table
+                "prio_table": prio_table,
+                "type_of_info_to_show": options["type_of_info_to_show"]
             }
             template="individual_prioreport.txt"
 
