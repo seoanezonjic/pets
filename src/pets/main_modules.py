@@ -1092,7 +1092,7 @@ def main_hpoa_get_filter_phen(options):
 
             elif "/" in evidence_field:
                 up, down = evidence_field.split("/")
-                if int(down) >= 5 and (float(up)/float(down) < options["threshold"]): continue
+                if int(down) >= options["min_evidence"] and (float(up)/float(down) < options["threshold"]): continue
                 print(line.strip())
 
             elif "%" in evidence_field:

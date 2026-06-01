@@ -453,6 +453,8 @@ def hpoa_get_filter_phen(args=None):
                         help="Column (0-based) with the evidence to filter")
     parser.add_argument("-t", "--threshold", dest="threshold", default=0.3, type=float,
                         help="Threshold to keep the evidence between a disease and a phenotype (default: 0.3). If there is no frequency data the phenotype is retained")
+    parser.add_argument("-m", "--min_evidence", dest="min_evidence", default= 5, type=int,
+                        help="Minimum evidence (total cases, denominator) to active the filtering")    
     opts = parser.parse_args(args)
     opts = vars(opts)
     main_hpoa_get_filter_phen(opts)
