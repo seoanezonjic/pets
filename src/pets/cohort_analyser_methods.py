@@ -225,7 +225,7 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
         pat_ids.append(pat_idx)
         record = [pat_idx]
         hpo_vector = [0] * len(hpo_index)
-        print(f"{pat_idx} : {patient_data.profiles[pat_idx]}")
+        #print(f"{pat_idx} : {patient_data.profiles[pat_idx]}")
         for hpo_code in patient_data.profiles[pat_idx]: hpo_vector[hpo_index[hpo_code]] = 1
         record.extend(hpo_vector)
         hpo_pat_matrix.append(record)

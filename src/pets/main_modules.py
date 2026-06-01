@@ -294,9 +294,9 @@ def main_cohort_analyzer(options):
 
     patient_data.get_profile_redundancy() # GEt term redundancy BEFORE cleaning
     patient_data.check(hard=opts["hard_check"])
-    print('==============')
-    print(patient_data.profiles['1006284'])
-    print('==============')
+    #print('==============')
+    #print(patient_data.profiles['1006284'])
+    #print('==============')
 
     patient_data.link2ont(Cohort.act_ont) #Now that we have calculate profiles redundancy, we synchronize the cleaned profiles from HPO object
     
