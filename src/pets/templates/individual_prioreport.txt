@@ -5,8 +5,8 @@
 %>
 <% 
     all_numeric = [0,1]
-    print("AJAJ por aqui siempre wey")
-    print(plotter.hash_vars["prio_table"].head())
+    ## print("AJAJ por aqui siempre wey")
+    ## print(plotter.hash_vars["prio_table"].head())
 ##     print("The quantitative features are:", plotter.hash_vars["quantitative"])
     if plotter.hash_vars["quantitative"]: all_numeric += plotter.hash_vars["quantitative"]
 ##     print("ori")
@@ -20,8 +20,8 @@
 ##     print("ohoh"*40)
     plotter.hash_vars["prio_table_top100"] = plotter.get_top_rank(plotter.hash_vars["prio_table"], 100) 
     colnames = list(plotter.hash_vars["prio_table_top100"].columns)
-    print("hola"*40)
-    print("prio_table_top100", plotter.hash_vars["prio_table_top100"].head())
+    ## print("hola"*40)
+    ## print("prio_table_top100", plotter.hash_vars["prio_table_top100"].head())
 
 %>
 <% plotter.set_header() %>
@@ -117,7 +117,7 @@ ${plotter.create_title("Distribution for each categorical variable", id='top_can
 ${plotter.create_title("Quantitative correlation", id='top_gene', hlevel=2, indexable=True, clickable=False)}
 <%
         plotter.hash_vars["scores_corr"] = plotter.get_corr_table(plotter.hash_vars["prio_table"], plotter.hash_vars["quantitative"])
-        print("AJAJ"*50+ "\n")
+        ## print("AJAJ"*50+ "\n")
         ## new_corr = []
         ## for row in plotter.hash_vars["scores_corr"]:
         ##     new_row = []
@@ -134,8 +134,8 @@ ${plotter.create_title("Quantitative correlation", id='top_gene', hlevel=2, inde
         ##         new_row.append(new_col)
         ##     new_corr.append(new_row)
         ## plotter.hash_vars["scores_corr"] = new_corr
-        print(plotter.hash_vars["scores_corr"])
-        print("OJOJ"*50+ "\n")
+        ## print(plotter.hash_vars["scores_corr"])
+        ## print("OJOJ"*50+ "\n")
         plotter.hash_vars["scores_corr_top100"] = plotter.get_corr_table(plotter.hash_vars["prio_table_top100"], plotter.hash_vars["quantitative"])
         ## print(plotter.hash_vars["scores_corr_top100"])
 %>
