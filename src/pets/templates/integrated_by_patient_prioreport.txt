@@ -28,16 +28,23 @@ ${plotter.make_title("table", "top_gene_table", "Top 100 candidates associated w
             
             rank_cols = [col for col in df.columns if col.startswith("rank_")]
             
-            other_prefixes = ("gene_symbol", "ensemble_id", "diseaseName", "diseaseCurie")
+            gene_cols = [col for col in df.columns if col.startswith("gene_symbol")]
+            single_gene_col = [gene_cols[0]] if gene_cols else []
+            
+            other_prefixes = ("diseaseName", "diseaseCurie")
             info_cols = [col for col in df.columns if col.startswith(other_prefixes)]
             
-            all_cols = first_three + rank_cols + info_cols
+            all_cols = first_three + rank_cols + single_gene_col + info_cols
             selected_cols = []
             for col in all_cols:
                 if col not in selected_cols and col in df.columns:
                     selected_cols.append(col)
             
             df_filtered = df[selected_cols]
+            df_filtered = df_filtered.rename(columns={single_gene_col[0]: "gene_symbol"})
+
+            plotter.hash_vars["prio_table"].rename(columns={single_gene_col[0]: "gene_symbol"}, inplace=True)
+            plotter.hash_vars["prio_table_top100"].rename(columns={single_gene_col[0]: "gene_symbol"}, inplace=True)
             
             table_top = df_filtered.values.tolist()
             table_top.insert(0, list(df_filtered.columns))
@@ -129,7 +136,13 @@ ${plotter.create_title("Detailed information top candidates", id='top_gene', hle
             txt += table_qual + "\n"
             txt += "</div>" + "\n"
     %>
-    ${plotter.create_title(f"Candidate: {plotter.hash_vars['prio_table_top100'].iloc[i,2]}", id=f"tables_quant_qual{i}i", indexable=False, clickable=True, hlevel=2, t_id=f"tables_quant_qual{i}")}
+    <%
+        if "gene_symbol" in plotter.hash_vars["prio_table_top100"].columns:
+            title_text = f"Variant: {plotter.hash_vars['prio_table_top100'].iloc[i,2]} ; Gene: {plotter.hash_vars['prio_table_top100']['gene_symbol'].iloc[i]}"
+        else:
+            title_text = f"Variant: {plotter.hash_vars['prio_table_top100'].iloc[i,2]}"
+    %>
+    ${plotter.create_title(title_text, id=f"tables_quant_qual{i}i", indexable=False, clickable=True, hlevel=2, t_id=f"tables_quant_qual{i}")}
     ${plotter.create_collapsable_container(f"tables_quant_qual{i}", txt)}
 % endfor
 % endif

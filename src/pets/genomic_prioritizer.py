@@ -369,6 +369,8 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
                     file_path = os.path.join(raw_results_dir, f, "prediction", "conf_4Model", f"{f}_recessive_predictions.csv")
                 elif self.desired_moi == "unknown":
                     file_path = os.path.join(raw_results_dir, f, "prediction", "conf_4Model", "integrated", f"{f}_integrated.csv")
+
+                self.variantID2gene_symbol = self.load_variantID2gene_symbol(os.path.join(raw_results_dir, f, "prediction", "conf_4Model", "integrated", f"{f}_integrated.csv"))
                 df = pd.read_csv(file_path, sep=",")
                 self.patient2variant_results[f_name] = self.get_result_variant(df)
                 if write_tmp:
@@ -445,6 +447,7 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         
         processed_data["rank"] = [ranking_map[uid] for uid in processed_data["varIdUniq"]]
         processed_data["score"] = processed_data[main_score_col]
+        processed_data["gene_symbol"] = processed_data["varId"].map(self.variantID2gene_symbol)
 
         fixed_prefix = ["rank", "score", "varId", "varIdUniq", "contigName", "start", "end", "ref", "alt"]
         remaining_cols = [col for col in processed_data.columns if col not in fixed_prefix]
@@ -522,6 +525,7 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
             ranking_map[uid] for uid in processed_data["varIdUniq"]
         ]
         processed_data["score"] = processed_data[main_score_col]
+        processed_data["gene_symbol"] = processed_data["varId"].map(self.variantID2gene_symbol)
 
         fixed_prefix = [
             "rank",
@@ -603,6 +607,7 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
             ranking_map[uid] for uid in processed_data["varIdUniq"]
         ]
         processed_data["score"] = processed_data[main_score_col]
+        processed_data["gene_symbol"] = processed_data["varId"].map(self.variantID2gene_symbol)
 
         fixed_prefix = [
             "rank",
@@ -620,6 +625,42 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         ]
 
         return processed_data[fixed_prefix + remaining_cols]
+    
+    def load_variantID2gene_symbol(self, result_file):
+        df = pd.read_csv(result_file, sep="\t") if result_file.endswith(".txt") or result_file.endswith(".tsv") else pd.read_csv(result_file)
+        
+        first_col = df.columns[0]
+        variant_series = df[first_col].astype(str)
+        split_var = variant_series.str.split("-", expand=True)
+
+        chrom = split_var[0].astype(str)
+        pos = pd.to_numeric(split_var[1], errors="coerce").fillna(0).astype(int)
+        ref = split_var[2].fillna("").astype(str)
+        alt = split_var[3].fillna("").astype(str)
+
+        i = np.where(ref.str.len() > alt.str.len(), 1, 0)
+        start = pos - i
+        end = (pos + ref.str.len() - 1 - i).astype(int)
+
+        df["varId"] = (
+            chrom
+            + ":"
+            + start.astype(str)
+            + "-"
+            + end.astype(str)
+            + ":"
+            + ref
+            + "/"
+            + alt
+        )
+
+        gene_col = [col for col in df.columns if "geneSymbol" == col]
+        gene_col = gene_col[0] if gene_col else df.columns[1]
+
+        null_representations = ["NA", "nan", "NaN", "None", "-", ".", "<NA>"]
+        df[gene_col] = df[gene_col].astype(str).replace(null_representations, "")
+
+        return dict(zip(df["varId"], df[gene_col]))
 
 class LiricalPrioritizer(GenomicPrioritizer):
 
@@ -707,7 +748,7 @@ class LiricalPrioritizer(GenomicPrioritizer):
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
                         pickle.dump(self.patient2variant_results[f_name], pf)
             self.quant_features_idx[f_name] = [8,9,10]
-            self.qual_features_idx[f_name] = [11,12]
+            self.qual_features_idx[f_name] = [11,12,13,14]
 
     def get_result_gene(self, df):
         processed_data = pd.DataFrame()
@@ -730,7 +771,9 @@ class LiricalPrioritizer(GenomicPrioritizer):
         cols_of_interset = ["rank", "score", "varId", "contigName", 
                                              "start", "end", "ref", "alt", 
                                              "pathogenicityScore", "pretestprob", 
-                                             "posttestprob", "diseaseName", "diseaseCurie"]
+                                             "posttestprob", "diseaseName", "diseaseCurie", "gene_symbol", "ensembl_id"]
+        for target in ["gene_symbol", "ensembl_id"]:
+                    self.load_identifier_tanslator("entrez_id",target)
         processed_data ={col: [] for col in cols_of_interset}
         for row in df.to_dict('records'):
             for variant in row["variants"].split(";"):
@@ -747,8 +790,8 @@ class LiricalPrioritizer(GenomicPrioritizer):
                 # if not match:
                 #     continue  # o print(f"No match: {variant}")
                 var_data = match.groupdict()
-                processed_data["rank"].append(row["rank"])
-                processed_data["score"].append(row["compositeLR"])
+                processed_data["rank"].append(float(row["rank"]))
+                processed_data["score"].append(float(row["compositeLR"]))
                 start = int(var_data["pos"])
                 ref = var_data["ref"]
                 end = start + len(ref) - 1
@@ -764,6 +807,8 @@ class LiricalPrioritizer(GenomicPrioritizer):
                 processed_data["posttestprob"].append(float(row["posttestprob"].replace("%","")))
                 for feature in ["diseaseName", "diseaseCurie"]:
                     processed_data[feature].append(row[feature])
+                for target in ["gene_symbol", "ensembl_id"]:
+                    processed_data[target].append(self.identifier_translator[("entrez_id",target)][row["entrezGeneId"].split(":")[1]])
 
         processed_data = pd.DataFrame.from_dict(processed_data)
         processed_data = processed_data[[*cols_of_interset]]
@@ -1032,6 +1077,7 @@ class XrarePrioritizer(GenomicPrioritizer):
         
         processed_data["rank"] = [ranking_map[uid] for uid in processed_data["varIdUniq"]]
         processed_data["score"] = processed_data[main_score_col]
+        processed_data["gene_symbol"] = df["symbol"].astype(str)
 
         fixed_prefix = ["rank", "score", "varId", "varIdUniq", "contigName", "start", "end", "ref", "alt"]
         remaining_cols = [col for col in processed_data.columns if col not in fixed_prefix]

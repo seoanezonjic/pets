@@ -21,23 +21,43 @@
     plotter.hash_vars["prio_table_top100"] = plotter.get_top_rank(plotter.hash_vars["prio_table"], 100) 
     colnames = list(plotter.hash_vars["prio_table_top100"].columns)
     ## print("hola"*40)
-    ## print("prio_table_top100", plotter.hash_vars["prio_table_top100"].head())
+    print("prio_table_top100", plotter.hash_vars["prio_table_top100"].head())
 
 %>
 <% plotter.set_header() %>
-${plotter.create_title("Individual Report", id='main_title', hlevel=2, indexable=True, clickable=False)}
+${plotter.create_title("Individual Report of Prioritizer: " + plotter.hash_vars["prioritizer_name"], id='main_title', hlevel=2, indexable=True, clickable=False)}
+${plotter.create_title("Mode of Inheritance: " + plotter.hash_vars["mode_of_inheritance"], id='main_title', hlevel=2, indexable=False, clickable=False)}
 
 ${plotter.create_title("Top Candidates", id='top_candidates', hlevel=2, indexable=True, clickable=False)}
 ${plotter.make_title("table", "top_gene_table", "Top 100 candidates associated with the phenotypes")}
 <div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">
         <%
-            table_top = plotter.hash_vars["prio_table_top100"].values.tolist()
-            table_top.insert(0,list(plotter.hash_vars["prio_table_top100"]))
+            df = plotter.hash_vars["prio_table_top100"]
+            
+            first_three = list(df.columns[:3])
+            
+            rank_cols = [col for col in df.columns if col.startswith("rank_")]
+            
+            other_prefixes = ("gene_symbol", "ensemble_id", "diseaseName", "diseaseCurie")
+            info_cols = [col for col in df.columns if col.startswith(other_prefixes)]
+            
+            all_cols = first_three + rank_cols + info_cols
+            selected_cols = []
+            for col in all_cols:
+                if col not in selected_cols and col in df.columns:
+                    selected_cols.append(col)
+            
+            df_filtered = df[selected_cols]
+            
+            table_top = df_filtered.values.tolist()
+            table_top.insert(0, list(df_filtered.columns))
             plotter.hash_vars["table_top100"] = table_top
+            
+            dynamic_fields = list(range(len(selected_cols)))
         %>
-        ${plotter.table(id="table_top100", header=True, text= True, title="", row_names = False, fields = [0,1,2],
-                        styled='dt', border= 2, attrib = {
-                                'class' : "table table-striped table-dark"})}
+        ${plotter.table(id="table_top100", header=True, text=True, title="", row_names=False, fields=dynamic_fields,
+                        styled='dt', border=2, attrib={
+                                'class': "table table-striped table-dark"})}
 </div>
 
 % if plotter.hash_vars["type_of_info_to_show"] == "both" or plotter.hash_vars["type_of_info_to_show"] == "technical":
@@ -184,7 +204,13 @@ ${plotter.create_title("Detailed information top candidates", id='top_gene', hle
             txt += table_qual + "\n"
             txt += "</div>" + "\n"
     %>
-    ${plotter.create_title(f"Candidate: {plotter.hash_vars['prio_table_top100'].iloc[i,2]}", id=f"tables_quant_qual{i}i", indexable=False, clickable=True, hlevel=2, t_id=f"tables_quant_qual{i}")}
+    <%
+        if "gene_symbol" in plotter.hash_vars["prio_table_top100"].columns:
+            title_text = f"Variant: {plotter.hash_vars['prio_table_top100'].iloc[i,2]} ; Gene: {plotter.hash_vars['prio_table_top100']['gene_symbol'].iloc[i]}"
+        else:
+            title_text = f"Variant: {plotter.hash_vars['prio_table_top100'].iloc[i,2]}"
+        %>
+        ${plotter.create_title(title_text, id=f"tables_quant_qual{i}i", indexable=False, clickable=True, hlevel=2, t_id=f"tables_quant_qual{i}")}
     ${plotter.create_collapsable_container(f"tables_quant_qual{i}", txt)}
 % endfor
 % endif

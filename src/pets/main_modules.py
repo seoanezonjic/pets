@@ -528,7 +528,9 @@ def main_report_prioritizer(opts):
                 "quantitative": quantitative_feature,
                 "qualitative": qualitative_feature,
                 "prio_table": prio_table,
-                "type_of_info_to_show": options["type_of_info_to_show"]
+                "type_of_info_to_show": options["type_of_info_to_show"],
+                "prioritizer_name": "MetaPrioritizer",
+                "mode_of_inheritance": options["desired_moi"] if options["desired_moi"] != "unknown" else "all"
             }
             template="integrated_by_patient_prioreport.txt"
         else:
@@ -552,7 +554,9 @@ def main_report_prioritizer(opts):
                 "quantitative": quantitative_feature,
                 "qualitative": qualitative_feature,
                 "prio_table": prio_table,
-                "type_of_info_to_show": options["type_of_info_to_show"]
+                "type_of_info_to_show": options["type_of_info_to_show"],
+                "prioritizer_name": list(prioritizer.keys())[0][0],
+                "mode_of_inheritance": options["desired_moi"] if options["desired_moi"] in prioritizer[(prioritizer_type, path2folder_results)].possible_mois and options["desired_moi"] != "unknown" else "all"
             }
             template="individual_prioreport.txt"
 
