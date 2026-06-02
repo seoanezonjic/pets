@@ -1020,8 +1020,9 @@ def main_var2effects(opts):
                         response_json = response_json[variant_identifier]
                         selected_assembly = response_json["selected_assembly"]
                         cons = response_json['hgvs_predicted_protein_consequence']['slr']
-                        refseqgene, hgvsg = response_json['hgvs_refseqgene_variant'].split(':')
-                        var_exonic = response_json['variant_exonic_positions'][refseqgene]
+                        hgvsg = response_json["primary_assembly_loci"][selected_assembly.lower()]["hgvs_genomic_description"]
+                        chr_acc_id, hgvsg_only = hgvsg.split(':')
+                        var_exonic = response_json['variant_exonic_positions'][chr_acc_id]
                         exons = [var_exonic['start_exon'], var_exonic['end_exon']]
                         variant_data = response_json["primary_assembly_loci"][selected_assembly.lower()]["vcf"]
                         contig = variant_data["chr"]
