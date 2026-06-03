@@ -431,8 +431,9 @@ def vcf2effects(args=None):
       help="output with variant effects")
     parser.add_argument("-g", "--genome", dest="genome",
       help="Genome name to use as reference")
+    parser.add_argument("--table", dest="table", default= False, action = 'store_true',
+      help="The input file is a simple file with chr, start, ref and alt fields.")
     opts = parser.parse_args(args)
-
     main_vcf2effects(opts)
 
 def hgvs_val(args=None):

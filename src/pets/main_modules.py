@@ -1041,23 +1041,40 @@ def main_var2effects(opts):
 
 def main_vcf2effects(opts):
     import logging
+    from varcode import Variant
     from varcode import load_vcf
 
     for _ in logging.root.manager.loggerDict: # to disable info logger in pyensembl and varcode
         logging.getLogger(_).setLevel(logging.CRITICAL)
 
-    vcfVariants = load_vcf(opts.input_vcf, allow_extended_nucleotides= True, genome=opts.genome)
     var_effects = []
-    for variant in vcfVariants:
-        effects = variant.effects().drop_silent_and_noncoding()
-        if len(effects) > 0:
-            top_effect = effects.top_priority_effect()
-            var = top_effect.variant
-            var_effects.append([var.contig, var.start , var.ref, var.alt, top_effect.transcript_name, top_effect.short_description])
+    if opts.table:
+        with open(opts.input_vcf) as f:
+            for line in f:
+                fields = line.rstrip().split("\t")
+                if fields[0] == '-':
+                    var_effects.append(['-'] * 7)
+                    continue
+                var = Variant(contig = fields[0], start = int(fields[1]), ref = fields[2], alt = fields[3])
+                effects = var.effects()
+                if len(effects) > 0:
+                    top_effect = effects.top_priority_effect()
+                    effect_name = top_effect.__class__.__name__
+                    var = top_effect.variant
+                    var_effects.append([var.contig, var.start , var.ref, var.alt, top_effect.transcript_name, top_effect.short_description, effect_name])
+    else:
+        vcfVariants = load_vcf(opts.input_vcf, allow_extended_nucleotides= True, genome=opts.genome)
+        for variant in vcfVariants:
+            effects = variant.effects().drop_silent_and_noncoding()
+            if len(effects) > 0:
+                top_effect = effects.top_priority_effect()
+                effect_name = top_effect.__class__.__name__
+                var = top_effect.variant
+                var_effects.append([var.contig, var.start , var.ref, var.alt, top_effect.transcript_name, top_effect.short_description, effect_name])
 
     with open(opts.output, 'w') as f:
-        for contig, start, ref, alt, t_name, effect in var_effects:
-            f.write(f"{contig}\t{start}\t{ref}\t{alt}\t{t_name}\t{effect}\n")
+        for contig, start, ref, alt, t_name, hgvs, effect in var_effects:
+            f.write(f"{contig}\t{start}\t{ref}\t{alt}\t{t_name}\t{hgvs}\t{effect}\n")
 
 def main_hgvs_val(opts):
     import hgvs.validator
