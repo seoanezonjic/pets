@@ -262,6 +262,7 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
         full_sim_matrix.append([pat_ids[i]] + list(x))
 
     container = {
+      'patient_data' : patient_data,
       'extra_attr_list' : patient_data.extra_attr_list,
       'hpo_pat_matrix' : hpo_pat_matrix,
       'full_sim_matrix' : full_sim_matrix, 
