@@ -34,7 +34,7 @@
 	clust_overrep_analysis = []
 	clusters = plotter.hash_vars['clusters']
 	patient_data = plotter.hash_vars['patient_data']
-	total_pats = len(patient_data.extra_attr) +100
+	total_pats = len(patient_data.extra_attr)
 	for element in clusters: # Cluster
 		clID, patient_number, patient_ids, hpo_codes, hpo_names = element
 		if patient_number > 1:
