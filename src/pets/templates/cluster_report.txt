@@ -35,33 +35,33 @@
 	clusters = plotter.hash_vars['clusters']
 	patient_data = plotter.hash_vars['patient_data']
 	total_pats = len(patient_data.extra_attr)
+	attr_dict = {} # get patients for each category in extra_attr
+	for pat_id, ex_attrs in patient_data.extra_attr.items():
+		for factor, category in ex_attrs.items():
+			key = f"{factor}-{category}"
+			query = attr_dict.get(f"{factor}-{category}")
+			if query == None:
+				attr_dict[key] = [pat_id]
+			else:
+				query.append(pat_id)
 	for element in clusters: # Cluster
 		clID, patient_number, patient_ids, hpo_codes, hpo_names = element
 		if patient_number > 1:
-			for extra_attr in plotter.hash_vars["extra_attr_list"]:
-				attr_dict = {} # get catients for each category in extra_attr
-				for pat_id in patient_ids:
-					category = patient_data.extra_attr[pat_id][extra_attr]
-					query = attr_dict.get(category)
-					if query == None:
-						attr_dict[category] = [pat_id]
-					else:
-						query.append(pat_id)
-				for category, cat_pat_ids in attr_dict.items():
-					intersectedIDs = set(cat_pat_ids).intersection(set(patient_ids))
+			for category, cat_pat_ids in attr_dict.items():
+				intersectedIDs = set(cat_pat_ids).intersection(set(patient_ids))
+				intersection_length = len(intersectedIDs)
+				if intersection_length > 0:
+					n1_items = len(patient_ids)
+					n2_items = len(cat_pat_ids)
 					# Analogous formulation with stats.fisher_exact(data, alternative='greater')
-					intersection_length = len(intersectedIDs)
-					if intersection_length > 0:
-						n1_items = len(patient_ids)
-						n2_items = len(cat_pat_ids)
-						p_value = stats.hypergeom.sf(intersection_length-1, total_pats, n1_items, n2_items)
-						clust_overrep_analysis.append([clID, extra_attr, category, intersection_length, patient_number, n2_items - intersection_length, p_value])
+					p_value = stats.hypergeom.sf(intersection_length-1, total_pats, n1_items, n2_items)
+					clust_overrep_analysis.append([clID, category, intersection_length, patient_number, n2_items - intersection_length, p_value])
 
 	pvals = np.array([cat[5] for cat in clust_overrep_analysis])
 	adj_pvals =  sm.stats.multipletests(pvals, method='fdr_bh', is_sorted=False, returnsorted=False)[1] #2expcalc?
 	for i, adj_pval in enumerate(adj_pvals): clust_overrep_analysis[i].append(adj_pval)
 	clust_overrep_analysis = [ cat for cat in clust_overrep_analysis if cat[5] < 0.05 ] #soft filter using raw paval only
-	clust_overrep_analysis.insert(0, ['clID', 'Factor', 'Category', 'Intersection', 'Cluster patients', 'Category specific patients', 'P-value', 'Adj P-value'])
+	clust_overrep_analysis.insert(0, ['clID', 'Category', 'Intersection', 'Cluster patients', 'Category specific patients', 'P-value', 'Adj P-value'])
 	plotter.hash_vars["clust_overrep_analysis"] = clust_overrep_analysis
 %>
 
@@ -94,7 +94,7 @@
 	</div>
 	<div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 		<h2 style="text-align: center; background-color:#d6eaf8">Overrepresentation analysis over categories from patient factors.</h2>
-			${ plotter.table(id="clust_overrep_analysis", header= True, border= 2, row_names= False, text= True, cell_align= ["center"] * 8, 
+			${ plotter.table(id="clust_overrep_analysis", header= True, border= 2, row_names= False, text= True, cell_align= ["center"] * 7, 
 				styled= 'dt', attrib= {'class': 'table'})
 			}
 	</div>	
