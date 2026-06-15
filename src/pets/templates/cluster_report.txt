@@ -31,6 +31,7 @@
 	all_heatmap_factors = ['cl_id']
 	all_heatmap_factors.extend(plotter.hash_vars["extra_attr_list"])
 
+	# clust_overrep_analysis
 	clust_overrep_analysis = []
 	clusters = plotter.hash_vars['clusters']
 	patient_data = plotter.hash_vars['patient_data']
@@ -57,10 +58,11 @@
 					p_value = stats.hypergeom.sf(intersection_length-1, total_pats, n1_items, n2_items)
 					clust_overrep_analysis.append([clID, category, intersection_length, patient_number, n2_items - intersection_length, p_value])
 
-	pvals = np.array([cat[5] for cat in clust_overrep_analysis])
-	adj_pvals =  sm.stats.multipletests(pvals, method='fdr_bh', is_sorted=False, returnsorted=False)[1] #2expcalc?
-	for i, adj_pval in enumerate(adj_pvals): clust_overrep_analysis[i].append(adj_pval)
-	clust_overrep_analysis = [ cat for cat in clust_overrep_analysis if cat[5] < 0.05 ] #soft filter using raw paval only
+	if len(clust_overrep_analysis) > 0:
+		pvals = np.array([cat[5] for cat in clust_overrep_analysis])
+		adj_pvals =  sm.stats.multipletests(pvals, method='fdr_bh', is_sorted=False, returnsorted=False)[1] #2expcalc?
+		for i, adj_pval in enumerate(adj_pvals): clust_overrep_analysis[i].append(adj_pval)
+		clust_overrep_analysis = [ cat for cat in clust_overrep_analysis if cat[5] < 0.05 ] #soft filter using raw paval only
 	clust_overrep_analysis.insert(0, ['clID', 'Category', 'Intersection', 'Cluster patients', 'Category specific patients', 'P-value', 'Adj P-value'])
 	plotter.hash_vars["clust_overrep_analysis"] = clust_overrep_analysis
 %>
