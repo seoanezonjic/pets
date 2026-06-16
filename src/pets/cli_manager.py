@@ -353,6 +353,8 @@ def report_prioritizer(args=None):
                     help="Keep only variants with this mode of inheritance. Choose between 'AD', 'AR', 'XLD', 'XLR', 'MT', 'unknown'. Default unknown")
     parser.add_argument("--type_of_info_to_show", dest="type_of_info_to_show", default="both", type=str,
                     help="Select the type of report to generate. Choose between 'both', technical' and 'clinical'. Default both")
+    parser.add_argument("--write_prio_tables", dest="write_prio_tables", default=False, action="store_true",
+                    help="Write prioritization tables used in report generation in the same folder that report is written")
     opts = parser.parse_args(args)
     main_report_prioritizer(opts)
 

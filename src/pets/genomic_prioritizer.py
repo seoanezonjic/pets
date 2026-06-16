@@ -859,6 +859,7 @@ class ExomiserPrioritizer(GenomicPrioritizer):
                 with open(os.path.join(raw_results_dir, f), 'rb') as pf:
                     self.patient2variant_results[f_name] = pickle.load(pf)
             else:
+                print(f"Processing file: {os.path.join(raw_results_dir, f)}")
                 with open(os.path.join(raw_results_dir, f)) as file:
                     json_results = json.load(file)
                 self.patient2variant_results[f_name] = self.get_result_variant(json_results)

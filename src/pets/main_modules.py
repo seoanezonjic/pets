@@ -560,9 +560,18 @@ def main_report_prioritizer(opts):
             }
             template="individual_prioreport.txt"
 
-        report = Py_report_html(container, "MetaPrioritaizer", False, False)
+        report = Py_report_html(container, "Prioritizer", False, False) # TODO FGC: Check para elmiinar esta parte.
         report.build(open(str(files('pets.templates').joinpath(template))).read())
         report.write(options["output_file"] + '.html')
+
+    if options["write_prio_tables"]:
+        for (prioritizer_type, path2folder_results), prio in prioritizer.items():
+            if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
+                for patient, table in prio.patient2gene_results.items():
+                    table.to_csv(os.path.join(path2folder_results, f"{prioritizer_type}_{patient}_prio_table"), index=False,sep="\t")
+            elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
+                for patient, table in prio.patient2variant_results.items():
+                    table.to_csv(os.path.join(path2folder_results, f"{prioritizer_type}_{patient}_prio_table"), index=False,sep="\t")
 
 def main_meta_prioritizer(opts):
     from pets.genomic_prioritizer import (
