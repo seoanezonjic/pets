@@ -42,7 +42,7 @@
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO annotations distribution</h1>
 	<p> Analysis of the HPO terms within the HPO ontology and the cohort of patients. Left: distribution of terms within the ontology and the cohort. Right: percentage of terms distribution within the ontology and the cohort.</p>
 	<div style="overflow: hidden">
-		${plotter.ontodist(ontology="ontology", dist_type=['count', 'perc'], height=800, width=800)}
+		${plotter.ontodist(ontology="ontology", dist_type=['count', 'perc'], height=500, width=500)}
 	</div>
 
 	<p> HPOs frequency distribution. Colour based on the HPO frequency.</p>
@@ -58,7 +58,7 @@
 	<p> For each patient profile size (number of phenotypes, x-axis) it is shown the number of HPO phenotypes that are parent of other terms within the profile (number of parent terms, y-axis). </p>
 
 	<div style="overflow: hidden">
-		${ plotter.plotProfRed(ontology="ontology", height=800, width=800, responsive=False) }
+		${ plotter.plotProfRed(ontology="ontology", height=700, width=700, responsive=False) }
 	</div>
 
 </div>
@@ -66,7 +66,7 @@
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto; overflow: hidden"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO ICs distribution</h1>
 	<p> First figure shows the ICs distribution in terms of the HP ontology (x-axis) and for each single HPO term, its frequency in the cohort according to the HP ontology structure (y-axis) and the second figure shows the same distributions considering the profiles analyzed. </p>
-	${plotter.ontoICdist(ontology="ontology", dist_type=['term', 'prof', 'profSizeIC'], height=800, width=800)}
+	${plotter.ontoICdist(ontology="ontology", dist_type=['term', 'prof', 'profSizeIC'], height=500, width=500)}
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
@@ -107,27 +107,47 @@
 
 	<p> All patients are clustered using their HPO profiles but building a simple binary matrix that indicates which patient has a HPO term. First figure shows the information coefficient distribution for the top clusters. Second figure shows which chromosomes are affected in the patients for each top cluster. </p>
 
-	<div style="overflow: hidden">
-		% if len(plotter.hash_vars['dummy_cluster_chr_data']) > 0:
-			${ plotter.heatmap(id='dummy_cluster_chr_data', header=True, row_names=True, title='Affected chromosomes in patient top clusters', x_label = 'patient count', height="400px", width="400px")}
-		% else:
-			<p> Genomic data was not specified </p>
-		% endif
+	<div class="row">
+
+		<div class="col-md-4 d-flex justify-content-center">
+			<div class="card p-2 m-1 shadow-sm" style="height:fit-content;">
+				<div class="canvasXpressContainerSite">
+					% if len(plotter.hash_vars['dummy_cluster_chr_data']) > 0:
+						${ plotter.heatmap(id='dummy_cluster_chr_data', header=True, row_names=True, title='Affected chromosomes in patient top clusters', x_label = 'patient count', height="400px", width="400px")}
+					% else:
+						<p> Genomic data was not specified </p>
+					% endif
+				</div>
+			</div>
+		</div>
 		% if len(plotter.hash_vars['dummy_ic_data']) > 1:
-			${ plotter.boxplot(id = 'dummy_ic_data', header = True, row_names = True, fields= [0,2], title='Patient profile size distribution in top clusters', x_label = 'Profile size', height="400px", width="400px", 
-					config = {
-						'graphOrientation' : 'vertical',
-						'smpTitle' : 'Cluster size/id'
-					}
-				) 
-			}
-			${ plotter.boxplot(id = 'dummy_ic_data', header = True, row_names = True, fields= [0,1], title='Patient IC distribution in top clusters', x_label = 'Information coefficient', height="400px", width="400px",
-					config = {
-						'graphOrientation' : 'vertical',
-						'smpTitle' : 'Cluster size/id'
-					}
-				) 
-			}
+
+			<div class="col-md-4 d-flex justify-content-center">
+				<div class="card p-2 m-1 shadow-sm" style="height:fit-content;">
+					<div class="canvasXpressContainerSite">
+						${ plotter.boxplot(id = 'dummy_ic_data', header = True, row_names = True, fields= [0,2], title='Patient profile size distribution in top clusters', x_label = 'Profile size', height="400px", width="400px", 
+								config = {
+									'graphOrientation' : 'vertical',
+									'smpTitle' : 'Cluster size/id'
+								}
+							) 
+						}
+					</div>
+				</div>
+			</div>
+			<div class="col-md-4 d-flex justify-content-center">
+				<div class="card p-2 m-1 shadow-sm" style="height:fit-content;">
+					<div class="canvasXpressContainerSite">
+						${ plotter.boxplot(id = 'dummy_ic_data', header = True, row_names = True, fields= [0,1], title='Patient IC distribution in top clusters', x_label = 'Information coefficient', height="400px", width="400px",
+								config = {
+									'graphOrientation' : 'vertical',
+									'smpTitle' : 'Cluster size/id'
+								}
+							) 
+						}
+					</div>
+				</div>
+			</div>
 		% else:
 			<p> This clustering has not been performed </p>
 		% endif
