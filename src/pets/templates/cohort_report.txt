@@ -66,7 +66,7 @@
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto; overflow: hidden"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO ICs distribution</h1>
 	<p> First figure shows the ICs distribution in terms of the HP ontology (x-axis) and for each single HPO term, its frequency in the cohort according to the HP ontology structure (y-axis) and the second figure shows the same distributions considering the profiles analyzed. </p>
-	${plotter.ontoICdist(ontology="ontology", dist_type=['term', 'prof'], height=800, width=800)}
+	${plotter.ontoICdist(ontology="ontology", dist_type=['term', 'prof', 'profSizeIC'], height=800, width=800)}
 </div>
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
