@@ -249,7 +249,7 @@ def main_profiles2phenopacket(opts):
         vcf_index= vcf_index, attr_index=attr_index, attr_name = options.get("attr_name"), v2=options['v2'])
 
 
-def main_cohort_analyzer(options):
+def main_cohort_analyzer(opts):
     import numpy as np
     from pets.cohort_analyser_methods import (
         get_summary_stats, calculate_coverage, get_final_coverage, 
@@ -257,7 +257,7 @@ def main_cohort_analyzer(options):
         format_cluster_ic_data, translate_codes, parse_clusters_data, get_similarities4boxplot,
         get_semantic_similarity_clustering
     )
-    opts = vars(options)
+    
     if opts['genome_assembly'] == 'hg19' or opts['genome_assembly'] == 'hg37':
       CHR_SIZE = str(files('pets.external_data').joinpath('chromosome_sizes_hg19.txt'))
     elif opts['genome_assembly'] == 'hg38':
@@ -290,8 +290,14 @@ def main_cohort_analyzer(options):
         temporal_hpo = Cohort.load_ontology("hpo", hpo_file, opts.get("excluded_hpo"), inplace=False)
 
     opts['check'] = True
-    patient_data, rejected_hpos, rejected_patients = Cohort_Parser.load(opts)
-    with open(rejected_file, 'w') as f: f.write("\n".join(rejected_patients))
+    if opts.get('patient_data') == None:
+        patient_data, rejected_hpos, rejected_patients = Cohort_Parser.load(opts)
+    else: # We get a cohort object
+        patient_data = opts['patient_data']
+        rejected_hpos = []
+        rejected_patients = []
+    if len(rejected_patients) > 0: 
+        with open(rejected_file, 'w') as f: f.write("\n".join(rejected_patients))
 
     patient_data.link2ont(Cohort.act_ont) # TODO: check if method load should call to this and use the semtools checking methods (take care to only remove invalid terms)
 

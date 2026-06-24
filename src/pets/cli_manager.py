@@ -234,7 +234,8 @@ def cohort_analyzer(args=None):
     parser.add_argument("--no_temp_files", dest="temp_files", default= True, action="store_false",
       help="Store temp files to speed up dataset reexecutions")
 
-    opts =  parser.parse_args(args)
+    options =  parser.parse_args(args)
+    opts = vars(options)
     main_cohort_analyzer(opts)
 
 def evidence_profiler(args=None):

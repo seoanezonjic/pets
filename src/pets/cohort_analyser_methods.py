@@ -13,7 +13,7 @@ def get_summary_stats(patient_data, rejected_patients, hpo_stats, fraction_terms
     ['Cohort size', len(patient_data.profiles)],
     ['Rejected patients by empty profile', len(rejected_patients)],
     ['HPOs per patient (average)', patient_data.get_profiles_mean_size()],
-    ['HPO terms per patient: percentile 90', patient_data.get_profile_length_at_percentile(perc=90)],
+    ['HPO terms per patient: percentile 10', patient_data.get_profile_length_at_percentile(perc=90)],
     ['Percentage of HPO with more specific children', round((fraction_terms_specific_childs * 100), 4)],
     ['DsI for uniq HP terms', patient_data.get_dataset_specifity_index('uniq')],
     ['DsI for frequency weigthed HP terms', patient_data.get_dataset_specifity_index('weigthed')],
