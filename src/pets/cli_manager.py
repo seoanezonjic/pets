@@ -231,6 +231,8 @@ def cohort_analyzer(args=None):
       help="Use to set the mode for the ontoplot. Options: 'static','dynamic' or 'canvas'. Default is 'static'.")
     parser.add_argument("--ic_method", dest="ic_method", default='resnik', 
       help="IC method used with similarity clustering")
+    parser.add_argument("--no_temp_files", dest="temp_files", default= True, action="store_false",
+      help="Store temp files to speed up dataset reexecutions")
 
     opts =  parser.parse_args(args)
     main_cohort_analyzer(opts)

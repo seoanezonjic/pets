@@ -271,10 +271,13 @@ def main_cohort_analyzer(options):
     output_folder = os.path.dirname(opts['output_file'])
     detailed_profile_evaluation_file = os.path.join(output_folder, 'detailed_hpo_profile_evaluation.csv')
     rejected_file = os.path.join(output_folder, 'rejected_records.txt')
-    temp_folder = os.path.join(output_folder, 'temp')
-    hpo_frequency_file = os.path.join(temp_folder, 'hpo_cohort_frequency.txt')
+    if opts['temp_files']:
+        temp_folder = os.path.join(output_folder, 'temp')
+        hpo_frequency_file = os.path.join(temp_folder, 'hpo_cohort_frequency.txt')
+        if not os.path.exists(temp_folder): os.mkdir(temp_folder)
+    else:
+        temp_folder = None
 
-    if not os.path.exists(temp_folder): os.mkdir(temp_folder)
 
     hpo_file = os.environ['hpo_file'] if os.environ.get('hpo_file') else HPO_FILE
     Cohort.load_ontology("hpo", hpo_file, opts.get("excluded_hpo"))
@@ -301,15 +304,16 @@ def main_cohort_analyzer(options):
     patient_data.link2ont(Cohort.act_ont) #Now that we have calculate profiles redundancy, we synchronize the cleaned profiles from HPO object
     
     hpo.get_profiles_terms_frequency() # hpo CODE, freq
-    with open(hpo_frequency_file, 'w') as f:
-      for hpo_code, freq in hpo.dicts['term_stats'].items(): f.write(f"{hpo_code}\t{freq}\n")
+    if opts['temp_files']:
+        with open(hpo_frequency_file, 'w') as f:
+            for hpo_code, freq in hpo.dicts['term_stats'].items(): f.write(f"{hpo_code}\t{freq}\n")
 
     suggested_childs, fraction_terms_specific_childs = patient_data.compute_term_list_and_childs(file = detailed_profile_evaluation_file)
 
     phenotype_ic = patient_data.get_ic_analysis(freq_type = opts['ic_stats'], 
         ic_file = os.environ['ic_file'] if os.environ.get('ic_file') else IC_FILE)
 
-    all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_clusters = patient_data.process_dummy_clustered_patients(opts, phenotype_ic, temp_folder = temp_folder)
+    all_ics, prof_lengths, clust_by_chr, top_clust_phen, multi_chr_clusters = patient_data.process_dummy_clustered_patients(opts, phenotype_ic, temp_folder = temp_folder, store_temp=opts['temp_files'])
 
     summary_stats = get_summary_stats(patient_data, rejected_patients, hpo.ics['resnik_observed'], fraction_terms_specific_childs, rejected_hpos)
 
@@ -368,7 +372,6 @@ def main_cohort_analyzer(options):
     #----------------------------------
     new_cluster_phenotypes = get_top_dummy_clusters_stats(top_clust_phen)
     container = {
-      'temp_folder' : temp_folder,
       'summary_stats' : summary_stats,
       'clustering_methods' : opts['clustering_methods'],
       'all_cnvs_length' : [ [l] for l in all_cnvs_length ],

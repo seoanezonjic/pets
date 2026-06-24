@@ -44,9 +44,9 @@ class Cohort_Parser(File_Parser):
                         record[0] = record[0].split(options["separator"])
                     else:
                         record[0] = []
-                    if options.get("start_col"): record[fields2extract['start_col']-1] = int(record[fields2extract['start_col']-1])
-                    if options.get("end_col"): record[fields2extract['end_col']-1] = int(record[fields2extract['end_col']-1])
-                    if options.get("neg_ont_col"): record[fields2extract['neg_ont_col']-1] = record[fields2extract['neg_ont_col']-1].split(options["separator"])
+                    if options.get("start_col"): record[fields2extract['start_col']] = int(record[fields2extract['start_col']])
+                    if options.get("end_col"): record[fields2extract['end_col']] = int(record[fields2extract['end_col']])
+                    if options.get("neg_ont_col"): record[fields2extract['neg_ont_col']] = record[fields2extract['neg_ont_col']].split(options["separator"])
                     query = records.get(id)
                     if query == None:
                         records[id] = [record]
@@ -80,7 +80,6 @@ class Cohort_Parser(File_Parser):
                 variants = [v[1:4] for v in record]
             else:
                 variants = [] # Not exists genomic region attributes so we create a empty array
-
             other_attr = {}
             if "sex_col" in options["extracted_fields"]: # Check for additional attributes. -1 is applied to ignore :id in extracted fields
                 other_attr["sex"] = record[0][options["extracted_fields"].index("sex_col") -1]

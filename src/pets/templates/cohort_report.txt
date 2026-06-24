@@ -1,5 +1,6 @@
 <%
 	import os
+	import sys
 	import pylab
 	import pandas as pd
 	import matplotlib.pyplot as plt
@@ -72,14 +73,12 @@
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">Cohort genome coverage analysis</h1>
 	<p> Distribution of the genome coverage of all mutations characterized in the cohort. Second figure shows the same results for SORs.</p>
-	
-	% if 'cnv_coverage' in plotter.hash_vars:
+	% if 'cnv_coverage' in plotter.hash_vars and len(plotter.hash_vars['cnv_coverage']) > 1:
 		${ plotter.static_plot_main(id= 'cnv_coverage', var_attr=[1], header= True, row_names= False, height=1600, dpi=600, 
 		plotting_function = plot_coverage) 
 		}
 	% endif
-
-	% if 'sor_coverage' in plotter.hash_vars:
+	% if 'sor_coverage' in plotter.hash_vars and len(plotter.hash_vars['sor_coverage']) > 1:
 		${ plotter.static_plot_main(id= 'sor_coverage', var_attr=[1], header= True, row_names= False, height=1600, dpi=600,
 		plotting_function = plot_coverage) 
 		}

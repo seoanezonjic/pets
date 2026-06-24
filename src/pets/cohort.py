@@ -301,8 +301,8 @@ class Cohort():
             with open(os.path.join(output_folder, str(id) + ".json"), "w") as f:
                 f.write(json.dumps(phenopacket, indent=4))
 
-    def process_dummy_clustered_patients(self, options, phenotype_ic, temp_folder = './'): # get ic and chromosomes
-        if len(self.profiles) > 1 : clustered_patients = self.dummy_cluster_patients(temp_folder = temp_folder)
+    def process_dummy_clustered_patients(self, options, phenotype_ic, temp_folder = './', store_temp=True): # get ic and chromosomes
+        if len(self.profiles) > 1 : clustered_patients = self.dummy_cluster_patients(temp_folder = temp_folder, store_temp = store_temp)
         ont = self.get_ontology(Cohort.act_ont)
         all_ics = []
         all_lengths = []
@@ -324,27 +324,32 @@ class Cohort():
                 processed_clusters += 1
         return all_ics, all_lengths, cluster_data_by_chromosomes, top_cluster_phenotypes, multi_chr_clusters
 
-    def dummy_cluster_patients(self, temp_folder = "./"):
-        clust_pat_file = os.path.join(temp_folder, 'cluster_asignation')
-        matrix_file = os.path.join(temp_folder, 'pat_hpo_matrix.npy')
-        if not os.path.exists(clust_pat_file):
-            x_axis_file = re.sub('.npy','_x.lst', matrix_file)
-            y_axis_file = re.sub('.npy','_y.lst', matrix_file)
-            if not os.path.exists(matrix_file):
-                pat_hpo_matrix, pat_id, hp_id  = exp_calc.to_bmatrix(self.profiles)
-                exp_calc.save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
+    def dummy_cluster_patients(self, temp_folder = "./", store_temp = True):
+        if store_temp:
+            clust_pat_file = os.path.join(temp_folder, 'cluster_asignation')
+            matrix_file = os.path.join(temp_folder, 'pat_hpo_matrix.npy')
+            if not os.path.exists(clust_pat_file):
+                x_axis_file = re.sub('.npy','_x.lst', matrix_file)
+                y_axis_file = re.sub('.npy','_y.lst', matrix_file)
+                if not os.path.exists(matrix_file):
+                    pat_hpo_matrix, pat_id, hp_id  = exp_calc.to_bmatrix(self.profiles)
+                    if store_temp: exp_calc.save(pat_hpo_matrix, matrix_file, hp_id, x_axis_file, pat_id, y_axis_file)
+                else:
+                    pat_hpo_matrix, hp_id, pat_id = exp_calc.load(matrix_file, x_axis_file, y_axis_file)
+                clustered_patients, _ = exp_calc.get_hc_clusters(pat_hpo_matrix, dist = 'euclidean', method = 'ward', height = [1.5], item_list=pat_id)
+                if store_temp:
+                    with open(clust_pat_file, 'w') as f:
+                        for clusterID, pat_ids in clustered_patients.items(): 
+                            f.write(f"{clusterID}\t{','.join(pat_ids)}\n")
             else:
-                pat_hpo_matrix, hp_id, pat_id = exp_calc.load(matrix_file, x_axis_file, y_axis_file)
-            clustered_patients, _ = exp_calc.get_hc_clusters(pat_hpo_matrix, dist = 'euclidean', method = 'ward', height = [1.5], item_list=pat_id)
-            with open(clust_pat_file, 'w') as f:
-                for clusterID, pat_ids in clustered_patients.items(): 
-                    f.write(f"{clusterID}\t{','.join(pat_ids)}\n")
+                clustered_patients = {}
+                with open(clust_pat_file) as f:
+                    for line in f:
+                        clusterID, pat_ids = line.rstrip().split('\t')
+                        clustered_patients[int(clusterID)] = pat_ids.split(',')
         else:
-            clustered_patients = {}
-            with open(clust_pat_file) as f:
-                for line in f:
-                    clusterID, pat_ids = line.rstrip().split('\t')
-                    clustered_patients[int(clusterID)] = pat_ids.split(',')
+            pat_hpo_matrix, pat_id, hp_id  = exp_calc.to_bmatrix(self.profiles)
+            clustered_patients, _ = exp_calc.get_hc_clusters(pat_hpo_matrix, dist = 'euclidean', method = 'ward', height = [1.5], item_list=pat_id)
         return(clustered_patients)
 
 
