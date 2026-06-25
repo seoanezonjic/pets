@@ -995,6 +995,7 @@ def main_phenPatMaster(opts):
 
 
 def main_var2effects(opts):
+    import hashlib
     #import hgvs.validator
     #from hgvs.exceptions import HGVSError
     #import hgvs.dataproviders.uta
@@ -1017,18 +1018,27 @@ def main_var2effects(opts):
     #am38 = vvhgvs.assemblymapper.AssemblyMapper(hdp, assembly_name='GRCh38')
     #hv = vvhgvs.validator.Validator(hdp)
     url = "https://rest.variantvalidator.org/VariantValidator/variantvalidator" #/%s/%s/%s
-    varEffect = [] 
+    varEffect = []
+    cache_folder = os.path.join(os.path.dirname(opts.output), 'cache') 
+    if not os.path.exists(cache_folder): os.mkdir(cache_folder)
     with open(opts.input, 'r') as f:
         for line in f:
             fields = line.rstrip().split("\t")
-            var = fields[0]
+            idV, var = fields
             transcript, v = var.split(':')
             if opts.nomenclature == 'hgvsc':
-                selected_assembly = 'GRCh38'
-                req_url = f"{url}/{selected_assembly}/{var}/{transcript}"
-                response = requests.get(req_url, headers={"Content-type": "application/json"}, timeout=30)
-                response.raise_for_status()
-                response_json = response.json()
+                cache_id = hashlib.md5((transcript + var).encode()).hexdigest()
+                cache_file = os.path.join(cache_folder, cache_id + '.json')
+                if os.path.exists(cache_file): # Read API response from file
+                    response_json = None
+                    with open(cache_file, 'r') as file: response_json = json.load(file)
+                else: # Connect to API to get data
+                    selected_assembly = 'GRCh38'
+                    req_url = f"{url}/{selected_assembly}/{var}/{transcript}"
+                    response = requests.get(req_url, headers={"Content-type": "application/json"}, timeout=30)
+                    response.raise_for_status()
+                    response_json = response.json()
+                    with open(cache_file, 'w') as f: json.dump(response_json, f, indent=4)
                 match response_json["flag"]:
                     case "warning":
                         warnings.warn(f"Cannot find genomic coordinates for {var}. See URL for more info: {req_url}")
@@ -1047,15 +1057,15 @@ def main_var2effects(opts):
                         pos = int(variant_data["pos"])
                         ref = variant_data["ref"]
                         alt = variant_data["alt"]
-                        varEffect.append([contig, pos, ref, alt, cons, exons])
+                        varEffect.append([idV, contig, pos, ref, alt, cons, exons])
                     case _:
                         warnings.warn(f"Got unexpected flag: {response['flag']}. Open a ticket on our issue tracker")                    
-                        varEffect.append(['-', '-', '-', '-', '-', '-'])
+                        varEffect.append([idV, '-', '-', '-', '-', '-', '-'])
     with open(opts.output, 'w') as f:
-        for ac, start, ref, alt, cons, ex in varEffect:
+        for idV, ac, start, ref, alt, cons, ex in varEffect:
             exons = '0'
             if ex != '-': exons =f"{ex[0]}-{ex[1]}"
-            f.write(f"{ac}\t{start}\t{ref}\t{alt}\t{cons}\t{exons}\n")
+            f.write(f"{idV}\t{ac}\t{start}\t{ref}\t{alt}\t{cons}\t{exons}\n")
 
 def main_vcf2effects(opts):
     import logging
