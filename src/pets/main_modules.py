@@ -369,7 +369,7 @@ def main_cohort_analyzer(opts):
     reference_profiles = None
     if opts.get('reference_profiles') != None: reference_profiles = load_profiles(opts['reference_profiles'], Cohort.get_ontology('hpo'))
     template = str(files('pets.templates').joinpath('cluster_report.txt'))
-    clustering_data = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, template, temporal_hpo, ySortFunc=sortByPhens)
+    clustering_data, reports_string = get_semantic_similarity_clustering(opts, patient_data, reference_profiles, temp_folder, template, temporal_hpo, ySortFunc=sortByPhens)
 
     hpo.add_observed_terms_from_profiles(reset = True, expand_ancestor = False) # Restore patient count for general report 
 
@@ -405,9 +405,14 @@ def main_cohort_analyzer(opts):
       sor_coverage_to_plot.insert(0, ['Chr', 'Pos', 'Count'])
       container['sor_coverage'] = sor_coverage_to_plot
 
-    report = Py_report_html(container)
+    report = Py_report_html(container, fig_prefix="coh_")
     report.build(open(str(files('pets.templates').joinpath('cohort_report.txt'))).read())
-    report.write(opts["output_file"] + '.html')
+
+    if opts.get('return_to_stdout') == None:
+        report.write(opts["output_file"] + '.html')
+    else:
+        reports_string['cohort_report'] = report.return_report()
+        return reports_string
 
 
 def main_evidence_profiler(opts):

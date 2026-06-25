@@ -175,6 +175,7 @@ def get_pat_clust_index(vector_index):
     return index
 
 def get_semantic_similarity_clustering(options, patient_data, reference_profiles, temp_folder, template_path_obj, temporal_hpo, ySortFunc=None):
+  reports_string = {}
   template = open(template_path_obj).read()
   hpo = Cohort.get_ontology(Cohort.act_ont)
   clustering_data = {}
@@ -275,8 +276,11 @@ def get_semantic_similarity_clustering(options, patient_data, reference_profiles
      }
     hpo.profiles = patient_profiles
 
-    report = Py_report_html(container, title='Patient clusters report')
+    report = Py_report_html(container, title='Patient clusters report', fig_prefix=f"{method_name}_")
     report.build(template)
-    report.write(options['output_file']+ f"_{method_name}_clusters.html")
-    
-  return clustering_data
+    if options.get('return_to_stdout') == None:
+      report.write(options['output_file']+ f"_{method_name}_clusters.html")
+    else:
+      reports_string[f"{method_name}_clusters"] = report.return_report()
+
+  return clustering_data, reports_string
