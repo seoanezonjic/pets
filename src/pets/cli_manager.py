@@ -18,7 +18,7 @@ from pets.main_modules import (
     main_var2effects
     ) 
 
-from pets.main_modules import (
+from pets.main_modules_advanced import (
     main_pedigree_analysis
 )
 
