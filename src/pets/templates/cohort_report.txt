@@ -34,6 +34,7 @@
 
 <div style="width: 90%; background-color:#ecf0f1; margin: 0 auto;"> 
 	<h1 style="text-align: center; background-color:#d6eaf8">HPO stats</h1>
+	${ plotter.makeTermFreqDist(ontology="ontology", height=200, width=400)}
 	<p> HPOs more frequent in the cohort </p>
 	${ plotter.makeTermFreqTable(ontology="ontology", height=800, width=800)}
 </div>
