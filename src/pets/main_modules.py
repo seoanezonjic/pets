@@ -1032,14 +1032,14 @@ def main_var2effects(opts):
             idV, var = fields
             transcript, v = var.split(':')
             if opts.nomenclature == 'hgvsc':
+                selected_assembly = 'GRCh38'
+                req_url = f"{url}/{selected_assembly}/{var}/{transcript}"
                 cache_id = hashlib.md5((transcript + var).encode()).hexdigest()
                 cache_file = os.path.join(cache_folder, cache_id + '.json')
                 if os.path.exists(cache_file): # Read API response from file
                     response_json = None
                     with open(cache_file, 'r') as file: response_json = json.load(file)
                 else: # Connect to API to get data
-                    selected_assembly = 'GRCh38'
-                    req_url = f"{url}/{selected_assembly}/{var}/{transcript}"
                     response = requests.get(req_url, headers={"Content-type": "application/json"}, timeout=30)
                     response.raise_for_status()
                     response_json = response.json()
