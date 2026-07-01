@@ -112,7 +112,16 @@ class PedigreeAnalyzer:
 
             gt = fmt.get("GT")
 
-            if gt is None or gt in {"./.", ".|.", "."}:
+            if gt is None or gt in {"./.", ".|.", "."}: # Here is very important to notice that is equivalent to say
+                # this is 0, but this could not be the case for example if the variant is not present in the reference genome,
+                #  so we will consider this as a missing value and we will not consider this variant for this patient
+                # TODO FGC: See what to do in this cases so we select non called variants with a 
+                # correct default that is the more tolerant (dont filter out variants that are not called in the reference genome)
+                # Modify this EVEN in AD where we sohould condier . -> 0 for unaf but .-> 1 for aff 
+                # And for AR something like the same.
+                # No information is not information of "no variant" but "no information" and we should not consider this as a
+                #  0 for the unaffected patients, because this could be a variant that is not called in the reference genome,
+                #  but is present in the affected patients, so we should not filter this out.
                 continue
 
             gt = gt.replace("|", "/")
@@ -360,9 +369,13 @@ class PedigreeAnalyzer:
         V_unaff = self.V[:, ~A]
 
         # todos los afectados son heterocigotos
+        print("V_aff shape:", V_aff.shape)
+        print("The affected patients are:", A)
         affected_ok = np.all(V_aff == 1, axis=1)
 
         # todos los sanos son referencia
+        print("V_unaff shape:", V_unaff.shape)
+        print("The unaffected patients are:", A)
         unaffected_ok = np.all(V_unaff == 0, axis=1)
 
         rho = affected_ok & unaffected_ok
