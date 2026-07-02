@@ -3,6 +3,7 @@
 from dataclasses import fields
 import gzip
 import numpy as np
+from cyvcf2 import VCF
 
 
 class PedigreeAnalyzer:
@@ -20,7 +21,7 @@ class PedigreeAnalyzer:
 
     def load_data(self):
         self.load_pedigree(self.options["pedigree"])
-        self.load_vcfs(self.options["vcfs"])
+        self.load_vcf_merged(self.options["merged_vcf"])
         self.build_matrixes()
 
     def load_pedigree(self, pedigree_file):
@@ -46,73 +47,27 @@ class PedigreeAnalyzer:
     def load_vcf_merged(self, path):
         self.vcf_data = {}
 
-        opener = gzip.open if path.endswith(".gz") else open
-        mode = "rt" if path.endswith(".gz") else "r"
+        vcf = VCF(path)
+        sample_ids = vcf.samples
 
-        sample_ids = None
+        for patient_id in sample_ids:
+            self.vcf_data[patient_id] = {}
 
-        with opener(path, mode) as f:
-            for line in f:
-                if line.startswith("##"):
-                    continue
+        for variant in vcf:
+            chrom = variant.CHROM.replace("chr", "")
+            pos = variant.POS
+            ref = variant.REF
 
-                if line.startswith("#CHROM"):
-                    fields = line.strip().split("\t")
-                    sample_ids = fields[9:]
+            # Si hay varios ALT, esto genera ALT1,ALT2...
+            alt = ",".join(variant.ALT)
 
-                    for patient_id in sample_ids:
-                        self.vcf_data[patient_id] = {}
+            var_id = f"{chrom}_{pos}_{ref}_{alt}"
 
-                    continue
+            for patient_id, gt in zip(sample_ids, variant.genotypes):
+                allele1, allele2, phased = gt
 
-                if sample_ids is None:
-                    continue
-
-                parsed = self.parse_merged_vcf_line(line, sample_ids)
-
-                if parsed is None:
-                    continue
-
-                var_id, patient2zygosity = parsed
-
-                for patient_id, zygosity in patient2zygosity.items():
-                    self.vcf_data[patient_id][var_id] = zygosity
-
-        for patient_id in self.vcf_data:
-            print(
-                f"Loaded {len(self.vcf_data[patient_id])} variants for patient {patient_id}"
-            )
-
-        return self.vcf_data
-
-    def parse_merged_vcf_line(self, line, sample_ids):
-        if line.startswith("#"):
-            return None
-
-        fields = line.strip().split("\t")
-
-        chrom = fields[0].replace("chr", "")
-        pos = fields[1]
-        ref = fields[3]
-        alt = fields[4]
-
-        var_id = f"{chrom}_{pos}_{ref}_{alt}"
-
-        format_fields = fields[8].split(":")
-        sample_columns = fields[9:]
-
-        patient2zygosity = {}
-
-        for patient_id, sample_value in zip(sample_ids, sample_columns):
-            if sample_value in {".", "./.", ".|."}:
-                continue
-
-            sample_fields = sample_value.split(":")
-            fmt = dict(zip(format_fields, sample_fields))
-
-            gt = fmt.get("GT")
-
-            if gt is None or gt in {"./.", ".|.", "."}: # Here is very important to notice that is equivalent to say
+                # Missing: ./.
+                # Here is very important to notice that is equivalent to say
                 # this is 0, but this could not be the case for example if the variant is not present in the reference genome,
                 #  so we will consider this as a missing value and we will not consider this variant for this patient
                 # TODO FGC: See what to do in this cases so we select non called variants with a 
@@ -122,167 +77,30 @@ class PedigreeAnalyzer:
                 # No information is not information of "no variant" but "no information" and we should not consider this as a
                 #  0 for the unaffected patients, because this could be a variant that is not called in the reference genome,
                 #  but is present in the affected patients, so we should not filter this out.
-                continue
+                if allele1 == -1 or allele2 == -1:
+                    continue
 
-            gt = gt.replace("|", "/")
+                if allele1 == 0 and allele2 == 0:
+                    zygosity = 0
 
-            if gt == "1/1":
-                zygosity = 2
-            elif gt in {"0/1", "1/0"}:
-                zygosity = 1
-            elif gt == "0/0":
-                zygosity = 0
-            else:
-                continue
+                elif {allele1, allele2} == {0, 1}:
+                    zygosity = 1
 
-            patient2zygosity[patient_id] = zygosity
+                elif allele1 == 1 and allele2 == 1:
+                    zygosity = 2
 
-        return var_id, patient2zygosity
+                else:
+                    # Casos multialélicos: 1/2, 2/2, 0/2, etc.
+                    continue
 
-    def load_vcfs(self, vcfs):
-        self.vcf_data = {}
+                self.vcf_data[patient_id][var_id] = zygosity
 
-        for patient_id, vcf_path in vcfs.items():
-            self.vcf_data[patient_id] = self.load_vcf_genotypes(vcf_path)
-            print(f"Loaded {len(self.vcf_data[patient_id])} variants for patient {patient_id}")
-            #print(self.vcf_data[patient_id])  # Print first 10 variants for each patient
+        for patient_id in self.vcf_data:
+            print(
+                f"Loaded {len(self.vcf_data[patient_id])} variants for patient {patient_id}"
+            )
 
-    def load_vcf_genotypes(self, path):
-        variants = {}
-
-        opener = gzip.open if path.endswith(".gz") else open
-        mode = "rt" if path.endswith(".gz") else "r"
-
-        with opener(path, mode) as f:
-            for line in f:
-                parsed = self.parse_vcf_line(line)
-
-                if parsed is not None:
-                    var_id, zygosity = parsed
-                    variants[var_id] = zygosity
-
-        print("the number of variants in the vcf file is", len(variants))
-
-        return variants
-
-
-    def normalize_variant(self, chrom, pos, ref, alt):
-        pos = int(pos)
-
-        # eliminar prefijo común manteniendo una base de anclaje
-        while (
-            len(ref) > 1
-            and len(alt) > 1
-            and ref[0] == alt[0]
-        ):
-            ref = ref[1:]
-            alt = alt[1:]
-            pos += 1
-
-        # eliminar sufijo común manteniendo una base de anclaje
-        while (
-            len(ref) > 1
-            and len(alt) > 1
-            and ref[-1] == alt[-1]
-        ):
-            ref = ref[:-1]
-            alt = alt[:-1]
-
-        return chrom, pos, ref, alt
-
-    def parse_vcf_line(self, line):
-        if line.startswith("#"):
-            return None
-
-        fields = line.strip().split("\t")
-
-        chrom = fields[0].replace("chr", "")
-        pos = fields[1]
-        ref = fields[3]
-        alt = fields[4]
-
-        # chrom, pos, ref, alt = self.normalize_variant(
-        #     chrom,
-        #     pos,
-        #     ref,
-        #     alt
-        # )
-
-        format_fields = fields[8].split(":")
-        sample_fields = fields[9].split(":")
-
-        fmt = dict(zip(format_fields, sample_fields))
-        gt = fmt.get("GT")
-
-        if gt is None:
-            print(f"Warning: GT field not found in VCF line: {line.strip()}")
-            return None
-
-        gt = gt.replace("|", "/")
-
-        if gt == "1/1":
-            zygosity = 2
-        elif gt in {"0/1", "1/0"}:
-            zygosity = 1
-        else:
-            print(f"Warning: Unrecognized genotype format: {line.strip()}")
-            return None
-
-        var_id = f"{chrom}_{pos}_{ref}_{alt}"
-
-        return var_id, zygosity
-    
-    def load_vcf_genotypes_ref(self, path):
-        variants = {}
-
-        opener = gzip.open if path.endswith(".gz") else open
-        mode = "rt" if path.endswith(".gz") else "r"
-
-        with opener(path, mode) as f:
-            for line in f:
-                parsed = self.parse_vcf_line_ref(line)
-
-                if parsed is not None:
-                    var_id, zygosity = parsed
-                    variants[var_id] = zygosity
-
-        print("the number of variants in the vcf file is", len(variants))
-
-        return variants
-
-    def parse_vcf_line_ref(self, line):
-        if line.startswith("#"):
-            return None
-
-        fields = line.strip().split("\t")
-
-        chrom = fields[0].replace("chr", "")
-        pos = fields[1]
-        ref = fields[3]
-        alt = fields[4]
-
-        format_fields = fields[8].split(":")
-        sample_fields = fields[9].split(":")
-
-        fmt = dict(zip(format_fields, sample_fields))
-        gt = fmt.get("GT")
-
-        if gt is None:
-            print(f"Warning: GT field not found in VCF line: {line.strip()}")
-            return None
-
-        gt = gt.replace("|", "/")
-
-        if gt == "1/1":
-            zygosity = 2
-        elif gt in {"0/1", "1/0"}:
-            zygosity = 1
-        else:
-            zygosity = 0  # Reference genotype
-
-        var_id = f"{chrom}_{pos}_{ref}_{alt}"
-
-        return var_id, zygosity
+        return self.vcf_data
 
     def build_matrixes(self):
         self.build_variant_matrix()
@@ -337,30 +155,6 @@ class PedigreeAnalyzer:
             self.filtered_variants = self.filter_autosomal_recessive()
         else:
             raise ValueError(f"Unknown inheritance pattern: {inheritance_pattern}")
-        
-    # def filter_autosomal_dominant(self):
-    #     A = self.affected_col.astype(np.int8)
-
-    #     B0V = self.B(self.V)
-
-    #     n_affected = A.sum()
-
-    #     affected_score = B0V @ A
-    #     unaffected_score = B0V @ (1 - A)
-    #     rho = (affected_score == n_affected) & (unaffected_score == 0)
-
-    #     print(len(self.variant_ids), "variants before filtering")
-
-    #     candidate_variants = [
-    #         var_id
-    #         for var_id, keep in zip(self.variant_ids, rho)
-    #         if keep
-    #     ]
-
-    #     print("Number of candidate variants", len(set(candidate_variants)))
-    #     print("Candidate variants:", candidate_variants[:10])
-
-    #     return candidate_variants
     
     def filter_autosomal_dominant(self):
         A = self.affected_col.astype(bool)

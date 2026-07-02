@@ -28,9 +28,8 @@ def main_pedigree_analysis(opts):
     analyzer = PedigreeAnalyzer()
     analyzer.de_novo_tolerant = False
     analyzer.load_pedigree(options["pedigree_file"])
-    # analyzer.load_vcfs(options["vcfs"])
-    analyzer.load_vcf_merged(options["merged_vcf"])
-    vcf_ref = analyzer.load_vcf_genotypes_ref(options["merged_vcf"])
+    vcf_ref = analyzer.load_vcf_merged(options["merged_vcf"])
+    
     ref_vars = set(vcf_ref.keys())
     analyzer.build_matrixes()
     analyzer.filter_by_inheritance(options["desired_moi"])
