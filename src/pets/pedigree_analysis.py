@@ -371,7 +371,8 @@ class PedigreeAnalyzer:
         # todos los afectados son heterocigotos
         print("V_aff shape:", V_aff.shape)
         print("The affected patients are:", A)
-        affected_ok = np.all(V_aff == 1, axis=1)
+        affected_ok = np.all(V_aff >= 1, axis=1) # This is different from jannovar documentation, where
+        # They select just HET variants directly in the analysis. This is -> V_aff == 1 
 
         # todos los sanos son referencia
         print("V_unaff shape:", V_unaff.shape)
@@ -400,4 +401,29 @@ class PedigreeAnalyzer:
     @staticmethod
     def B(x):
         return (x > 0).astype(np.int8)
+    
+    def filter_denovo(self):
+        # Just filter de novo variants which are "surely" de novo.
+        # Nowadays the process of denovo variant calling is not very reliable, so this filter must be applied just with caution.
+        # And being sure that the variants are really de novo, and not just a false positive.
+        # https://academic.oup.com/bib/article/26/6/bbaf543/8315883?login=true
+
+        # The rules are, 
+        variants_in_paretns = set()
+        for patient_id, attributes in self.patient2attributes.items():
+            father_id = attributes["father"]
+            mother_id = attributes["mother"]
+
+            if father_id is None or mother_id is None:
+                continue
+
+            father_variants = self.vcf_data.get(father_id, {})
+            mother_variants = self.vcf_data.get(mother_id, {})
+
+            variants_in_paretns.update(father_variants.keys())
+            variants_in_paretns.update(mother_variants.keys())
+
+    def filter_homo_lethality(self):
+        # This is just homo in the variant level and not the gene level.
+        pass
 
