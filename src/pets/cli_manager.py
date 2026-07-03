@@ -476,11 +476,15 @@ def hpoa_get_filter_phen(args=None):
 def pedigree_analysis(args=None):
     if args == None: args = sys.argv[1:]
     parser = argparse.ArgumentParser(description=f'Usage: {inspect.stack()[0][3]} [options]')
-
-    parser.add_argument("--vcfs", dest="vcfs", default= None, type=loading_dic,
-                        help="File with patient id pointing to vcf path")
+    parser.add_argument("--merged_vcf", dest="merged_vcf", default= None,
+                        help="Merged VCF file to use in vcf analysis")
     parser.add_argument("--pedigree", dest="pedigree_file", default= None,
                         help="Pedigree file with patient data")
+    parser.add_argument("--patients2filter", dest="patients2filter", default= [],type=tolist, help="Names id of patients separated" \
+    " by comma to filter in the analysis. If not provided, all patients in the pedigree will be analyzed")
+    parser.add_argument("--variant_prefilter", dest="prefilter", default= [], type=tolist, help=
+                        "Discard if de novo or homozygous variants are not present in this list of patients. " \
+                        "options are: de_novo, homozygous, compound_het. If not provided, all variants will be analyzed")
     parser.add_argument("--desired_moi", dest="desired_moi", default="unknown", type=str,
                     help="Keep only variants with this mode of inheritance. Choose between 'AUTOSOMAL_DOMINANT', 'AD', " \
                     "'AUTOSOMAL_RECESSIVE_COMP_HET', 'ARC',  " \
@@ -489,12 +493,6 @@ def pedigree_analysis(args=None):
                     "'X_RECESSIVE_COMP_HET', 'XRC'" \
                     "'X_RECESSIVE_HOM_ALT', 'XRH'" \
                     "'MITOCHONDRIAL', 'MT'")
-    parser.add_argument("--patients2filter", dest="patients2filter", default=tolist, help="Names id of patients separated" \
-    " by comma to filter in the analysis. If not provided, all patients in the pedigree will be analyzed")
-    parser.add_argument("--allow_denovo", dest="allow_denovo", action="store_true",
-                        help="Allow de novo variants")
-    parser.add_argument("--merged_vcf", dest="merged_vcf", default= None,
-                        help="Merged VCF file to use in vcf analysis")
     opts = parser.parse_args(args)
     opts = vars(opts)
     main_pedigree_analysis(opts)

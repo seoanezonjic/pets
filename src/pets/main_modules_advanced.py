@@ -26,10 +26,19 @@ def main_pedigree_analysis(opts):
     from pets.pedigree_analysis import PedigreeAnalyzer
     options = opts
     analyzer = PedigreeAnalyzer()
-    analyzer.de_novo_tolerant = False
+    #analyzer.de_novo_tolerant = False
     analyzer.load_pedigree(options["pedigree_file"])
     vcf_ref = analyzer.load_vcf_merged(options["merged_vcf"])
-    
+
+    if options.get("variant_prefilter"):
+        print(f"Applying variant prefilters: {options['variant_prefilter']}")
+        for variant_filter in options["variant_prefilter"]:
+            if variant_filter not in ["de_novo", "homozygous", "compound_het"]:
+                raise ValueError(f"Invalid variant filter: {variant_filter}. Must be one of 'de_novo', 'homozygous', 'compound_het'.")
+            else:
+                print(f"Applying variant filter: {variant_filter}")
+                analyzer.filter_variants_by_type(variant_filter)
+
     ref_vars = set(vcf_ref.keys())
     analyzer.build_matrixes()
     analyzer.filter_by_inheritance(options["desired_moi"])

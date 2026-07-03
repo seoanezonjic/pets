@@ -162,62 +162,121 @@ class PedigreeAnalyzer:
         V_aff = self.V[:, A]
         V_unaff = self.V[:, ~A]
 
-        # todos los afectados son heterocigotos
-        print("V_aff shape:", V_aff.shape)
-        print("The affected patients are:", A)
-        affected_ok = np.all(V_aff >= 1, axis=1) # This is different from jannovar documentation, where
-        # They select just HET variants directly in the analysis. This is -> V_aff == 1 
-
-        # todos los sanos son referencia
-        print("V_unaff shape:", V_unaff.shape)
-        print("The unaffected patients are:", A)
+        affected_ok = np.all(V_aff >= 1, axis=1) # I am supponsing in the model that we can have heterozygous or homozygous variants in the affected patients, so we will consider both cases as valid for the AD model.
+        # That is not the case for jannovar rools, but difference in minimum and we obtain more variants (and all variants from jannovar)
         unaffected_ok = np.all(V_unaff == 0, axis=1)
 
         rho = affected_ok & unaffected_ok
 
-        candidate_variants = [
-            var_id
-            for var_id, keep in zip(self.variant_ids, rho)
-            if keep
-        ]
         print(len(self.variant_ids), "variants before filtering")
-        print("Number of candidate variants", len(set(candidate_variants)))
-        print("Candidate variants:", candidate_variants[:10])
+        print("Number of candidate variants:", int(np.sum(rho)))
 
-        with open("candidate_variants.txt", "w") as f:
-            for var_id in candidate_variants:
-                chrom, pos, ref, alt = var_id.split("_")
-                f.write(f"{chrom}\t{pos}\t{ref}\t{alt}\n")
-
-        return candidate_variants
+        return self.apply_variant_filter(
+            rho
+        )
 
 
     @staticmethod
     def B(x):
         return (x > 0).astype(np.int8)
-    
+
+    def filter_variants_by_type(self, variant_type):
+        if variant_type == "de_novo":
+            self.filter_denovo()
+        elif variant_type == "homozygous":
+            self.filter_homo_lethality()
+        elif variant_type == "compound_het":
+            self.filter_compound_het()
+
     def filter_denovo(self):
         # Just filter de novo variants which are "surely" de novo.
         # Nowadays the process of denovo variant calling is not very reliable, so this filter must be applied just with caution.
         # And being sure that the variants are really de novo, and not just a false positive.
         # https://academic.oup.com/bib/article/26/6/bbaf543/8315883?login=true
+        keep_variants = set()
 
-        # The rules are, 
-        variants_in_paretns = set()
-        for patient_id, attributes in self.patient2attributes.items():
+        for child_id, attributes in self.patient2attributes.items():
             father_id = attributes["father"]
             mother_id = attributes["mother"]
 
             if father_id is None or mother_id is None:
                 continue
 
-            father_variants = self.vcf_data.get(father_id, {})
-            mother_variants = self.vcf_data.get(mother_id, {})
+            if (
+                child_id not in self.patient_ids
+                or father_id not in self.patient_ids
+                or mother_id not in self.patient_ids
+            ):
+                continue
 
-            variants_in_paretns.update(father_variants.keys())
-            variants_in_paretns.update(mother_variants.keys())
+            child_idx = self.patient_ids.index(child_id)
+            father_idx = self.patient_ids.index(father_id)
+            mother_idx = self.patient_ids.index(mother_id)
+
+            child_gt = self.V[:, child_idx]
+            father_gt = self.V[:, father_idx]
+            mother_gt = self.V[:, mother_idx]
+
+            rho_child = (
+                (father_gt == 0)
+                & (mother_gt == 0)
+                & (child_gt == 1)
+            )
+
+            for var_id, keep in zip(self.variant_ids, rho_child):
+                if keep:
+                    keep_variants.add(var_id)
+
+        
+        rho = np.array(
+            [var_id in keep_variants for var_id in self.variant_ids],
+            dtype=bool
+        )
+
+        print(len(self.variant_ids), "variants before filtering")
+        print("Number of de novo candidate variants:", int(np.sum(rho)))
+
+        self.apply_variant_filter(rho)
+
+    def apply_variant_filter(self, rho):
+        """
+        Apply a boolean variant filter to self.V and self.variant_ids.
+
+        Parameters
+        ----------
+        rho : np.ndarray
+            Boolean array with one value per variant.
+            True means keep the variant.
+        """
+
+        rho = np.asarray(rho, dtype=bool)
+
+        if rho.shape[0] != len(self.variant_ids):
+            raise ValueError(
+                f"Filter length {rho.shape[0]} does not match "
+                f"number of variants {len(self.variant_ids)}"
+            )
+
+        self.V = self.V[rho, :]
+        self.variant_ids = [
+            var_id
+            for var_id, keep in zip(self.variant_ids, rho)
+            if keep
+        ]
 
     def filter_homo_lethality(self):
-        # This is just homo in the variant level and not the gene level.
+        homo_alt_present = np.any(self.V == 2, axis=1)
+        rho = ~homo_alt_present
+
+        print(len(self.variant_ids), "variants before filtering")
+        print("Number of homozygous lethal candidate variants:", int(np.sum(rho)))
+
+        return self.apply_variant_filter(
+            rho,
+            output_file="candidate_homo_lethal_variants.txt"
+        )
+
+    def filter_compound_het(self):
+        # Implementation for filtering compound heterozygous variants
         pass
 
