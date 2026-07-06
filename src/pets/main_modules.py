@@ -1047,7 +1047,7 @@ def main_var2effects(opts):
                 match response_json["flag"]:
                     case "warning":
                         warnings.warn(f"Cannot find genomic coordinates for {var}. See URL for more info: {req_url}")
-                        varEffect.append(['-', '-', '-', '-', '-', '-'])
+                        varEffect.append([idV, '-', '-', '-', '-', '-', '-'])
                     case "gene_variant":
                         variant_identifier = list(response_json.keys())[0]
                         response_json = response_json[variant_identifier]
@@ -1094,20 +1094,25 @@ def main_vcf2effects(opts):
                     top_effect = effects.top_priority_effect()
                     effect_name = top_effect.__class__.__name__
                     var = top_effect.variant
-                    var_effects.append([var.contig, var.start , var.ref, var.alt, top_effect.transcript_name, top_effect.short_description, effect_name])
+                    genes = variant.gene_ids
+                    var_effects.append([var.contig, var.start , var.ref, var.alt, top_effect.transcript_name, top_effect.short_description, effect_name, ",".join(genes)])
     else:
         vcfVariants = load_vcf(opts.input_vcf, allow_extended_nucleotides= True, genome=opts.genome)
         for variant in vcfVariants:
-            effects = variant.effects().drop_silent_and_noncoding()
+            if opts.include_silent_and_non_coding:
+                effects = variant.effects()
+            else:
+                effects = variant.effects().drop_silent_and_noncoding()
             if len(effects) > 0:
                 top_effect = effects.top_priority_effect()
                 effect_name = top_effect.__class__.__name__
                 var = top_effect.variant
-                var_effects.append([var.contig, var.start , var.ref, var.alt, top_effect.transcript_name, top_effect.short_description, effect_name])
+                genes = variant.gene_ids
+                var_effects.append([var.contig, var.start , var.ref, var.alt, top_effect.transcript_name, top_effect.short_description, effect_name, ",".join(genes)])
 
     with open(opts.output, 'w') as f:
-        for contig, start, ref, alt, t_name, hgvs, effect in var_effects:
-            f.write(f"{contig}\t{start}\t{ref}\t{alt}\t{t_name}\t{hgvs}\t{effect}\n")
+        for contig, start, ref, alt, t_name, hgvs, effect, gene_ids in var_effects:
+            f.write(f"{contig}\t{start}\t{ref}\t{alt}\t{t_name}\t{hgvs}\t{effect}\t{gene_ids}\n")
 
 def main_hgvs_val(opts):
     import hgvs.validator
