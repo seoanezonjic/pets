@@ -1086,7 +1086,7 @@ def main_vcf2effects(opts):
             for line in f:
                 fields = line.rstrip().split("\t")
                 if fields[0] == '-':
-                    var_effects.append(['-'] * 7)
+                    var_effects.append(['-'] * 8)
                     continue
                 var = Variant(contig = fields[0], start = int(fields[1]), ref = fields[2], alt = fields[3])
                 effects = var.effects()
@@ -1094,7 +1094,7 @@ def main_vcf2effects(opts):
                     top_effect = effects.top_priority_effect()
                     effect_name = top_effect.__class__.__name__
                     var = top_effect.variant
-                    genes = variant.gene_ids
+                    genes = top_effect.variant.gene_ids
                     var_effects.append([var.contig, var.start , var.ref, var.alt, top_effect.transcript_name, top_effect.short_description, effect_name, ",".join(genes)])
     else:
         vcfVariants = load_vcf(opts.input_vcf, allow_extended_nucleotides= True, genome=opts.genome)
