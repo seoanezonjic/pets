@@ -38,10 +38,14 @@ def main_pedigree_analysis(opts):
             else:
                 print(f"Applying variant filter: {variant_filter}")
                 analyzer.filter_variants_by_type(variant_filter)
+    
+    analyzer.build_matrixes()
+    if options.get("variant_attrs"):
+        analyzer.load_variant_attributes(options["variant_attrs"])
+        analyzer.build_var2attr_matrix()
 
     ref_vars = set(vcf_ref.keys())
-    analyzer.build_matrixes()
-    analyzer.filter_by_inheritance(options["desired_moi"])
+    analyzer.filter_by_inheritance("ARC", "S1132-2")#options["desired_moi"])
     merged_vars = set(analyzer.variant_ids)
     print(f"Reference variants: {len(ref_vars)}")
     print(f"Variants after filtering by inheritance: {len(merged_vars)}")
