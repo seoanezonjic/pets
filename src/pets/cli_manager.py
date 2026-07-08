@@ -442,6 +442,8 @@ def vcf2effects(args=None):
       help="Genome name to use as reference")
     parser.add_argument("--table", dest="table", default= False, action = 'store_true',
       help="The input file is a simple file with chr, start, ref and alt fields.")
+    parser.add_argument("--include_silent_and_non_coding", dest="include_silent_and_non_coding", default= False, action = 'store_true',
+      help="Include silent and non coding variants in the output. Default false")
     opts = parser.parse_args(args)
     main_vcf2effects(opts)
 
@@ -485,6 +487,9 @@ def pedigree_analysis(args=None):
     parser.add_argument("--variant_prefilter", dest="prefilter", default= [], type=tolist, help=
                         "Discard if de novo or homozygous variants are not present in this list of patients. " \
                         "options are: de_novo, homozygous, compound_het. If not provided, all variants will be analyzed")
+    parser.add_argument("--variant_attrs", dest="variant_attrs", default= None, help="Cols are, chr, start, end, ref, alt, attr1," \
+    " attr2, ... attrN. The first 5 columns are mandatory and the rest are optional. The attributes must be in the format " \
+    "attr_name:col where col is the column name if header is true or 0-based position of the column with the attribute value")
     parser.add_argument("--desired_moi", dest="desired_moi", default="unknown", type=str,
                     help="Keep only variants with this mode of inheritance. Choose between 'AUTOSOMAL_DOMINANT', 'AD', " \
                     "'AUTOSOMAL_RECESSIVE_COMP_HET', 'ARC',  " \
