@@ -42,6 +42,8 @@ class GenomicPrioritizer:
         self.qual_features_idx = {}
         self.possible_mois = [] # Possible values: "AD", "AR", "XLD", "XLR", "MT", "unknown"
         self.desired_moi = "unknown" # Possible values: "AD", "AR", "XLD", "XLR", "MT", "unknown"
+        self.gene_whitelist = []
+        self.variant_whitelist = []
 
     def load_identifier_tanslator(self, source_id, target_id):
         self.identifier_translator[(source_id, target_id)] = {}
@@ -97,12 +99,43 @@ class GenomicPrioritizer:
 
         return common_results, quant_idx_per_patient, qual_idx_per_patient
 
-
     def post_process_results_genes(self, raw_results_dir, write_tmp=None, read_tmp=False):
         raise NotImplementedError("To implement this method")
 
     def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
         raise NotImplementedError("To implement this method")
+    
+    def filter_results(self, benchmark_type="variant"):
+        if benchmark_type == "variant":
+            for patient, df in self.patient2variant_results.items():
+
+                ids = ( df["varId"].astype(str))
+
+                df = df[ids.isin(self.variant_whitelist)].reset_index(drop=True)
+
+                ranking_metrics = get_rank_metrics(
+                    df["score"].tolist(),
+                    df["varId"].tolist()
+                )
+                ranking_map = {row[0]: row[3] for row in ranking_metrics}
+                df["rank"] = df["varId"].map(ranking_map)
+
+                self.patient2variant_results[patient] = df
+
+        elif benchmark_type == "gene":
+            for patient, df in self.patient2gene_results.items():
+
+                df = df[df["gene_symbol"].isin(self.gene_whitelist)].reset_index(drop=True)
+
+                ranking_metrics = get_rank_metrics(
+                    df["score"].tolist(),
+                    df["gene_symbol"].tolist()
+                )
+                ranking_map = {row[0]: row[3] for row in ranking_metrics}
+                df["rank"] = df["gene_symbol"].map(ranking_map)
+
+                self.patient2gene_results[patient] = df
+
 
 class DefaultGenomicPrioritizer(GenomicPrioritizer):
 
@@ -144,6 +177,7 @@ class Phen2GenePrioritizer(GenomicPrioritizer):
                 if write_tmp:
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f_name], pf)
+                
             self.quant_features_idx[f_name] = None
             self.qual_features_idx[f_name] = [4]
     
@@ -433,8 +467,7 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         
         processed_data["varId"] = (
             processed_data["contigName"] + ":" +
-            processed_data["start"].astype(str) + "-" +
-            processed_data["end"].astype(str) + ":" +
+            processed_data["start"].astype(str) + ":" +
             processed_data["ref"] + "/" +
             processed_data["alt"]
         )
@@ -500,8 +533,6 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
             processed_data["contigName"]
             + ":"
             + processed_data["start"].astype(str)
-            + "-"
-            + processed_data["end"].astype(str)
             + ":"
             + processed_data["ref"]
             + "/"
@@ -582,8 +613,6 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
             processed_data["contigName"]
             + ":"
             + processed_data["start"].astype(str)
-            + "-"
-            + processed_data["end"].astype(str)
             + ":"
             + processed_data["ref"]
             + "/"
@@ -646,8 +675,6 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
             chrom
             + ":"
             + start.astype(str)
-            + "-"
-            + end.astype(str)
             + ":"
             + ref
             + "/"
@@ -795,7 +822,7 @@ class LiricalPrioritizer(GenomicPrioritizer):
                 start = int(var_data["pos"])
                 ref = var_data["ref"]
                 end = start + len(ref) - 1
-                var_id = f"{var_data['chr']}:{start}-{end}:{ref}/{var_data['alt']}"
+                var_id = f"{var_data['chr']}:{start}:{ref}/{var_data['alt']}"
                 processed_data["varId"].append(var_id)
                 processed_data["contigName"].append(var_data['chr'])
                 processed_data["start"].append(start)
@@ -897,7 +924,7 @@ class ExomiserPrioritizer(GenomicPrioritizer):
         for rank, row in enumerate(json_results):
             if not row.get("combinedScore"): continue
             for variants in row["variantEvaluations"]:
-                varId = f"{variants['contigName']}:{variants['start']}-{variants['end']}:{variants['ref']}/{variants['alt']}"
+                varId = f"{variants['contigName']}:{variants['start']}:{variants['ref']}/{variants['alt']}"
                 if self.desired_moi is not "unknown":
                     if moi_mapping.get(self.desired_moi) not in variants.get("compatibleInheritanceModes", []):
                         continue
@@ -1064,8 +1091,7 @@ class XrarePrioritizer(GenomicPrioritizer):
         
         processed_data["varId"] = (
             processed_data["contigName"] + ":" +
-            processed_data["start"].astype(str) + "-" +
-            processed_data["end"].astype(str) + ":" +
+            processed_data["start"].astype(str) + ":" +
             processed_data["ref"] + "/" +
             processed_data["alt"]
         )

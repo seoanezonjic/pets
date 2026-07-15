@@ -362,6 +362,10 @@ def report_prioritizer(args=None):
                     help="Select the type of report to generate. Choose between 'both', technical' and 'clinical'. Default both")
     parser.add_argument("--write_prio_tables", dest="write_prio_tables", default=False, action="store_true",
                     help="Write prioritization tables used in report generation in the same folder that report is written")
+    parser.add_argument("--variant_whitelist", dest="variant_whitelist", default=None,
+                        help="File path to a whitelist of variante in the tsv format: chr, start, final, ref, alt")
+    parser.add_argument("--gene_whitelist", dest="gene_whitelist", default=None,
+                        help="File path to a whitelist of variante in the tsv format: gene")
     opts = parser.parse_args(args)
     main_report_prioritizer(opts)
 

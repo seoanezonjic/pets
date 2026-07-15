@@ -509,14 +509,33 @@ def main_report_prioritizer(opts):
             raise Exception(f"Unknown prioritizer: {prioritizer}")
         
         prioritizer[(prioritizer_type, path2folder_results)].desired_moi = options["desired_moi"]
+            
 
         if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
             prioritizer[(prioritizer_type, path2folder_results)].post_process_results_genes(path2folder_results, 
                              write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
-            print(prioritizer[(prioritizer_type, path2folder_results)].patient2gene_results)
+            if options["gene_whitelist"]:
+                genes = []
+                with open(options["gene_whitelist"], "r") as f:
+                    for line in f:
+                        line = line.strip().split("\t")
+                        genes.append(line)
+                prioritizer[(prioritizer_type, path2folder_results)].gene_whitelist = genes
+                prioritizer[(prioritizer_type, path2folder_results)].filter_results(benchmark_type="gene")
         elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
             prioritizer[(prioritizer_type, path2folder_results)].post_process_results_variants(path2folder_results, 
                              write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+            if options["variant_whitelist"]:
+                variants = []
+                with open(options["variant_whitelist"], "r") as f:
+                    for line in f:
+                        line = line.strip().split("\t")
+                        variants.append(
+                            line[0] + ":" + line[1] + ":" + line[2] + "/" + line[3]
+                        )
+                print("The list of variants is:", variants[0:10])
+                prioritizer[(prioritizer_type, path2folder_results)].variant_whitelist = variants
+                prioritizer[(prioritizer_type, path2folder_results)].filter_results(benchmark_type="variant")
 
     if not options["write_tmp"]:
         if options["integrated_report"]:
