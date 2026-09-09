@@ -1,4 +1,4 @@
-import os, glob, json, requests, pickle
+import os, glob, json, requests, pickle, sys
 from importlib.resources import files
 import urllib.parse
 import warnings
@@ -954,6 +954,7 @@ def main_phenPatMaster(opts):
         new_id = "pp"+str(count)
         phenopacket = json.loads(open(pp_path).read().encode("utf-8"))
         if opts.overwrite_id:
+            old_id = phenopacket['id']
             pp_dict[phenopacket['id']] = new_id
             phenopacket['id'] = new_id
             phenopacket['subject']['id'] = new_id
@@ -965,7 +966,11 @@ def main_phenPatMaster(opts):
         count += 1
         
         if opts.clean_phen or opts.output_file_index != None:
-            pp_phens = phenopacket['phenotypicFeatures']
+            try:
+                pp_phens = phenopacket['phenotypicFeatures']
+            except KeyError:
+                sys.stderr.write(f"PhenotypicError: Phenopacket {phenopacket['id']} {(old_id)} does not have phenotypic features. Skipping.\n")
+                continue
             phens = []
             neg_phens = [] # HPOs that has NOT present the patient
             for ph in pp_phens:
@@ -998,7 +1003,7 @@ def main_phenPatMaster(opts):
                         if variant != None:
                             index.append([phenopacket['id'], phens, variant['chrom'], variant['pos'], variant['pos'], ",".join(bib_refs), disease_id])
                         else:
-                            index.append([phenopacket['id'], phens, "", "", "", "", ""])
+                            sys.stderr.write(f"GenomicError: Phenopacket {phenopacket['id']} ({old_id}) has a structural chromosome modification and does not have a VCF record. Skipping.\n")
 
         if opts.output_file_index != None:
             with open(opts.output_file_index, "w") as outfile:
