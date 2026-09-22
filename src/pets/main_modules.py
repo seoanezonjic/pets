@@ -1011,7 +1011,7 @@ def main_phenPatMaster(opts):
                             variant_dict = gen_interp['variantInterpretation']['variationDescriptor']
                             matches = re.search(r"([1-2]?[0-9])q|chr([1-2]?[0-9xyXY])", variant_dict["id"]+variant_dict["label"])
                             chr_groups = set() if not matches else set([f"chr{g}" for g in matches.groups() if g is not None])
-                            chrm =  ",".join(chr_groups)
+                            chrm =  ",".join(chr_groups) if len(chr_groups) > 0 else "na"
                             index.append([phenopacket['id'], phens, chrm, "na", "na", ",".join(bib_refs), disease_id]+mut_type)
                         elif not opts.index_save_struct and is_structural:
                             sys.stderr.write(f"GenomicError: Phenopacket {phenopacket['id']} ({old_id}) has a structural chromosome modification and does not have a VCF record. Skipping.\n")
