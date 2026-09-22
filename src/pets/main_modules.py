@@ -1,4 +1,4 @@
-import os, glob, json, requests, pickle, sys
+import os, glob, json, requests, pickle, sys, re
 from importlib.resources import files
 import urllib.parse
 import warnings
@@ -999,15 +999,27 @@ def main_phenPatMaster(opts):
                     genomic_inter = interp['diagnosis']['genomicInterpretations']
                     disease_id = interp['diagnosis']['disease']['id']
                     for gen_interp in genomic_inter:
-                        variant = gen_interp['variantInterpretation']['variationDescriptor'].get('vcfRecord')
-                        if variant != None:
-                            index.append([phenopacket['id'], phens, variant['chrom'], variant['pos'], variant['pos'], ",".join(bib_refs), disease_id])
-                        else:
+                        variant_dict = gen_interp['variantInterpretation']['variationDescriptor']
+                        is_structural = "structuralType" in variant_dict.keys()
+                        var_VCF = variant_dict.get('vcfRecord')
+                        mut_type = (["structural"] if is_structural else ["sequence"]) * int(opts.index_save_struct) #Switch based on flag to save mut_type or not as other column
+                        if var_VCF != None:
+                            index.append([phenopacket['id'], phens, var_VCF['chrom'], var_VCF['pos'], var_VCF['pos'], ",".join(bib_refs), disease_id]+mut_type)
+                        elif opts.index_save_struct and is_structural:
+                            #Some structural variants have mutation coded in id/label, but no common pattern. I get at least chromosome if available.
+                            # Start and stop positions are trickier to extract without parsing unwanted data, although "few of them" could be easy recovered.
+                            variant_dict = gen_interp['variantInterpretation']['variationDescriptor']
+                            matches = re.search(r"([1-2]?[0-9])q|chr([1-2]?[0-9xyXY])", variant_dict["id"]+variant_dict["label"])
+                            chr_groups = set() if not matches else set([f"chr{g}" for g in matches.groups() if g is not None])
+                            chrm =  ",".join(chr_groups)
+                            index.append([phenopacket['id'], phens, chrm, "na", "na", ",".join(bib_refs), disease_id]+mut_type)
+                        elif not opts.index_save_struct and is_structural:
                             sys.stderr.write(f"GenomicError: Phenopacket {phenopacket['id']} ({old_id}) has a structural chromosome modification and does not have a VCF record. Skipping.\n")
-
+                        else:
+                            sys.stderr.write(f"GenomicError: Phenopacket {phenopacket['id']} ({old_id}) does not find any sequence or structural variant, so it is possible that this record is not correctly formated. Skipping.\n")
         if opts.output_file_index != None:
             with open(opts.output_file_index, "w") as outfile:
-                for p_id, phens, chrom, start,stop, refs, dis_id in index: outfile.write(f"{p_id}\t{','.join(phens)}\t{chrom}\t{start}\t{stop}\t{refs}\t{dis_id}\n")
+                for p_id, phens, chrom, start,stop, refs, dis_id, *add_vars in index: outfile.write(f"{p_id}\t{','.join(phens)}\t{chrom}\t{start}\t{stop}\t{refs}\t{dis_id}\t{'\t'.join(add_vars)}\n")
 
         json_object = json.dumps(phenopacket, indent=4)
         if opts.overwrite_file_name:
