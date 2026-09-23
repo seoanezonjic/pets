@@ -414,6 +414,8 @@ def phenPatMaster(args=None):
                     help="Generate a index with phenotypical and genomical features described in phenopackets.")
     parser.add_argument("--only_index", dest="only_index", default= False, action = 'store_true',
                     help="Generate the phenopacket data index only without wtirte the edited phenopacket files")
+    parser.add_argument("--index_save_struct", dest="index_save_struct", default= False, action = 'store_true',
+                    help="Toogle on to also write patients with structural variants in the index (and add new col 'mut_type'). Default false")    
 
     opts = parser.parse_args(args)
 
