@@ -47,4 +47,4 @@ PETS also includes auxiliary scripts for file manipulation, so that the input in
 
 Please, cite us as: Rojano E., Cordoba-Caballero J., Moreno-Jabato F., Gallego D., Serrano M., Perez B., Pares-Aguilar A., Perkins JR., Ranea JAG., Seoane-Zonjic P. Evaluating, Filtering and Clustering Genetic Disease Cohorts Based on Human Phenotype Ontology Data with Cohort Analyzer. J. Pers. Med. 2021, 11(8), 730; https://doi.org/10.3390/jpm11080730.
 
-See https://github.com/seoanezonjic/pets
+See https://github.com/seoanezonjic/pets 
