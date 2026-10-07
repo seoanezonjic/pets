@@ -46,3 +46,5 @@ The Patient Exploration Tools Suite (PETS) is a suite of tools programmed in Pyt
 PETS also includes auxiliary scripts for file manipulation, so that the input information is transformed into a single type with which the rest of the tools will work. The library also includes example files to work on.
 
 Please, cite us as: Rojano E., Cordoba-Caballero J., Moreno-Jabato F., Gallego D., Serrano M., Perez B., Pares-Aguilar A., Perkins JR., Ranea JAG., Seoane-Zonjic P. Evaluating, Filtering and Clustering Genetic Disease Cohorts Based on Human Phenotype Ontology Data with Cohort Analyzer. J. Pers. Med. 2021, 11(8), 730; https://doi.org/10.3390/jpm11080730.
+
+See https://github.com/seoanezonjic/pets
