@@ -415,7 +415,9 @@ def phenPatMaster(args=None):
     parser.add_argument("--only_index", dest="only_index", default= False, action = 'store_true',
                     help="Generate the phenopacket data index only without wtirte the edited phenopacket files")
     parser.add_argument("--index_save_struct", dest="index_save_struct", default= False, action = 'store_true',
-                    help="Toogle on to also write patients with structural variants in the index (and add new col 'mut_type'). Default false")    
+                    help="Toogle on to also write patients with structural variants in the index (and add new col 'mut_type'). Default false")
+    parser.add_argument("--index_use_header", dest="index_use_header", default= False, action = 'store_true',
+                        help="Toogle on to put a header in the index file. Default false")    
 
     opts = parser.parse_args(args)
 

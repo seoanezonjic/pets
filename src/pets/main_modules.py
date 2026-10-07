@@ -950,6 +950,8 @@ def main_phenPatMaster(opts):
     count = 1
     pp_dict = dict()
     index = []
+    header = ["Phenopacket_ID", "HPOs", "Chromosome", "Start", "Stop", "References", "Disease_ID", "Variant_Type", "Negative_HPOs"]
+    if opts.index_use_header: index.append(header)
     for pp_path in phenopacket_files:
         new_id = "pp"+str(count)
         phenopacket = json.loads(open(pp_path).read().encode("utf-8"))
@@ -966,11 +968,8 @@ def main_phenPatMaster(opts):
         count += 1
         
         if opts.clean_phen or opts.output_file_index != None:
-            try:
-                pp_phens = phenopacket['phenotypicFeatures']
-            except KeyError:
-                sys.stderr.write(f"PhenotypicError: Phenopacket {phenopacket['id']} {(old_id)} does not have phenotypic features. Skipping.\n")
-                continue
+            pp_phens = phenopacket.get('phenotypicFeatures')
+            if pp_phens is None: sys.stderr.write(f"PhenotypicError: Phenopacket {phenopacket['id']} {(old_id)} does not have phenotypic features. Skipping.\n"); continue
             phens = []
             neg_phens = [] # HPOs that has NOT present the patient
             for ph in pp_phens:
@@ -982,10 +981,10 @@ def main_phenPatMaster(opts):
 
             if opts.clean_phen:
                 phens = ontology.clean_profile_hard(phens)
-                neg_phen_defs, _ = ontology.check_ids(neg_phens)
+                neg_phens, _ = ontology.check_ids(neg_phens)
                 pp_phens = []
                 for hp in phens: pp_phens.append({'type':{'id': hp , 'label': ontology.translate_id(hp) }})
-                for hp in neg_phen_defs: pp_phens.append({'type':{'id': hp , 'label': ontology.translate_id(hp) }, 'excluded': True })
+                for hp in neg_phens: pp_phens.append({'type':{'id': hp , 'label': ontology.translate_id(hp) }, 'excluded': True })
                 phenopacket['phenotypicFeatures'] = pp_phens
 
             if opts.output_file_index != None:
@@ -1000,26 +999,25 @@ def main_phenPatMaster(opts):
                     disease_id = interp['diagnosis']['disease']['id']
                     for gen_interp in genomic_inter:
                         variant_dict = gen_interp['variantInterpretation']['variationDescriptor']
-                        is_structural = "structuralType" in variant_dict.keys()
                         var_VCF = variant_dict.get('vcfRecord')
-                        mut_type = (["structural"] if is_structural else ["sequence"]) * int(opts.index_save_struct) #Switch based on flag to save mut_type or not as other column
-                        if var_VCF != None:
-                            index.append([phenopacket['id'], phens, var_VCF['chrom'], var_VCF['pos'], var_VCF['pos'], ",".join(bib_refs), disease_id]+mut_type)
-                        elif opts.index_save_struct and is_structural:
-                            #Some structural variants have mutation coded in id/label, but no common pattern. I get at least chromosome if available.
-                            # Start and stop positions are trickier to extract without parsing unwanted data, although "few of them" could be easy recovered.
-                            variant_dict = gen_interp['variantInterpretation']['variationDescriptor']
-                            matches = re.search(r"([1-2]?[0-9])q|chr([1-2]?[0-9xyXY])", variant_dict["id"]+variant_dict["label"])
-                            chr_groups = set() if not matches else set([f"chr{g}" for g in matches.groups() if g is not None])
-                            chrm =  ",".join(chr_groups) if len(chr_groups) > 0 else "na"
-                            index.append([phenopacket['id'], phens, chrm, "na", "na", ",".join(bib_refs), disease_id]+mut_type)
-                        elif not opts.index_save_struct and is_structural:
-                            sys.stderr.write(f"GenomicError: Phenopacket {phenopacket['id']} ({old_id}) has a structural chromosome modification and does not have a VCF record. Skipping.\n")
+                        variant_type = "structural" if "structuralType" in variant_dict.keys() else "sequence"
+                        if var_VCF != None or (opts.index_save_struct and variant_type == "structural"): #If variant is sequence or its structural and flag is enabled, save record
+                            pheno_id = phenopacket['id']
+                            start, stop = [str(var_VCF.get('pos','na')) if var_VCF else 'na'] * 2
+                            chrm = var_VCF['chrom'] if variant_type == "sequence" else try_to_infer_chr_from_labels(variant_dict)
+                            phens, bib_refs, neg_phens = ",".join(phens), ",".join(bib_refs), ",".join(neg_phens)
+                            row = [pheno_id, phens, chrm, start, stop, bib_refs, disease_id, variant_type, neg_phens]
+                            assert len(row) == len(header), f"Fail with index file: Row length {len(row)} does not match header length {len(header)}"
+                            index.append(row)
+                        elif not opts.index_save_struct and variant_type == "structural":
+                            sys.stderr.write(f"GenomicError: Phenopacket {pheno_id} ({old_id}) has a structural chromosome modification and does not have a VCF record. Skipping.\n")
                         else:
-                            sys.stderr.write(f"GenomicError: Phenopacket {phenopacket['id']} ({old_id}) does not find any sequence or structural variant, so it is possible that this record is not correctly formated. Skipping.\n")
+                            sys.stderr.write(f"GenomicError: Phenopacket {pheno_id} ({old_id}) does not find any sequence or structural variant, so it is possible that this record is not correctly formated. Skipping.\n")
+
         if opts.output_file_index != None:
             with open(opts.output_file_index, "w") as outfile:
-                for p_id, phens, chrom, start,stop, refs, dis_id, *add_vars in index: outfile.write(f"{p_id}\t{','.join(phens)}\t{chrom}\t{start}\t{stop}\t{refs}\t{dis_id}\t{'\t'.join(add_vars)}\n")
+                for row in index: 
+                    outfile.write("\t".join(row)+"\n")
 
         json_object = json.dumps(phenopacket, indent=4)
         if opts.overwrite_file_name:
@@ -1208,3 +1206,15 @@ def main_hpoa_get_filter_phen(options):
             else:
                 raise Exception(f"Unknown evidence format: {evidence_field}\n")
 
+
+####################
+# Helper functions #
+####################
+
+def try_to_infer_chr_from_labels(variant_dict):
+    #Some structural variants have mutation coded in id/label, but no common pattern. I get at least chromosome if available.
+    # Start and stop positions are trickier to extract without parsing unwanted data, although "few of them" could be easy recovered.
+    matches = re.search(r"([1-2]?[0-9])q|chr([1-2]?[0-9xyXY])", variant_dict["id"]+variant_dict["label"])
+    chr_groups = set() if not matches else set([f"chr{g}" for g in matches.groups() if g is not None])
+    chrm =  ",".join(chr_groups) if len(chr_groups) > 0 else "na"
+    return chrm
