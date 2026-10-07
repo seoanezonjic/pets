@@ -1005,8 +1005,10 @@ def main_phenPatMaster(opts):
                             pheno_id = phenopacket['id']
                             start, stop = [str(var_VCF.get('pos','na')) if var_VCF else 'na'] * 2
                             chrm = var_VCF['chrom'] if variant_type == "sequence" else try_to_infer_chr_from_labels(variant_dict)
-                            phens, bib_refs, neg_phens = ",".join(phens), ",".join(bib_refs), ",".join(neg_phens)
-                            row = [pheno_id, phens, chrm, start, stop, bib_refs, disease_id, variant_type, neg_phens]
+                            phens_S = ",".join(phens)
+                            bibrefs_S = ",".join(bib_refs)
+                            negphens_S = "-" if len(neg_phens) == 0 else ",".join(neg_phens)
+                            row = [pheno_id, phens_S, chrm, start, stop, bibrefs_S, disease_id, variant_type, negphens_S]
                             assert len(row) == len(header), f"Fail with index file: Row length {len(row)} does not match header length {len(header)}"
                             index.append(row)
                         elif not opts.index_save_struct and variant_type == "structural":
