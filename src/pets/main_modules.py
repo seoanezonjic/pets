@@ -274,6 +274,7 @@ def main_cohort_analyzer(opts):
     if opts['temp_files']:
         temp_folder = os.path.join(output_folder, 'temp')
         hpo_frequency_file = os.path.join(temp_folder, 'hpo_cohort_frequency.txt')
+        cleaned_profiles = os.path.join(temp_folder, 'cleaned_profiles.txt')
         if not os.path.exists(temp_folder): os.mkdir(temp_folder)
     else:
         temp_folder = None
@@ -313,6 +314,9 @@ def main_cohort_analyzer(opts):
     if opts['temp_files']:
         with open(hpo_frequency_file, 'w') as f:
             for hpo_code, freq in hpo.dicts['term_stats'].items(): f.write(f"{hpo_code}\t{freq}\n")
+        with open(cleaned_profiles, 'w') as f:
+            for pat_id, hpos in hpo.profiles.items(): f.write(f"{pat_id}\t{','.join(hpos)}\n")
+        
 
     suggested_childs, fraction_terms_specific_childs = patient_data.compute_term_list_and_childs(file = detailed_profile_evaluation_file)
 
