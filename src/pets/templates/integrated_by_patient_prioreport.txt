@@ -20,7 +20,7 @@ ${plotter.create_title("Integrated Report By Patient", id='main_title', hlevel=2
 ${plotter.create_title("Top Candidates", id='top_candidates', hlevel=2, indexable=True, clickable=False)}
 
 ${plotter.make_title("table", "top_gene_table", "Top 100 candidates associated with the phenotypes")}
-<div style="overflow: hidden; display: flex; flex-direction: row; justify-content: center;">
+<div style="width: 100%; overflow-x: auto;">
         <%
             df = plotter.hash_vars["prio_table_top100"]
             
@@ -31,7 +31,8 @@ ${plotter.make_title("table", "top_gene_table", "Top 100 candidates associated w
             gene_cols = [col for col in df.columns if col.startswith("gene_symbol")]
             single_gene_col = [gene_cols[0]] if gene_cols else []
             
-            other_prefixes = ("diseaseName", "diseaseCurie")
+            other_prefixes = ("diseaseName", "diseaseCurie", 
+            "clinvar_sig", "tagsACMG", "pathoACMG", "AD", "AR", "XLD", "XLR", "MT", "clinvar", "acmg")
             info_cols = [col for col in df.columns if col.startswith(other_prefixes)]
             
             all_cols = first_three + rank_cols + single_gene_col + info_cols
