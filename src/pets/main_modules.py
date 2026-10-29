@@ -482,7 +482,7 @@ def main_report_prioritizer(opts):
     from pets.genomic_prioritizer import (
         Phen2GenePrioritizer, GadoPrioritizer, PhenogeniusPrioritizer, ExomiserPrioritizer,
         AimarrvelPrioritizer, LiricalPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer, XrarePrioritizer,
-        HeuristicModel, HeuristicModelMeanWithPresence
+        HeuristicModel, HeuristicModelMeanWithPresence, HeuristicModelRRF, HeuristicModelRRF_with_consensus_penalty
     )
     options = vars(opts)
     
@@ -506,7 +506,7 @@ def main_report_prioritizer(opts):
         elif prioritizer_type == "default":
             prioritizer[(prioritizer_type, path2folder_results)] = DefaultGenomicPrioritizer()
         elif prioritizer_type == "xrare":
-            print("··· Loading Xrare Prioritizer ···")
+            print("··· Loading Xrare Prioritizer...")
             print("miramiraquemiramira")
             prioritizer[(prioritizer_type, path2folder_results)] = XrarePrioritizer()
         else:
@@ -553,7 +553,9 @@ def main_report_prioritizer(opts):
                 metaprioritizer.test_patients = metaprioritizer.get_all_patients()
                 # print(metaprioritizer.test_patients)
                 # metaprioritizer.model = HeuristicModel()
-                metaprioritizer.model = HeuristicModelMeanWithPresence()
+                #etaprioritizer.model = HeuristicModelMeanWithPresence()
+                #metaprioritizer.model = HeuristicModelRRF()
+                metaprioritizer.model = HeuristicModelRRF_with_consensus_penalty()
                 metaprioritizer.predict_test(type=options["benchmark_type"])
                 prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
 
@@ -597,7 +599,7 @@ def main_report_prioritizer(opts):
             }
             template="individual_prioreport.txt"
 
-        report = Py_report_html(container, "Prioritizer", False, False) # TODO FGC: Check para elmiinar esta parte.
+        report = Py_report_html(container, "Prioritizer", False, False) # TODO FGC: Check para elmiminar esta parte.
         report.build(open(str(files('pets.templates').joinpath(template))).read())
         report.write(options["output_file"] + '.html')
 
