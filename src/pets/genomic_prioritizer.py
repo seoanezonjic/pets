@@ -75,6 +75,8 @@ class GenomicPrioritizer:
             first_feat = ["rank", "score", "varId", "contigName", "start", "end", "ref", "alt"]
 
         dfs = list(results_dict.values())
+        print("the keys are: ", results_dict.keys())
+        print(f"Number of patients: {len(dfs)}")
         common_cols = set(dfs[0].columns)
         for df in dfs[1:]:
             common_cols &= set(df.columns)
@@ -150,6 +152,7 @@ class GenomicPrioritizer:
         df = df.copy()
 
         df["score"] = pd.to_numeric(df["score"])
+        print(df.head())
         df["rank"] = pd.to_numeric(df["rank"])
 
         df = (
@@ -160,8 +163,15 @@ class GenomicPrioritizer:
             .drop_duplicates(subset=[id_col], keep="first")
             .reset_index(drop=True)
         )
+        print("The df final is : ", df.head())
 
         return df
+
+    def update_ranking(self, data, score="score", id_col="varIdUniq", default_rank=None):
+        ranking = get_rank_metrics(data[score], data[id_col])
+        ranking_dict = {row[0]: row[3] for row in ranking}
+        new_ranking = [ranking_dict.get(candidate, default_rank) for candidate in data[id_col]]
+        return new_ranking
 
 
 
@@ -224,7 +234,7 @@ class Phen2GenePrioritizer(GenomicPrioritizer):
             self.identifier_translator[("gene_symbol", "ensembl_id")].get(row, None)
             for row in processed_data["gene_symbol"]
         ]
-        processed_data["rank"] = get_rank_metrics(processed_data["score"].tolist(), processed_data["gene_symbol"].tolist())
+        processed_data["rank"] = self.update_ranking(processed_data, score="score", id_col="gene_symbol")
         colnames = df.columns.values.tolist()
         for feature in quali_feature:
             processed_data[colnames[feature]] = df.iloc[:, feature]
@@ -280,7 +290,7 @@ class GadoPrioritizer(GenomicPrioritizer):
         for feature in quali_feature:
             processed_data[colnames[feature]] = df.iloc[:, feature]
         pass
-        processed_data["rank"] = get_rank_metrics(processed_data["score"].tolist(), processed_data["gene_symbol"].tolist())
+        processed_data["rank"] = self.update_ranking(processed_data, score="score", id_col="gene_symbol")
     
         return processed_data
     
@@ -352,7 +362,7 @@ class PhenogeniusPrioritizer(GenomicPrioritizer):
             self.identifier_translator[("gene_symbol", "ensembl_id")].get(row, None)
             for row in processed_data["gene_symbol"]
         ]
-        processed_data["rank"] = get_rank_metrics(processed_data["score"].tolist(), processed_data["gene_symbol"].tolist())
+        processed_data["rank"] = self.update_ranking(processed_data, score="score", id_col="gene_symbol")
         rows = df.to_dict(orient="records")
         row2hpo_desc_score = {}
         all_hpos = set()
@@ -511,11 +521,8 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
         processed_data["varIdUniq"] = processed_data["varId"] + processed_data.index.astype(str)
 
         main_score_col = "predict" if "predict" in df.columns else df.columns[1]
-        
-        ranking_metrics = get_rank_metrics(processed_data[main_score_col].tolist(), processed_data["varIdUniq"].tolist())
-        ranking_map = {row[0]: row[3] for row in ranking_metrics}
-        
-        processed_data["rank"] = [ranking_map[uid] for uid in processed_data["varIdUniq"]]
+        processed_data["rank"] = self.update_ranking(processed_data, score=main_score_col, id_col="varIdUniq")
+
         processed_data["score"] = processed_data[main_score_col]
         processed_data["gene_symbol"] = processed_data["varId"].map(self.variantID2gene_symbol)
 
@@ -583,15 +590,7 @@ class AimarrvelPrioritizer(GenomicPrioritizer):
             "predict" if "predict" in df_exploded.columns else df_exploded.columns[1]
         )
 
-        ranking_metrics = get_rank_metrics(
-            processed_data[main_score_col].tolist(),
-            processed_data["varIdUniq"].tolist(),
-        )
-        ranking_map = {row[0]: row[3] for row in ranking_metrics}
-
-        processed_data["rank"] = [
-            ranking_map[uid] for uid in processed_data["varIdUniq"]
-        ]
+        processed_data["rank"] = self.update_ranking(processed_data, score=main_score_col, id_col="varIdUniq")
         processed_data["score"] = processed_data[main_score_col]
         processed_data["gene_symbol"] = processed_data["varId"].map(self.variantID2gene_symbol)
 
@@ -747,8 +746,10 @@ class LiricalPrioritizer(GenomicPrioritizer):
                 self.identifier_translator[("entrez_id",target)][row.split(":")[1]]
                 for row in df["entrezGeneId"]
             ]
-        processed_data["rank"] = get_rank_metrics(processed_data["score"].tolist(), processed_data["gene_symbol"].tolist())
+        # processed_data["rank"] = get_rank_metrics(processed_data["score"].tolist(), processed_data["gene_symbol"].tolist())
+        processed_data["rank"] = self.update_ranking(processed_data, score="score", id_col="gene_symbol")
         # pretestprob is in a format 1/900 and i need to apply to convet to float
+
         processed_data["pretestprob"] = df["pretestprob"].apply(lambda x: float(x.split("/")[0])/float(x.split("/")[1]))
         processed_data["posttestprob"] = df["posttestprob"].apply(lambda x: float(x.replace("%","")))
         for feature in ["diseaseName", "diseaseCurie"]:
@@ -803,9 +804,7 @@ class LiricalPrioritizer(GenomicPrioritizer):
         processed_data = self.deduplicate_results(processed_data, result_type="variant")
 
         # updating ranking with the same ranker system
-        ranking = get_rank_metrics(processed_data["score"].astype(float).tolist(), processed_data["varId"].tolist())
-        map_ranking = {row[0]: row[3] for row in ranking}
-        processed_data["rank"] = [map_ranking[row] for row in processed_data["varId"].tolist()]
+        processed_data["rank"] = self.update_ranking(processed_data, score="score", id_col="varId")
 
         return processed_data
 
@@ -939,9 +938,8 @@ class ExomiserPrioritizer(GenomicPrioritizer):
                 data["pValue"].append(row["pValue"])
                 data["hiphive_score"].append(row["priorityResults"]["HIPHIVE_PRIORITY"].get("score"))
                 data["omim_score"].append(row["priorityResults"]["OMIM_PRIORITY"].get("score"))
-        ranking = get_rank_metrics(data["score"], data["varIdUniq"])
-        ranking = {row[0]:row[3] for row in ranking}
-        data["rank"] = [ranking[gene] for gene in data["varIdUniq"]]
+
+        data["rank"] = self.update_ranking(data, score="score", id_col="varIdUniq")
 
         processed_data = pd.DataFrame()
         for key in [
@@ -966,10 +964,8 @@ class ExomiserPrioritizer(GenomicPrioritizer):
             data["pValue"].append(row["pValue"])
             data["hiphive_score"].append(row["priorityResults"]["HIPHIVE_PRIORITY"].get("score"))
             data["omim_score"].append(row["priorityResults"]["OMIM_PRIORITY"].get("score"))
-        ranking = get_rank_metrics(data["score"], data["ensembl_id"])
-        genes = [row[0] for row in ranking]
-        ranking = {row[0]:row[3] for row in ranking}
-        data["rank"] = [ranking[gene] for gene in data["ensembl_id"]]
+
+        data["rank"] = self.update_ranking(data, score="score", id_col="ensembl_id")
 
         processed_data = pd.DataFrame()
         for key in ["rank","score","gene_symbol", "ensembl_id", "priorityScore", "pValue", "hiphive_score", "omim_score"]:
@@ -1005,13 +1001,10 @@ class XrarePrioritizer(GenomicPrioritizer):
                     with open(os.path.join(write_tmp, f+"_processed"), 'wb') as pf:
                         pickle.dump(self.patient2gene_results[f_name], pf)
             
-            self.quant_features_idx[f_name] = [2, 3, 5]  # score, acmg_score, 
-            self.qual_features_idx[f_name] = [4]
+            self.quant_features_idx[f_name] = [4] # acmg_score
+            self.qual_features_idx[f_name] = [5] # consequence
 
     def get_result_gene(self, df):
-        """
-        Extrae y colapsa la información a nivel de gen.
-        """
         data = {
             "gene_symbol": df["symbol"].tolist(),
             "ensembl_id": df["hgnc_id"].tolist(),
@@ -1020,14 +1013,18 @@ class XrarePrioritizer(GenomicPrioritizer):
             "consequence": df["Consequence"].tolist()
         }
 
-        ranking = get_rank_metrics(data["score"], data["ensembl_id"])
-        rank_dict = {row[0]: row[3] for row in ranking}
-        
-        data["rank"] = [rank_dict.get(eid, 999) for eid in data["ensembl_id"]]
+        data["rank"] = self.update_ranking(data, score="score", id_col="ensembl_id", default_rank=999)
 
         processed_data = pd.DataFrame(data)
+        print("Before deduplication, processed_data shape:", processed_data.shape)
         processed_data = processed_data.sort_values("score", ascending=False).drop_duplicates("ensembl_id")
-        
+        print("After deduplication, processed_data shape:", processed_data.shape)
+
+        first_cols = ["gene_symbol", "rank", "score"]
+        remaining_cols = [col for col in processed_data.columns if col not in first_cols]
+        processed_data = processed_data[first_cols + remaining_cols]
+        print("Final processed_data columns:", processed_data.columns.tolist())
+
         return processed_data
 
     def post_process_results_variants(self, raw_results_dir, write_tmp=None, read_tmp=False):
@@ -1105,11 +1102,9 @@ class XrarePrioritizer(GenomicPrioritizer):
 
         main_score_col = "xrare_score" if "xrare_score" in df.columns else df.columns[1]
 
-        ranking_metrics = get_rank_metrics(processed_data[main_score_col].tolist(), processed_data["varIdUniq"].tolist())
-        ranking_map = {row[0]: row[3] for row in ranking_metrics}
-        
-        processed_data["rank"] = [ranking_map[uid] for uid in processed_data["varIdUniq"]]
+
         processed_data["score"] = processed_data[main_score_col]
+        processed_data["rank"] = self.update_ranking(processed_data, score="score", id_col="varIdUniq")
         processed_data["gene_symbol"] = df["symbol"].astype(str)
 
         fixed_prefix = ["rank", "score", "varId", "varIdUniq", "contigName", "start", "end", "ref", "alt"]
@@ -1174,8 +1169,13 @@ class MetaGenomicPrioritizer:
 
                 # Keep only one column for ID + rename the rest with the prioritizer name
                 renamed = df.copy()
+                print("the df is: ", df.head())
+                print("the columns are: ", df.columns.tolist())
                 cols_to_rename = [col for col in df.columns if col != id_candidate and col not in feature_to_remove]
+                print("the cols to rename are: ", cols_to_rename)
                 renamed = renamed[[id_candidate] + cols_to_rename]
+                print("the renamed df is: ", renamed.head())
+                print([id_candidate] + [f"{col}_{name}" for col in cols_to_rename])
                 renamed.columns = [id_candidate] + [f"{col}_{name}" for col in cols_to_rename]
                 quantitative_idx.extend([n_total_cols + 1, n_total_cols + 2])
                 if prioritizer.quant_features_idx.get(patient): 

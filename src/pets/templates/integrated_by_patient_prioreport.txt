@@ -7,55 +7,757 @@
 <% 
     # df[first_feat + quant_features + qual_features + ["pat_number"]]
     all_numeric = [0,1]
-    if plotter.hash_vars["quantitative"]: 
+    if plotter.hash_vars["quantitative"]:
         all_numeric += plotter.hash_vars["quantitative"]
 
     plotter.hash_vars["prio_table"] = plotter.df_to_numeric(plotter.hash_vars["prio_table"], all_numeric)
-    plotter.hash_vars["prio_table_top100"] = plotter.get_top_rank(plotter.hash_vars["prio_table"], 100) 
+    plotter.hash_vars["prio_table_top100"] = plotter.get_top_rank(plotter.hash_vars["prio_table"], 100)
     colnames = list(plotter.hash_vars["prio_table_top100"].columns)
+    print(colnames)
+
+    # ================================================
+    # 1. SOURCE DATA
+    # ================================================
+
+    df = plotter.hash_vars["prio_table_top100"]
+    type_of_candidate = "variant" if "varId" in df.columns else "gene"
+
+    available_columns = list(df.columns)
+
+    # Detect gene column, including possible suffixes
+    gene_candidates = [
+        col for col in available_columns
+        if col.startswith("gene_symbol")
+    ]
+
+    gene_col = (
+        "gene_symbol"
+        if "gene_symbol" in available_columns
+        else gene_candidates[0] if gene_candidates else None
+    )
+
+    # ================================================
+    # 2. COLUMN GROUPS, LABELS AND COLORS
+    # ================================================
+    if type_of_candidate == "variant":
+
+        COLUMN_GROUPS = [
+            # Main prioritization
+            (
+                "priority", "#525252", "#ffffff",
+                [
+                    ("rank", "Rank"),
+                    ("score", "Priority Score"),
+                ]
+            ),
+
+            # Highlighted identifiers
+            (
+                "identifiers", "#525252", "#ffffff",
+                [
+                    ("varId", "Variant ID"),
+                    (gene_col, "Gene"),
+                ]
+            ),
+
+            # Disease information
+            (
+                "disease", "#c987ff", "#440058",
+                [
+                    ("diseaseName_lirical", "Disease"),
+                    ("diseaseCurie_lirical", "Disease ID"),
+                ]
+            ),
+
+            # Tool rankings
+            (
+                "rankings", "#4d7ea8", "#ffffff",
+                [
+                    ("rank_exomiser", "Exomiser Rank"),
+                    ("rank_lirical", "LIRICAL Rank"),
+                    ("rank_aimarrvel", "AIMARRVEL Rank"),
+                    ("rank_xrare", "xRare Rank"),
+                ]
+            ),
+
+            # Inheritance information
+            (
+                "inheritance", "#bbf8de", "#0508c7",
+                [
+                    ("AD_exomiser", "AD"),
+                    ("AR_exomiser", "AR"),
+                    ("XLD_exomiser", "XLD"),
+                    ("XLR_exomiser", "XLR"),
+                    ("MT_exomiser", "MT"),
+                ]
+            ),
+
+            # Inheritance matching
+            ## (
+            ##     "matching", "#33ffc2", "#ffffff",
+            ##     [
+            ##         ("AD.matched_aimarrvel", "AD Match"),
+            ##         ("AR.matched_aimarrvel", "AR Match"),
+            ##     ]
+            ## ),
+
+            # Exomiser classifications
+            (
+                "exomiser", "#ffe0c7", "#ff5e00",
+                [
+                    ("clinvar_exomiser", "ClinVar (Exomiser)"),
+                    ("acmg_exomiser", "ACMG (Exomiser)"),
+                ]
+            ),
+
+            # AIMARRVEL ClinVar values
+            ## (
+            ##     "aimarrvel", "#4cc9f7", "#ffffff",
+            ##     [
+            ##         ("clinvarNumP_aimarrvel", "ClinVar P"),
+            ##         ("clinvarNumLP_aimarrvel", "ClinVar LP"),
+            ##         ("clinvarNumLB_aimarrvel", "ClinVar LB"),
+            ##         ("clinvarNumB_aimarrvel", "ClinVar B"),
+            ##     ]
+            ## ),
+
+            # xRare classifications and evidence
+            (
+                "xrare", "#c987ff", "#440058",
+                [
+                    ("clinvar_id_xrare", "ClinVar ID"),
+                    ("clinvar_sig_xrare", "ClinVar Significance"),
+                    ("clinvar_pmids_xrare", "ClinVar PMIDs"),
+                    ("pathoACMG_xrare", "ACMG Classification"),
+                    ("tagsACMG_xrare", "ACMG Criteria"),
+                ]
+            ),
+        ]
+    
+        GROUP_TITLES = {
+            "priority": "Overall Prioritization",
+            "identifiers": "Variant and Gene Identification",
+            "disease": "Disease Association",
+            "rankings": "Tool-Specific Rankings",
+            "inheritance": "Exomiser Inheritance Models",
+            "exomiser": "Exomiser Clinical Annotations",
+            "xrare": "xRare Clinical Evidence and ACMG",
+        }
+
+        COLUMN_DESCRIPTIONS = {
+            "rank": (
+                "Final position in the integrated prioritization results. "
+                "Lower ranks indicate higher priority."
+            ),
+            "score": (
+                "Integrated prioritization score. It should not be interpreted "
+                "as a clinical probability of pathogenicity."
+            ),
+            "varId": (
+                "Genomic variant identifier, typically including chromosome, "
+                "position, reference allele and alternative allele."
+            ),
+            "diseaseName_lirical": (
+                "Candidate disease identified by LIRICAL based on "
+                "phenotype-associated evidence."
+            ),
+            "diseaseCurie_lirical": (
+                "Standardized disease identifier reported by LIRICAL, "
+                "such as an OMIM CURIE."
+            ),
+            "rank_exomiser": "Candidate ranking reported by Exomiser.",
+            "rank_lirical": "Disease prioritization rank reported by LIRICAL.",
+            "rank_aimarrvel": "Candidate ranking reported by AIMARRVEL.",
+            "rank_xrare": "Candidate ranking reported by xRare.",
+
+            "AD_exomiser": "Autosomal dominant inheritance model annotation.",
+            "AR_exomiser": "Autosomal recessive inheritance model annotation.",
+            "XLD_exomiser": "X-linked dominant inheritance model annotation.",
+            "XLR_exomiser": "X-linked recessive inheritance model annotation.",
+            "MT_exomiser": "Mitochondrial inheritance model annotation.",
+
+            "clinvar_exomiser": (
+                "ClinVar clinical significance annotation reported by Exomiser."
+            ),
+            "acmg_exomiser": (
+                "ACMG-related classification reported by Exomiser."
+            ),
+
+            "clinvar_id_xrare": "ClinVar record identifier reported by xRare.",
+            "clinvar_sig_xrare": (
+                "ClinVar clinical significance information reported by xRare."
+            ),
+            "clinvar_pmids_xrare": (
+                "PubMed identifiers associated with the reported ClinVar evidence."
+            ),
+            "pathoACMG_xrare": (
+                "ACMG-related pathogenicity classification reported by xRare."
+            ),
+            "tagsACMG_xrare": (
+                "ACMG evidence criteria, such as PVS1, PM2, PP3, BS2 or BP4."
+            ),
+        }
+    elif type_of_candidate == "gene":
+        GROUP_TITLES = {
+            "priority": "Overall Prioritization",
+            "identifiers": "Gene Identification",
+            "exomiser": "Exomiser Gene Prioritization",
+            "lirical": "LIRICAL Disease and Gene Prioritization",
+            "phen2gene": "Phen2Gene Prioritization",
+            "gado": "GADO Phenotype-Based Prioritization",
+            "phenogenius": "PhenoGenius Prioritization",
+            "xrare": "xRare Gene Prioritization",
+        }
+
+        # ================================================
+        # GENE PRIORITIZATION: COLUMN DESCRIPTIONS
+        # ================================================
+
+        COLUMN_DESCRIPTIONS = {
+
+            # Overall prioritization
+            "rank": (
+                "Final position of the gene in the integrated prioritization "
+                "results. Lower ranks indicate higher priority."
+            ),
+            "score": (
+                "Integrated gene prioritization score combining evidence "
+                "from the available tools. It should not be interpreted "
+                "as a clinical probability of pathogenicity."
+            ),
+
+            # Gene identification
+            "gene_symbol": (
+                "Official or reported gene symbol associated with the "
+                "candidate. Its presence in the prioritization results "
+                "does not establish a causal relationship with the "
+                "patient's phenotype."
+            ),
+
+            # Exomiser
+            "rank_exomiser": (
+                "Gene ranking position reported by Exomiser. "
+                "Lower ranks indicate higher prioritization."
+            ),
+            "score_exomiser": (
+                "Overall prioritization score reported by Exomiser, "
+                "reflecting the evidence used by its ranking workflow."
+            ),
+            "priorityScore_exomiser": (
+                "Priority score generated by Exomiser for the candidate gene."
+            ),
+            "pValue_exomiser": (
+                "Statistical p-value reported in the Exomiser output. "
+                "Its interpretation depends on the underlying scoring "
+                "or statistical procedure."
+            ),
+            "hiphive_score_exomiser": (
+                "HiPhive phenotype similarity score derived from "
+                "phenotype-based evidence linking the candidate gene "
+                "to the patient's clinical features."
+            ),
+            "omim_score_exomiser": (
+                "Score associated with OMIM-derived disease and phenotype "
+                "evidence used in the Exomiser prioritization workflow."
+            ),
+
+            # LIRICAL
+            "rank_lirical": (
+                "Ranking position associated with LIRICAL's "
+                "phenotype-based disease prioritization results."
+            ),
+            "score_lirical": (
+                "Numerical score associated with the LIRICAL "
+                "prioritization result."
+            ),
+            "pretestprob_lirical": (
+                "Prior probability assigned to a candidate disease "
+                "before incorporating the patient's phenotype evidence."
+            ),
+            "posttestprob_lirical": (
+                "Posterior probability assigned to a candidate disease "
+                "after incorporating the available phenotype evidence."
+            ),
+            "diseaseName_lirical": (
+                "Name of the candidate disease associated with the "
+                "phenotype-matching result reported by LIRICAL. "
+                "This represents a disease hypothesis rather than "
+                "a confirmed clinical diagnosis."
+            ),
+            "diseaseCurie_lirical": (
+                "Standardized disease identifier reported by LIRICAL, "
+                "commonly expressed as a CURIE such as OMIM:618494."
+            ),
+
+            # Phen2Gene
+            "rank_phen2gene": (
+                "Gene ranking position assigned by Phen2Gene based "
+                "on phenotype-driven gene prioritization."
+            ),
+            "score_phen2gene": (
+                "Gene prioritization score generated by Phen2Gene "
+                "using the available phenotype information."
+            ),
+            "Status_phen2gene": (
+                "Status annotation associated with the candidate gene "
+                "in the Phen2Gene output. Its interpretation depends "
+                "on the values and conventions used by the pipeline."
+            ),
+
+            # GADO
+            "rank_gado": (
+                "Gene ranking position assigned by GADO based on "
+                "phenotype-associated gene prioritization."
+            ),
+            "score_gado": (
+                "Gene prioritization score reported by GADO, "
+                "reflecting its phenotype-based ranking evidence."
+            ),
+
+            # PhenoGenius
+            "rank_phenogenius": (
+                "Gene ranking position assigned by PhenoGenius."
+            ),
+            "score_phenogenius": (
+                "Gene prioritization score reported by PhenoGenius."
+            ),
+            "phenotype_specificity_phenogenius": (
+                "Phenotype specificity feature reported by PhenoGenius. "
+                "Its numerical interpretation depends on the scoring "
+                "method implemented in the workflow."
+            ),
+
+            # xRare
+            "rank_xrare": (
+                "Gene ranking position assigned by xRare."
+            ),
+            "score_xrare": (
+                "Gene prioritization score generated by xRare "
+                "from its available predictive features."
+            ),
+            "acmg_score_xrare": (
+                "ACMG-related scoring feature reported by xRare. "
+                "It should not be interpreted as a definitive "
+                "clinical pathogenicity classification."
+            ),
+            "consequence_xrare": (
+                "Sequence variant consequence annotation associated "
+                "with the candidate gene in the xRare output."
+            ),
+        }
+
+
+        import re
+
+        # ================================================
+        # DETECT PATIENT-SPECIFIC HPO COLUMNS
+        # ================================================
+
+        hpo_pattern = re.compile(
+            r"^HP:\d{7}_(gado|phenogenius)$"
+        )
+
+        hpo_columns = {
+            "gado": [],
+            "phenogenius": []
+        }
+
+        for col in available_columns:
+            match = hpo_pattern.fullmatch(col)
+
+            if match:
+                tool_name = match.group(1)
+                hpo_columns[tool_name].append(col)
+
+        # Preserve original DataFrame column order
+        gado_hpo = [
+            (col, col.removesuffix("_gado"))
+            for col in hpo_columns["gado"]
+        ]
+
+        phenogenius_hpo = [
+            (col, col.removesuffix("_phenogenius"))
+            for col in hpo_columns["phenogenius"]
+        ]
+
+        # ================================================
+        # GENE PRIORITIZATION COLUMN GROUPS
+        # ================================================
+
+        COLUMN_GROUPS = [
+
+            # Overall prioritization
+            (
+                "priority", "#30343b", "#ffffff",
+                [
+                    ("rank", "Rank"),
+                    ("score", "Priority Score"),
+                ]
+            ),
+
+            # Gene identification
+            (
+                "identifiers", "#ffffff", "#000000",
+                [
+                    (gene_col, "Gene"),
+                ]
+            ),
+
+            # Exomiser
+            (
+                "exomiser", "#30343b", "#ffffff",
+                [
+                    ("rank_exomiser", "Exomiser Rank"),
+                    ("score_exomiser", "Exomiser Score"),
+                    ("priorityScore_exomiser", "Priority Score"),
+                    ("pValue_exomiser", "P-value"),
+                    ("hiphive_score_exomiser", "HiPhive Score"),
+                    ("omim_score_exomiser", "OMIM Score"),
+                ]
+            ),
+
+            # LIRICAL
+            (
+                "lirical", "#30343b", "#ffffff",
+                [
+                    ("rank_lirical", "LIRICAL Rank"),
+                    ("score_lirical", "LIRICAL Score"),
+                    ("pretestprob_lirical", "Pretest Probability"),
+                    ("posttestprob_lirical", "Posttest Probability"),
+                    ("diseaseName_lirical", "Disease"),
+                    ("diseaseCurie_lirical", "Disease ID"),
+                ]
+            ),
+
+            # Phen2Gene
+            (
+                "phen2gene", "#30343b", "#ffffff",
+                [
+                    ("rank_phen2gene", "Phen2Gene Rank"),
+                    ("score_phen2gene", "Phen2Gene Score"),
+                    ("Status_phen2gene", "Status"),
+                ]
+            ),
+
+            # GADO
+            (
+                "gado", "#30343b", "#ffffff",
+                [
+                    ("rank_gado", "GADO Rank"),
+                    ("score_gado", "GADO Score"),
+                ] + gado_hpo
+            ),
+
+            # PhenoGenius
+            (
+                "phenogenius", "#30343b", "#ffffff",
+                [
+                    ("rank_phenogenius", "PhenoGenius Rank"),
+                    ("score_phenogenius", "PhenoGenius Score"),
+                ]
+                + phenogenius_hpo
+                + [
+                    (
+                        "phenotype_specificity_phenogenius",
+                        "Phenotype Specificity"
+                    ),
+                ]
+            ),
+
+            # xRare
+            (
+                "xrare", "#30343b", "#ffffff",
+                [
+                    ("rank_xrare", "xRare Rank"),
+                    ("score_xrare", "xRare Score"),
+                    ("acmg_score_xrare", "ACMG Score"),
+                    ("consequence_xrare", "Consequence"),
+                ]
+            ),
+        ]
+
+
+    # ================================================
+    # 3. ORDER AND RENAME COLUMNS
+    # ================================================
+
+    # ================================================
+    # 3. ORDER AND RENAME COLUMNS
+    # ================================================
+
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import to_hex
+
+    # Generate automatic colors using Set3
+    cmap = plt.get_cmap("Set3")
+
+    # Assign a color to each group
+    group_names = [
+        group_name
+        for group_name, _, _, _ in COLUMN_GROUPS
+    ]
+
+    group_colors = {
+        name: to_hex(cmap(i % cmap.N))
+        for i, name in enumerate(group_names)
+    }
+
+    # Select, rename and style columns
+    selected_cols = []
+    column_labels = {}
+    column_styles = {}
+
+    for group_name, bg_color, text_color, columns in COLUMN_GROUPS:
+
+        # Override manually defined colors
+        bg_color = group_colors[group_name]
+        text_color = "#000000"
+
+        for original_name, display_name in columns:
+
+            if original_name is None:
+                continue
+
+            if original_name not in available_columns:
+                continue
+
+            if original_name in selected_cols:
+                continue
+
+            selected_cols.append(original_name)
+
+            column_labels[original_name] = display_name
+
+            column_styles[original_name] = (
+                group_name,
+                bg_color,
+                text_color
+            )
+
+    # Keep only explicitly configured columns
+    df_filtered = df.loc[:, selected_cols].copy()
+
+    # Truncate long Variant IDs to 20 characters
+    if "varId" in df_filtered.columns:
+        df_filtered["varId"] = df_filtered["varId"].apply(
+            lambda x: x[:20] + "..."
+            if isinstance(x, str) and len(x) > 20
+            else x
+        )
+
+    # Apply human-readable English headers
+    df_filtered.rename(
+        columns=column_labels,
+        inplace=True
+    )
+
+    # ================================================
+    # 3.1 DYNAMIC TABLE GUIDE
+    # ================================================
+
+    # Only groups containing columns actually shown in the table
+    guide_groups = []
+
+    for group_name, _, _, columns in COLUMN_GROUPS:
+
+        guide_columns = [
+            (original_name, display_name)
+            for original_name, display_name in columns
+            if original_name in selected_cols
+        ]
+
+        if not guide_columns:
+            continue
+
+        guide_groups.append({
+            "name": group_name,
+            "title": (
+                "Gene Identification"
+                if group_name == "identifiers" and type_of_candidate == "gene"
+                else GROUP_TITLES.get(group_name, group_name)
+            ),
+            "color": group_colors[group_name],
+            "columns": guide_columns,
+        })
+
+    # ================================================
+    # 4. PREPARE PLOTTER DATA
+    # ================================================
+
+    table_top = df_filtered.values.tolist()
+
+    table_top.insert(
+        0,
+        list(df_filtered.columns)
+    )
+
+    plotter.hash_vars["table_top100"] = table_top
+
+    dynamic_fields = list(range(len(selected_cols)))
+
+    # ================================================
+    # 5. DYNAMIC CSS CONFIGURATION
+    # ================================================
+
+    column_css = []
+    previous_group = None
+
+    for position, col in enumerate(selected_cols, start=1):
+
+        group, bg, fg = column_styles[col]
+
+        is_new_group = (
+            previous_group is not None
+            and group != previous_group
+        )
+
+        column_css.append(
+            (position, bg, fg, is_new_group)
+        )
+
+        previous_group = group
+
+    varid_position = (
+        selected_cols.index("varId") + 1
+        if "varId" in selected_cols
+        else None
+    )
 %>
+
 <% plotter.set_header() %>
 ${plotter.create_title("Integrated Report By Patient", id='main_title', hlevel=2, indexable=True, clickable=False)}
 
 ${plotter.create_title("Top Candidates", id='top_candidates', hlevel=2, indexable=True, clickable=False)}
 
 ${plotter.make_title("table", "top_gene_table", "Top 100 candidates associated with the phenotypes")}
-<div style="width: 100%; overflow-x: auto;">
-        <%
-            df = plotter.hash_vars["prio_table_top100"]
-            
-            first_three = list(df.columns[:3])
-            
-            rank_cols = [col for col in df.columns if col.startswith("rank_")]
-            
-            gene_cols = [col for col in df.columns if col.startswith("gene_symbol")]
-            single_gene_col = [gene_cols[0]] if gene_cols else []
-            
-            other_prefixes = ("diseaseName", "diseaseCurie", 
-            "clinvar_sig", "tagsACMG", "pathoACMG", "AD", "AR", "XLD", "XLR", "MT", "clinvar", "acmg")
-            info_cols = [col for col in df.columns if col.startswith(other_prefixes)]
-            
-            all_cols = first_three + rank_cols + single_gene_col + info_cols
-            selected_cols = []
-            for col in all_cols:
-                if col not in selected_cols and col in df.columns:
-                    selected_cols.append(col)
-            
-            df_filtered = df[selected_cols]
-            df_filtered = df_filtered.rename(columns={single_gene_col[0]: "gene_symbol"})
 
-            plotter.hash_vars["prio_table"].rename(columns={single_gene_col[0]: "gene_symbol"}, inplace=True)
-            plotter.hash_vars["prio_table_top100"].rename(columns={single_gene_col[0]: "gene_symbol"}, inplace=True)
-            
-            table_top = df_filtered.values.tolist()
-            table_top.insert(0, list(df_filtered.columns))
-            plotter.hash_vars["table_top100"] = table_top
-            
-            dynamic_fields = list(range(len(selected_cols)))
-        %>
-        ${plotter.table(id="table_top100", header=True, text=True, title="", row_names=False, fields=dynamic_fields,
-                        styled='dt', border=2, attrib={
-                                'class': "table table-striped table-dark"})}
+
+<details class="prio-help">
+    <summary>
+        Column guide and interpretation
+        <span class="prio-help-hint">
+            ${len(guide_groups)} color-coded groups · click to expand
+        </span>
+    </summary>
+
+    <div class="prio-guide">
+
+        <h3>Table description and column interpretation</h3>
+
+        % if type_of_candidate == "variant":
+            <p class="intro">
+                This table presents up to 100 top-ranked candidate
+                variants identified through phenotype-driven genomic
+                prioritization. It integrates complementary evidence
+                from Exomiser, LIRICAL, AIMARRVEL and xRare.
+                Columns are organized into color-coded groups to
+                facilitate interpretation and comparison.
+            </p>
+        % else:
+            <p class="intro">
+                This table presents up to 100 top-ranked candidate
+                genes identified through integrated genomic
+                prioritization. It includes overall prioritization
+                scores, gene identifiers and available tool-specific
+                rankings.
+            </p>
+        % endif
+
+        <div class="prio-guide-grid">
+
+            % for i, group in enumerate(guide_groups, start=1):
+
+                <section class="prio-guide-block">
+
+                    <h4 style="
+                        background:${group['color']};
+                        color:#000000;
+                    ">
+                        ${i}. ${group['title']}
+                    </h4>
+
+                    <ul>
+                        % for original_name, display_name in group["columns"]:
+
+                            <li>
+                                <strong>${display_name}:</strong>
+                                ${COLUMN_DESCRIPTIONS.get(
+                                    original_name,
+                                    "Additional annotation provided by the prioritization workflow."
+                                )}
+                            </li>
+
+                        % endfor
+                    </ul>
+
+                </section>
+
+            % endfor
+
+        </div>
+
+        <div class="prio-guide-note">
+            <strong>Important interpretation notes:</strong>
+            Missing or undefined values indicate that no usable
+            annotation is available for the corresponding field.
+            Tool-specific rankings and classifications may differ
+            because they rely on different sources and analytical
+            approaches. These results support candidate prioritization
+            and evidence review, but do not replace clinical
+            validation or independent pathogenicity assessment.
+        </div>
+
+    </div>
+</details>
+
+
+<style>
+    /* GENERAL TABLE STYLES */
+    #table_0 {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    /* DYNAMIC COLUMN COLORS */
+    % for pos, bg, fg, separator in column_css:
+
+    #table_0 tr > :nth-child(${pos}) {
+
+        background-color: ${bg} !important;
+        color: ${fg} !important;
+
+        --bs-table-bg: ${bg};
+        --bs-table-color: ${fg};
+        --bs-table-striped-bg: ${bg};
+        --bs-table-accent-bg: transparent;
+
+        box-shadow: none !important;
+
+        % if separator:
+        border-left: 3px solid #aeb8c2 !important;
+        % endif
+    }
+
+    % endfor
+
+</style>
+
+<div style="width: 100%; overflow-x: auto;">
+
+    ${plotter.table(
+        id="table_top100",
+        header=True,
+        text=True,
+        title="",
+        row_names=False,
+        fields=dynamic_fields,
+        styled='dt',
+        border=2,
+        attrib={
+            'class': "table table-striped table-dark"
+        }
+    )}
+
 </div>
 
 
