@@ -55,3 +55,50 @@ def main_pedigree_analysis(opts):
     #analyzer.remove_de_novo_variants()
     #analyzer.analyze()
     #analyzer.generate_report()
+
+def main_vcf_manager(opts):
+    from pets.vcf_manager import VCFManager
+    options = opts
+    vcf_manager = VCFManager()
+    vcf_manager.load_vcf(options["vcf_file"])
+    stats = vcf_manager.calculate_all_stats()
+    variants_df = vcf_manager.to_dataframe()
+    # add filter options here if needed
+
+    if options.get("filter"):
+
+    if options.get("output_file"):
+        vcf_manager.export_vcf(options["output_file"])
+
+def main_vcf_manager(opts):
+    """Run VCF analysis."""
+    from pets.vcf_manager import VCFManager
+
+    vcf_manager = VCFManager(opts["vcf_file"])
+    vcf_manager.load()
+
+    if opts.get("filters"):
+        for key, value in parse_filters(opts["filters"]):
+            if key == "chromosome":
+                vcf_manager.filter_by_chromosome(value)
+            elif key == "quality":
+                vcf_manager.filter_by_quality(min_qual=float(value))
+            elif key == "depth":
+                vcf_manager.filter_by_depth(min_dp=int(value))
+            elif key == "vaf":
+                vcf_manager.filter_by_vaf(min_vaf=float(value))
+            elif key == "genotype":
+                vcf_manager.filter_by_genotype(value)
+            elif key == "impact":
+                vcf_manager.filter_by_impact(value)
+            else:
+                raise ValueError(f"Unknown filter: {key}")
+
+    stats = vcf_manager.calculate_all_stats()
+    variants_df = vcf_manager.to_dataframe()
+
+    if opts.get("output_file"):
+        vcf_manager.to_vcf(opts["output_file"])
+
+    if opts.get("report"):
+        vcf_manager.generate_report()
