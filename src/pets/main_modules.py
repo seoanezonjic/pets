@@ -584,13 +584,6 @@ def main_report_prioritizer(opts):
             elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
                 prio_table = list(first_prioritizer.patient2variant_results.values())[0] 
 
-
-            # print("----")
-            # print("AQUI ESTAMOS")
-            # print("LALALLALA")
-            # print("prio_table", prio_table.head())
-            # print("quantitative_feature", quantitative_feature)
-            # print("qualitative_feature", qualitative_feature)
             container = {
                 "quantitative": quantitative_feature,
                 "qualitative": qualitative_feature,

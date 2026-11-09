@@ -79,11 +79,18 @@ def main_vcf_manager(opts):
             else:
                 raise ValueError(f"Unknown filter: {key}")
 
-    stats = vcf_manager.calculate_all_stats()
-    variants_df = vcf_manager.to_dataframe()
+    # stats = vcf_manager.calculate_all_stats()
+    # variants_df = vcf_manager.to_dataframe()
 
     if opts.get("output_file"):
         vcf_manager.to_vcf(opts["output_file"])
 
     if opts.get("report"):
-        vcf_manager.generate_report()
+        container = {}
+        container["vcf_report"] = vcf_manager.build_report_data(window_bp=1_000_000, histogram_bins=30)
+        print(f"Report data container: {container}")
+        # Create the report container using the
+        # container initialization already used by PETS.
+        report = Py_report_html(container, "vcf_reporting", False, False)
+        report.build(open(str(files('pets.templates').joinpath("vcf_report.txt"))).read())
+        report.write( opts.get("output_file") + '.html')

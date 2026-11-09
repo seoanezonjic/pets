@@ -524,6 +524,7 @@ def vcf_manager(args=None):
     parser.add_argument( "-o", "--output_file", dest="output_file", default=None, help="Output VCF file (.vcf or .vcf.gz)" )
     parser.add_argument( "--stats_file", dest="stats_file", default=None, help="Output JSON file with VCF statistics" )
     parser.add_argument( "--variants_file", dest="variants_file", default=None, help="Output CSV file with variant information")
+    parser.add_argument( "--report", dest="report", action="store_true", help="Generate HTML report" )
 
     opts = vars(parser.parse_args(args))
     main_vcf_manager(opts)
