@@ -19,7 +19,8 @@ from pets.main_modules import (
     ) 
 
 from pets.main_modules_advanced import (
-    main_pedigree_analysis
+    main_pedigree_analysis,
+    main_vcf_manager
 )
 
 ## TYPES
@@ -510,3 +511,19 @@ def pedigree_analysis(args=None):
     opts = vars(opts)
     main_pedigree_analysis(opts)
 
+
+def vcf_manager(args=None):
+    if args is None: args = sys.argv[1:]
+
+    parser = argparse.ArgumentParser(
+        description="VCF management, filtering and statistics"
+    )
+    parser.add_argument( "--vcf_file", dest="vcf_file", required=True, help="Input VCF file (.vcf or .vcf.gz)" )
+    parser.add_argument( "--filters", dest="filters", default=None, type=lambda x: [tuple(f.split(",")) for f in x.split(";")],
+                         help="Ordered list of filters as tuples: (filter_type, value). example: 'maf,0.01;impact,high;gene,BRCA1'" )
+    parser.add_argument( "--output_file", dest="output_file", default=None, help="Output VCF file (.vcf or .vcf.gz)" )
+    parser.add_argument( "--stats_file", dest="stats_file", default=None, help="Output JSON file with VCF statistics" )
+    parser.add_argument( "--variants_file", dest="variants_file", default=None, help="Output CSV file with variant information")
+
+    opts = vars(parser.parse_args(args))
+    main_vcf_manager(opts)
