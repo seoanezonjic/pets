@@ -34,11 +34,15 @@ class VCFManager:
         self.data["variants"] = []
 
         for variant in vcf:
-            ad = variant.format("AD") if "AD" in variant.FORMAT.split(":") else None
-            dp = variant.format("DP") if "DP" in variant.FORMAT.split(":") else None
-            gq = variant.format("GQ") if "GQ" in variant.FORMAT.split(":") else None
+            print("the variant is:", variant.FORMAT)
+            rd = variant.format("RD") if "RD" in variant.FORMAT else None
+            ad = variant.format("AD") if "AD" in variant.FORMAT else None
+            dp = variant.format("DP") if "DP" in variant.FORMAT else None
+            gq = variant.format("GQ") if "GQ" in variant.FORMAT else None
 
+            print(f"Processing variant: {variant.CHROM}:{variant.POS} {variant.REF}>{variant.ALT} with RD = {rd}, AD={ad}, DP={dp}, GQ={gq}")
             for i, alt in enumerate(variant.ALT, start=1):
+
                 ad_ref = int(ad[0][0]) if ad is not None else None
                 ad_alt = int(ad[0][i]) if ad is not None else None
 

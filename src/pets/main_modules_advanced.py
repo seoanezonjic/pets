@@ -58,27 +58,12 @@ def main_pedigree_analysis(opts):
 
 def main_vcf_manager(opts):
     from pets.vcf_manager import VCFManager
-    options = opts
-    vcf_manager = VCFManager()
-    vcf_manager.load_vcf(options["vcf_file"])
-    stats = vcf_manager.calculate_all_stats()
-    variants_df = vcf_manager.to_dataframe()
-    # add filter options here if needed
-
-    if options.get("filter"):
-
-    if options.get("output_file"):
-        vcf_manager.export_vcf(options["output_file"])
-
-def main_vcf_manager(opts):
-    """Run VCF analysis."""
-    from pets.vcf_manager import VCFManager
 
     vcf_manager = VCFManager(opts["vcf_file"])
     vcf_manager.load()
 
     if opts.get("filters"):
-        for key, value in parse_filters(opts["filters"]):
+        for key, value in opts["filters"]:
             if key == "chromosome":
                 vcf_manager.filter_by_chromosome(value)
             elif key == "quality":
