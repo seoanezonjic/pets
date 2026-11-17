@@ -55,3 +55,42 @@ def main_pedigree_analysis(opts):
     #analyzer.remove_de_novo_variants()
     #analyzer.analyze()
     #analyzer.generate_report()
+
+def main_vcf_manager(opts):
+    from pets.vcf_manager import VCFManager
+
+    vcf_manager = VCFManager(opts["vcf_file"])
+    vcf_manager.load()
+
+    if opts.get("filters"):
+        for key, value in opts["filters"]:
+            if key == "chromosome":
+                vcf_manager.filter_by_chromosome(value)
+            elif key == "quality":
+                vcf_manager.filter_by_quality(min_qual=float(value))
+            elif key == "depth":
+                vcf_manager.filter_by_depth(min_dp=int(value))
+            elif key == "vaf":
+                vcf_manager.filter_by_vaf(min_vaf=float(value))
+            elif key == "genotype":
+                vcf_manager.filter_by_genotype(value)
+            elif key == "impact":
+                vcf_manager.filter_by_impact(value)
+            else:
+                raise ValueError(f"Unknown filter: {key}")
+
+    # stats = vcf_manager.calculate_all_stats()
+    # variants_df = vcf_manager.to_dataframe()
+
+    if opts.get("output_file"):
+        vcf_manager.to_vcf(opts["output_file"])
+
+    if opts.get("report"):
+        container = {}
+        container["vcf_report"] = vcf_manager.build_report_data(window_bp=1_000_000, histogram_bins=30)
+        print(f"Report data container: {container}")
+        # Create the report container using the
+        # container initialization already used by PETS.
+        report = Py_report_html(container, "vcf_reporting", False, False)
+        report.build(open(str(files('pets.templates').joinpath("vcf_report.txt"))).read())
+        report.write( opts.get("output_file") + '.html')

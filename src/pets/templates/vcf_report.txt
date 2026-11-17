@@ -1,0 +1,84 @@
+<%
+    # The report context is prepared beforehand by VCFManager.build_report_data().
+    data = plotter.hash_vars["vcf_report"]
+    plotter.hash_vars["vcf_summary"] = data["summary"]
+    plotter.hash_vars["vcf_chrom_table"] = data["chrom_table"]
+    plotter.hash_vars["vcf_position_counts"] = data["position"]["variant_counts"]
+    for metric in data["metrics"]:
+        plotter.hash_vars[f"vcf_pos_{metric}"] = data["position"][metric]
+        if metric in data["distributions"]:
+            plotter.hash_vars[f"vcf_dist_{metric}"] = data["distributions"][metric]
+        if metric in data["histograms"]:
+            plotter.hash_vars[f"vcf_hist_genome_{metric}"] = data["histograms"][metric]["genome"]
+            plotter.hash_vars[f"vcf_hist_chrom_{metric}"] = data["histograms"][metric]["chromosomes"]
+%>
+
+<style>
+.vcf-intro {max-width:1100px; padding:16px 20px; border:1px solid #dce2ea; border-radius:12px; margin:12px auto 26px;}
+.vcf-intro h3 {margin:0 0 8px;}
+.vcf-grid {display:grid; grid-template-columns:repeat(auto-fit,minmax(440px,1fr)); gap:18px; margin:12px 0;}
+.vcf-plot {overflow-x:auto; min-width:0; border:1px solid #e0e5eb; border-radius:12px; padding:10px;}
+.vcf-hint {font-size:.92rem; opacity:.83;}
+.vcf-hist-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;margin-top:14px;}
+.vcf-hist-grid > div {min-width:0;overflow-x:auto;}
+.vcf-plot details {margin-top:16px;}
+.vcf-plot summary {cursor:pointer;font-weight:600;}
+</style>
+
+<% plotter.set_header() %>
+${plotter.create_title("VCF quality and genomic distribution report", id="vcf_main", hlevel=2, indexable=True, clickable=False)}
+<div class="vcf-intro">
+ <h3>Sample: ${data['sample'] | h}</h3>
+ <p>Summary of small variants from a normalized, single-sample, biallelic VCF.</p>
+ <p class="vcf-hint">Variant count by genomic window does not correct for sequencing coverage, target capture size, or reference chromosome length.</p>
+</div>
+
+${plotter.create_title("1. Statistical overview", id="vcf_stats", hlevel=2, indexable=True, clickable=False)}
+<div class="vcf-grid">
+ <div class="vcf-plot">
+  ${plotter.make_title("table", "vcf_summary", "Summary statistics")}
+  ${plotter.table(id="vcf_summary", header=True, text=True, title="", row_names=False, fields=[0,1], styled='dt', border=1)}
+ </div>
+ <div class="vcf-plot">
+  ${plotter.make_title("table", "vcf_chrom_table", "Statistics by chromosome")}
+  ${plotter.table(id="vcf_chrom_table", header=True, text=True, title="", row_names=False, fields=[0,1,2,3,4], styled='dt', border=1)}
+ </div>
+</div>
+
+${plotter.create_title("2. Genomic position profiles", id="vcf_position", hlevel=2, indexable=True, clickable=False)}
+<p class="vcf-hint">Each column represents an occupied ${format(data['window_bp'] / 1000000, 'g')}-Mb genomic window. Blank metric cells indicate no observed value; variant-count cells are zero for unoccupied chromosome-window combinations. Labels are zero-based window starts.</p>
+<div class="vcf-plot">
+ ${plotter.make_title("figure", "vcf_position_counts", "Variant counts across chromosomal windows")}
+ ${plotter.heatmap(id="vcf_position_counts", header=True, row_names=True, title="Variants per window", config={"samplesClustered": False, "showSmpDendrogram": False, "variablesClustered": False, "showVarDendrogram": False})}
+</div>
+% for metric in data['metrics']:
+<div class="vcf-plot">
+ ${plotter.make_title("figure", "vcf_pos_" + metric, "Median " + metric + " per genomic window")}
+ ${plotter.heatmap(id="vcf_pos_" + metric, header=True, row_names=True, title="Median " + metric, config={"samplesClustered": False, "showSmpDendrogram": False, "variablesClustered": False, "showVarDendrogram": False})}
+</div>
+% endfor
+
+${plotter.create_title("3. Empirical distributions by chromosome", id="vcf_distribution", hlevel=2, indexable=True, clickable=False)}
+<p class="vcf-hint">${data['statistical_note'] | h}</p>
+% for metric in data['metrics']:
+  % if metric in data['distributions']:
+  <div class="vcf-plot">
+   ${plotter.make_title("figure", "vcf_dist_" + metric, metric + " empirical probability mass: genome and chromosomes")}
+   ${plotter.heatmap(id="vcf_dist_" + metric, header=True, row_names=True, title=metric + " value-bin probabilities", config={"samplesClustered": False, "showSmpDendrogram": False, "variablesClustered": False, "showVarDendrogram": False})}
+   <div class="vcf-hist-grid">
+    <div>
+     ${plotter.make_title("figure", "vcf_hist_genome_" + metric, metric + " genome-wide histogram (relative frequencies)")}
+     ${plotter.barplot(id="vcf_hist_genome_" + metric, header=True, row_names=True, title=metric + " · whole genome", height=350, width=600, config={"graphOrientation": "vertical", "xAxisTitle": metric + " value intervals", "yAxisTitle": "Relative frequency"})}
+    </div>
+   </div>
+   % if data['chromosomes']:
+   <details>
+    <summary>Show per-chromosome histogram comparison for ${metric}</summary>
+    <p class="vcf-hint">Each chromosome is normalized independently; bars show relative frequencies, not absolute variant counts. Many chromosomes may produce a crowded plot.</p>
+    ${plotter.make_title("figure", "vcf_hist_chrom_" + metric, metric + " histograms by chromosome (shared value bins)")}
+    ${plotter.barplot(id="vcf_hist_chrom_" + metric, header=True, row_names=True, title=metric + " · chromosomes", height=550, width=1100, config={"graphOrientation": "vertical", "xAxisTitle": metric + " value intervals", "yAxisTitle": "Relative frequency"})}
+   </details>
+   % endif
+  </div>
+  % endif
+% endfor

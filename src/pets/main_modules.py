@@ -482,7 +482,7 @@ def main_report_prioritizer(opts):
     from pets.genomic_prioritizer import (
         Phen2GenePrioritizer, GadoPrioritizer, PhenogeniusPrioritizer, ExomiserPrioritizer,
         AimarrvelPrioritizer, LiricalPrioritizer, DefaultGenomicPrioritizer, MetaGenomicPrioritizer, XrarePrioritizer,
-        HeuristicModel, HeuristicModelMeanWithPresence
+        HeuristicModel, HeuristicModelMeanWithPresence, HeuristicModelRRF, HeuristicModelRRF_with_consensus_penalty
     )
     options = vars(opts)
     
@@ -506,7 +506,7 @@ def main_report_prioritizer(opts):
         elif prioritizer_type == "default":
             prioritizer[(prioritizer_type, path2folder_results)] = DefaultGenomicPrioritizer()
         elif prioritizer_type == "xrare":
-            print("··· Loading Xrare Prioritizer ···")
+            print("··· Loading Xrare Prioritizer...")
             print("miramiraquemiramira")
             prioritizer[(prioritizer_type, path2folder_results)] = XrarePrioritizer()
         else:
@@ -518,6 +518,7 @@ def main_report_prioritizer(opts):
         if options["benchmark_type"] == "gene" or options["benchmark_type"] == "both":
             prioritizer[(prioritizer_type, path2folder_results)].post_process_results_genes(path2folder_results, 
                              write_tmp=options["write_tmp"], read_tmp=options["read_tmp"])
+            print(prioritizer[(prioritizer_type, path2folder_results)].patient2gene_results)
             if options["gene_whitelist"]:
                 genes = []
                 with open(options["gene_whitelist"], "r") as f:
@@ -553,10 +554,13 @@ def main_report_prioritizer(opts):
                 metaprioritizer.test_patients = metaprioritizer.get_all_patients()
                 # print(metaprioritizer.test_patients)
                 # metaprioritizer.model = HeuristicModel()
-                metaprioritizer.model = HeuristicModelMeanWithPresence()
+                #etaprioritizer.model = HeuristicModelMeanWithPresence()
+                #metaprioritizer.model = HeuristicModelRRF()
+                metaprioritizer.model = HeuristicModelRRF_with_consensus_penalty()
                 metaprioritizer.predict_test(type=options["benchmark_type"])
                 prio_table, quantitative_feature, qualitative_feature = metaprioritizer.get_combined_results(type=options["benchmark_type"])
-
+                print("the prio_table is:", prio_table)
+    
             else:
                 first_prioritizer = list(prioritizer.values())[0]
                 prio_table, quantitative_feature, qualitative_feature = first_prioritizer.get_combined_results(options["benchmark_type"])
@@ -580,13 +584,6 @@ def main_report_prioritizer(opts):
             elif options["benchmark_type"] == "variant" or options["benchmark_type"] == "both":
                 prio_table = list(first_prioritizer.patient2variant_results.values())[0] 
 
-
-            # print("----")
-            # print("AQUI ESTAMOS")
-            # print("LALALLALA")
-            # print("prio_table", prio_table.head())
-            # print("quantitative_feature", quantitative_feature)
-            # print("qualitative_feature", qualitative_feature)
             container = {
                 "quantitative": quantitative_feature,
                 "qualitative": qualitative_feature,
@@ -597,7 +594,8 @@ def main_report_prioritizer(opts):
             }
             template="individual_prioreport.txt"
 
-        report = Py_report_html(container, "Prioritizer", False, False) # TODO FGC: Check para elmiinar esta parte.
+        report = Py_report_html(container, "Prioritizer", False, False) # TODO FGC: Check para elmiminar esta parte.
+        report.add_css_files([str(files('pets.css').joinpath("prioritizer_minimal_styles.css"))])
         report.build(open(str(files('pets.templates').joinpath(template))).read())
         report.write(options["output_file"] + '.html')
 
