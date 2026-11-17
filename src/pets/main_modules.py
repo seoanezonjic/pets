@@ -1122,13 +1122,14 @@ def main_vcf2effects(opts):
 
     var_effects = []
     if opts.table:
+        genom_ref = None if opts.genome == None else int(opts.genome)
         with open(opts.input_vcf) as f:
             for line in f:
                 fields = line.rstrip().split("\t")
                 if fields[0] == '-':
                     var_effects.append(['-'] * 8)
                     continue
-                var = Variant(contig = fields[0], start = int(fields[1]), ref = fields[2], alt = fields[3])
+                var = Variant(contig = fields[0], start = int(fields[1]), ref = fields[2], alt = fields[3], genome=genom_ref)
                 effects = var.effects()
                 if len(effects) > 0:
                     top_effect = effects.top_priority_effect()
@@ -1138,6 +1139,7 @@ def main_vcf2effects(opts):
                     var_effects.append([var.contig, var.start , var.ref, var.alt, top_effect.transcript_name, top_effect.short_description, effect_name, ",".join(genes)])
     else:
         vcfVariants = load_vcf(opts.input_vcf, allow_extended_nucleotides= True, genome=opts.genome)
+        print(opts.genome, file = sys.stderr)
         for variant in vcfVariants:
             if opts.include_silent_and_non_coding:
                 effects = variant.effects()
